@@ -1,0 +1,459 @@
+= Syntaxe et Concepts Clés de JavaScript
+Timothée Robert
+:toc: left
+:toclevels: 3
+:sectnums:
+:source-highlighter: highlight.js
+:imagesdir: images
+
+image::JavaScript-Symbol.png[JavaScript Logo]
+
+JavaScript, inventé en 1995 par Brendan Eich, est le langage de programmation du Web. Initialement conçu pour s'exécuter côté client (dans le navigateur), il peut aujourd'hui, grâce à des environnements comme NodeJS, fonctionner également côté serveur.
+
+== Intégration dans une page HTML
+
+Le code JavaScript s'utilise à l'intérieur des pages HTML. C'est la balise `<script>` qui indique au navigateur d'interpréter le code.
+
+=== Emplacement de la balise
+
+La balise `<script>` peut être placée dans l'en-tête (`<head>`) ou le corps (`<body>`) du document HTML. Cependant, la meilleure pratique consiste à la placer juste avant la fermeture de la balise `</body>`. Cela permet au contenu HTML de la page de s'afficher d'abord, offrant une meilleure expérience utilisateur, avant que le navigateur ne charge et n'exécute les scripts.
+
+.Exemple de positionnement de la balise `<script>`
+image::js_1.png[Emplacement de la balise script]
+
+== Affichage et Interaction
+
+=== Dans la console du navigateur
+
+La méthode la plus courante pour déboguer et afficher des informations est `console.log()`. Elle écrit un message dans la console de développement du navigateur, que l'on peut généralement ouvrir avec la touche **F12**.
+
+.Exemple d'affichage dans la console
+image::js_2.png[Exemple d'affichage dans la console]
+
+=== Boîtes de dialogue
+
+JavaScript peut interagir directement avec l'utilisateur via des boîtes de dialogue modales.
+
+* `alert('message')` : Affiche une boîte d'alerte avec un message et un bouton OK.
+* `prompt('question')` : Affiche une boîte de dialogue qui demande à l'utilisateur de saisir une donnée. Elle renvoie la valeur saisie (ou `null` si l'utilisateur annule).
+
+=== Écriture dans le document
+
+La méthode `document.write()` écrit du contenu HTML directement dans le document.
+
+IMPORTANT: `document.write()` est une méthode ancienne. Si elle est appelée après le chargement complet de la page, elle peut effacer tout le contenu existant.
+
+[source,javascript]
+----
+let contenu = prompt('Lachez vous et exprimez votre colère');
+if (contenu) {
+    document.open();
+    document.write("<h1>Assez de l'ancien contenu, passons au nouveau !</h1>" + contenu);
+    document.close();
+}
+----
+
+== Variables et Portée
+
+En JavaScript moderne, nous utilisons trois mots-clés pour déclarer des variables.
+
+`const`::
+Déclare une référence *constante* vers une valeur. Sa portée est locale au bloc où elle est utilisée. C'est le choix par défaut.
++
+[source,javascript]
+----
+const nom = "Robert";
+// nom = "Martin"; // Erreur : Assignment to constant variable.
+----
+
+`let`::
+Déclare une variable qui peut être réassignée. Sa portée est locale au bloc.
++
+[source,javascript]
+----
+let score = 10;
+score = 15; // OK
+----
+
+`var`::
+Déclare une variable de portée globale au script. Son utilisation est aujourd'hui déconseillée au profit de `let` et `const`.
+
+== Les Tableaux
+
+=== Tableaux Simples (indexés)
+Un tableau est une liste ordonnée d'éléments, accessibles via un indice qui commence à 0.
+
+[source,javascript]
+----
+// Syntaxe littérale (la plus commune)
+const jours = ["Lundi", "Mardi", "Mercredi"];
+console.log(jours[0]); // Affiche "Lundi"
+----
+
+=== Tableaux Associatifs (Objets)
+En JavaScript, un tableau associatif est une liste d'associations de clés et de valeurs.
+
+[source,javascript]
+----
+const codePostal = {
+  "Paris": 75000,
+  "Lyon": 69000,
+  "Grenoble": 38000
+};
+
+console.log(codePostal.Lyon); // Affiche 69000
+----
+
+=== Parcours de Tableaux
+
+. *Boucle `for...in` (pour les indices/clés) :* La variable à gauche de `in` contient l'indice (pour un tableau simple) ou la clé (pour un objet).
++
+[source,javascript]
+----
+// Sur un tableau associatif
+for (const ville in codePostal) {
+  console.log(`La ville est : ${ville} et son code postal est : ${codePostal[ville]}`);
+}
+----
+
+. *La boucle `for...of`* (pour les valeurs)
+
+Introduite avec ES6, la boucle `for...of` est aujourd'hui la manière la plus simple et la plus sûre de parcourir les **valeurs** d'un objet itérable (comme un tableau, une chaîne de caractères, etc.).
+
+[source,javascript]
+----
+const notes = [12, 15, 9, 18];
+
+for (const uneNote of notes) {
+  console.log(uneNote);
+}
+// Affiche successivement :
+// 12
+// 15
+// 9
+// 18
+----
+=== Différences entre `for...of` et `for...in`
+
+`for...of` vs `for...in` : Lequel choisir ?
+
+C'est une distinction fondamentale :
+
+* `for...in` parcourt les **clés** (ou les indices).
+* `for...of` parcourt les **valeurs**.
+
+Pour un tableau, on veut presque toujours parcourir les valeurs. Utiliser `for...in` sur un tableau est considéré comme une mauvaise pratique qui peut mener à des bugs.
+
+.Tableau comparatif
+[options="header"]
+|===
+| Critère | `for...of` (Recommandé pour les tableaux) | `for...in` (À réserver aux objets)
+
+| **Itère sur...**
+| Les **valeurs** de l'itérable.
+| Les **clés** (propriétés) de l'objet.
+
+| **Usage principal**
+| Parcourir les éléments d'un tableau (`Array`), d'une chaîne de caractères (`String`), etc.
+| Inspecter les propriétés d'un objet simple (POJO - Plain Old JavaScript Object).
+
+| **Avantages**
+| Simple, direct, et évite les erreurs courantes. Fonctionne avec tous les objets itérables.
+| Utile pour le débogage et la manipulation dynamique d'objets.
+
+| **Inconvénients**
+| Ne donne pas directement accès à l'indice de l'élément.
+| Peut parcourir des propriétés inattendues (héritées du prototype) et l'ordre n'est pas garanti. **Ne pas utiliser sur les tableaux**.
+|===
+
+== Les Instructions Conditionnelles
+
+=== Opérateurs de comparaison
+Les opérateurs de comparaison permettent de comparer 2 opérandes à l'intérieur de conditions.
+
+.Principaux opérateurs de comparaison
+[options="header"]
+|===
+| Opérateur | Signification
+| pass:c[==] | **Égal en valeur :** Renvoie `true` si les opérandes sont égaux après conversion de type.
+| pass:c[!=] | **Différent en valeur**.
+| pass:c[===] | **Strictement égal :** Renvoie `true` si les opérandes sont égaux et de même type, sans conversion.
+| pass:c[< ou >] | Plus petit ou plus grand.
+| pass:c[<= ou >=] | Plus petit ou égal, plus grand ou égal.
+|===
+
+=== Condition `if...else`
+Dès qu'une condition est vraie, le bloc de code associé est exécuté et la structure est quittée.
+
+[source,javascript]
+----
+let resultatNote = prompt('Saisissez le résultat de votre note');
+
+if (resultatNote == 20) {
+    document.write("<h1>Parfait !</h1>");
+} else if (resultatNote >= 14) {
+    document.write("<h1>Très bien !</h1>");
+} else {
+    document.write("<h1>Peut mieux faire...</h1>");
+}
+----
+=== Opérateur ternaire
+C'est un raccourci pour une instruction `if...else` de la forme `condition ? resultat1 : resultat2`.
+
+=== Autres opérateurs
+==== Opérateurs Logiques
+.Tableau des Opérateurs Logiques
+[options="header"]
+|===
+| Opérateur | Usage | Signification
+
+| **ET (`&&`)** | `expr1 && expr2` | Renvoie `true` si les deux expressions sont vraies.
+| **OU (`\|\|`)** | `expr1 \|\| expr2` | Renvoie `true` si au moins une des deux expressions est vraie.
+| **NON (`!`)** | `!expr`          | Inverse la valeur booléenne de l'expression (vrai devient faux, et vice-versa).
+|===
+==== Opérateurs Arithmétiques
+.Opérateurs Arithmétiques
+[options="header"]
+|===
+| Opérateur | Usage | Signification
+| `%` | `expr1 % expr2` | **Reste.** Renvoie le reste entier de la division entre les deux opérandes.
+| `++` | `++x (préfixe) ou x++ (suffixe)` | **Incrémentation.** Ajoute un à son opérande. En préfixe, renvoie la valeur *après* ajout. En suffixe, renvoie la valeur *avant* l'ajout.
+| `--` | `--x (préfixe) ou x-- (suffixe)` | **Décrémentation.** Soustrait un à son opérande. Fonctionne de manière analogue à l'opérateur d'incrémentation.
+| `**` | `base ** puissance` | **Exponentiation.** Calcule un nombre (base) élevé à une puissance donnée.
+|===
+
+
+== Les Fonctions
+
+=== Fonctions classiques
+Utilise le mot-clé `function`. Une fonction peut prendre des paramètres et retourner une valeur avec l'instruction `return`.
+
+[source,javascript]
+----
+function auCarre(unNombre) {
+  return unNombre * unNombre;
+}
+----
+
+=== Fonctions fléchées (Arrow Functions)
+Les nouvelles versions de JavaScript proposent une notation plus allégée.
+
+[source,javascript]
+----
+// La même fonction écrite en fléchée
+let auCarre = (x) => x * x;
+----
+
+=== First-Class Functions
+En JavaScript, les fonctions sont des *"citoyens de première classe"* (first-class citizens), ce qui signifie qu'elles peuvent être traitées comme n'importe quelle autre valeur, et donc être assignées à des variables ou des constantes. C'est ce qu'on appelle une expression de fonction (function expression). Plutôt que de déclarer une fonction avec un nom, on la crée (souvent de manière anonyme) et on l'affecte à une variable. Cette variable devient alors la référence pour appeler la fonction.
+
+L'utilisation de fonctions fléchées est la syntaxe la plus courante et concise pour cela.
+
+[source,javascript]
+----
+// On assigne une fonction fléchée à la constante "calculerTVA"
+const calculerTVA = (montantHT) => {
+return montantHT * 0.20;
+};
+
+// On peut maintenant utiliser la constante comme si c'était une fonction
+let prixHT = 100;
+let montantTVA = calculerTVA(prixHT);
+
+// On appelle la fonction via la variable
+console.log(`Pour un montant de ${prixHT}€, la TVA est de ${montantTVA}€.`);
+// Affiche : Pour un montant de 100€, la TVA est de 20€.
+----
+L'avantage principal de cette approche est la flexibilité : elle permet de passer des fonctions comme arguments à d'autres fonctions (les fameux *_callbacks_*), de les retourner depuis une autre fonction, ou de définir des méthodes de manière concise. Contrairement aux déclarations de fonction classiques (function nom() {}), les expressions de fonction ne sont pas "*_hoistées_*" (remontées), ce qui signifie que vous ne pouvez les appeler qu'après leur déclaration dans le code.
+
+== Manipulation du DOM (Document Object Model)
+
+Le DOM est une représentation en mémoire de votre page HTML. JavaScript peut interagir avec cette structure pour lire et modifier le contenu, la structure et le style de la page de manière dynamique.
+
+=== Sélectionner des Éléments
+
+* `document.getElementById('idDeLelement')` : Sélectionne l'élément unique qui possède l'ID spécifié. C'est la méthode la plus rapide.
+* `document.querySelector('selecteurCSS')` : Sélectionne le **premier** élément correspondant au sélecteur CSS fourni (ex: `'#monId'`, `'.maClasse'`, `'p'`).
+* `document.querySelectorAll('selecteurCSS')` : Sélectionne **tous** les éléments correspondant au sélecteur CSS et les retourne dans une `NodeList` (similaire à un tableau).
+
+=== Modifier le Contenu et le Style
+
+Une fois un élément sélectionné, vous pouvez modifier ses propriétés.
+
+* `element.innerHTML` : Permet de lire ou de modifier tout le contenu HTML à l'intérieur d'un élément.
+* `element.textContent` : Similaire à `innerHTML`, mais interprète le contenu comme du texte brut (ignore les balises HTML). Plus sûr pour insérer du texte fourni par l'utilisateur.
+* `element.style.proprieteCSS` : Permet de modifier directement le style CSS de l'élément. La propriété CSS est écrite en *camelCase* (ex: `backgroundColor`, `fontSize`).
+
+.Exemple de modification du DOM
+[source,javascript]
+----
+// HTML : <h1 id="titre">Titre Original</h1>
+const monTitre = document.getElementById('titre');
+
+// Changer le contenu
+monTitre.textContent = "Nouveau Titre Dynamique !";
+
+// Changer le style
+monTitre.style.color = 'blue';
+monTitre.style.backgroundColor = 'lightgray';
+----
+
+=== Gérer les Événements
+
+Le JavaScript "événementiel" réagit aux actions de l'utilisateur (clic, survol, soumission de formulaire, etc.).
+
+La méthode `addEventListener()` est la manière moderne de gérer les événements. Elle prend deux arguments principaux :
+1.  Le nom de l'événement (ex: `'click'`, `'mouseover'`, `'submit'`).
+2.  La fonction (souvent une fonction fléchée) à exécuter lorsque l'événement se produit.
+
+[source,javascript]
+----
+// HTML : <button id="monBouton">Cliquez-moi</button>
+const bouton = document.getElementById('monBouton');
+
+bouton.addEventListener('click', () => {
+  alert('Vous avez cliqué sur le bouton !');
+});
+----
+
+== JavaScript Asynchrone : Promesses et `async/await`
+
+Par défaut, JavaScript est synchrone : il exécute les instructions les unes après les autres. Mais pour des opérations longues (comme appeler un serveur pour récupérer des données), il est essentiel de ne pas bloquer le reste de la page. C'est là qu'intervient l'asynchronisme.
+
+=== Les Promesses (Promises)
+
+Une **Promesse** est un objet qui représente l'achèvement (ou l'échec) futur d'une opération asynchrone. Une promesse peut être dans l'un des trois états :
+
+* **En attente (pending)** : L'opération n'est pas encore terminée.
+* **Tenue (fulfilled)** : L'opération a réussi et a renvoyé une valeur.
+* **Rompue (rejected)** : L'opération a échoué.
+
+On utilise la méthode `.then()` pour traiter le cas de succès et `.catch()` pour gérer l'échec.
+
+=== L'API `fetch`
+
+L'API `fetch()` est la manière moderne de faire des requêtes réseau (AJAX). Elle retourne une Promesse.
+
+[source,javascript]
+----
+fetch('https://api.example.com/data') // 'fetch' retourne une promesse
+  .then(response => response.json())      // Une fois la réponse reçue, on la convertit en JSON (ce qui retourne une autre promesse)
+  .then(data => {                         // Une fois la conversion JSON terminée...
+    console.log(data);                    // ... on peut utiliser les données !
+  })
+  .catch(error => {                       // En cas d'erreur à n'importe quelle étape
+    console.error('Erreur lors de la récupération:', error);
+  });
+----
+
+=== `async/await` : Une syntaxe plus simple
+
+`async/await` est une syntaxe qui permet d'écrire du code asynchrone qui ressemble à du code synchrone, le rendant beaucoup plus lisible.
+
+* Le mot-clé `async` se place devant une déclaration de fonction pour indiquer qu'elle retourne une promesse.
+* Le mot-clé `await` ne peut être utilisé que dans une fonction `async`. Il met en pause l'exécution de la fonction jusqu'à ce que la promesse soit résolue.
+
+[source,javascript]
+----
+// La même opération qu'au-dessus, mais avec async/await
+async function recupererDonnees() {
+  try {
+    const response = await fetch('https://api.example.com/data');
+    const data = await response.json();
+    console.log(data);
+  } catch (error) {
+    console.error('Erreur lors de la récupération:', error);
+  }
+}
+
+recupererDonnees(); // On appelle la fonction
+----
+
+== Exercices d'Application
+
+=== Exercice 1 : Calculatrice de TVA
+
+**Objectif :** Manipuler les entrées utilisateur, effectuer un calcul simple et afficher le résultat.
+
+**Énoncé :**
+Créez une page HTML contenant :
+1.  Un champ de saisie (`<input type="number">`) pour un prix Hors Taxes (HT).
+2.  Un bouton (`<button>`) "Calculer".
+3.  Un paragraphe (`<p>`) pour afficher le résultat.
+
+Écrivez le script JavaScript qui, au clic sur le bouton, récupère la valeur du prix HT, calcule le montant de la TVA (20%) et le prix TTC, puis affiche le résultat dans le paragraphe sous la forme : "Pour un prix HT de X €, le montant de la TVA est de Y € et le prix TTC est de Z €."
+
+**Notions abordées :** Sélection d'éléments (`getElementById` ou `querySelector`), gestion d'événement (`addEventListener`), récupération de valeur (`.value`), calculs et modification du DOM (`.textContent`).
+
+=== Exercice 2 : Gestion d'une liste de tâches (To-Do List)
+
+**Objectif :** Manipuler un tableau de données et l'afficher dynamiquement dans le DOM.
+
+**Énoncé :**
+1.  En JavaScript, créez un tableau d'objets. Chaque objet représente une tâche et doit contenir deux propriétés : `texte` (une chaîne de caractères) et `fait` (un booléen).
++
+[source,javascript]
+----
+const taches = [
+  { texte: 'Apprendre le JavaScript', fait: true },
+  { texte: 'Faire les exercices', fait: false },
+  { texte: 'Boire un café', fait: true }
+];
+----
+2.  Créez une page HTML avec une liste non ordonnée (`<ul>`).
+3.  Écrivez une fonction qui parcourt le tableau `taches` et, pour chaque tâche, crée un élément de liste (`<li>`) et l'ajoute à la `<ul>`.
+4.  **Amélioration :** Si la tâche a la propriété `fait` à `true`, le texte de l'élément `<li>` doit être barré (utiliser `element.style.textDecoration = 'line-through'`).
+
+**Notions abordées :** Création et manipulation de tableaux d'objets, boucle (`for...of`), création d'éléments du DOM (`document.createElement`), ajout d'éléments (`.appendChild`), conditions (`if`).
+
+=== Exercice 3 : Validateur de formulaire simple
+
+**Objectif :** Empêcher la soumission d'un formulaire si les champs ne sont pas remplis correctement.
+
+**Énoncé :**
+Créez un formulaire HTML avec :
+1.  Un champ pour l'email (`<input type="email">`).
+2.  Un champ pour le mot de passe (`<input type="password">`).
+3.  Un bouton de soumission (`<input type="submit">`).
+4.  Une petite zone (`<div>`) pour afficher les messages d'erreur.
+
+Écrivez un script JavaScript qui, lors de la soumission du formulaire :
+1.  Empêche l'envoi par défaut du formulaire (`event.preventDefault()`).
+2.  Vérifie si le champ du mot de passe a une longueur d'au moins 8 caractères.
+3.  Si ce n'est pas le cas, affiche un message d'erreur dans la `<div>` (ex: "Le mot de passe doit contenir au moins 8 caractères.").
+4.  Si tout est correct, affiche un message de succès (ex: "Formulaire envoyé !").
+
+**Notions abordées :** Gestion d'événement (`submit`), `event.preventDefault()`, manipulation de chaînes de caractères (`.length`), logique conditionnelle, affichage de messages d'erreur.
+
+=== Exercice 4 : Mini-galerie d'images interactive
+
+**Objectif :** Utiliser les objets et la manipulation des attributs pour créer un composant interactif.
+
+**Énoncé :**
+Créez une page HTML avec :
+1.  Une grande image principale (`<img>` avec un `id`).
+2.  Une série de 3 petites images (vignettes) en dessous.
+
+Écrivez un script JavaScript qui :
+1.  Détecte le clic sur n'importe laquelle des vignettes.
+2.  Lorsque l'on clique sur une vignette, la source (`src`) de l'image principale est remplacée par la source de la vignette cliquée.
+
+**Astuce :** Utilisez `addEventListener` sur chaque vignette. Dans la fonction de callback, vous pouvez utiliser `this.src` ou `event.target.src` pour obtenir la source de l'image cliquée.
+
+**Notions abordées :** Sélection multiple d'éléments (`querySelectorAll`), boucle pour attacher des événements, gestion d'événements sur plusieurs éléments, manipulation des attributs HTML (`.src`).
+
+=== Exercice 5 : Affichage de données depuis une API
+
+**Objectif :** Utiliser `fetch` et la syntaxe `async/await` pour récupérer des données externes et les afficher.
+
+**Énoncé :**
+Utilisez l'API publique "JSONPlaceholder" qui simule des données.
+1.  Créez une page HTML avec un bouton "Charger les utilisateurs" et une `<div>` vide pour les résultats.
+2.  Au clic sur le bouton, écrivez une fonction asynchrone qui :
+a. Fait un appel `fetch` à l'URL : `https://jsonplaceholder.typicode.com/users`
+b. Récupère la réponse et la convertit en JSON.
+c. Parcourt le tableau d'utilisateurs obtenu.
+d. Pour chaque utilisateur, crée un paragraphe (`<p>`) contenant son nom et son email (ex: "Ervin Howell - Shanna@melissa.tv") et l'ajoute à la `<div>` de résultats.
+3.  Gérez les erreurs potentielles avec un bloc `try...catch`.
+
+**Notions abordées :** JavaScript asynchrone (`async/await`), API `fetch`, gestion des promesses, manipulation de données JSON, création dynamique d'une liste dans le DOM, gestion d'erreurs (`try...catch`).

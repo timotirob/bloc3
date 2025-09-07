@@ -1,0 +1,141 @@
+= Environnement, Outils et Méthodologie
+Timothée Robert
+:toc: left
+:toclevels: 3
+:sectnums:
+:source-highlighter: highlight.js
+:imagesdir: images
+
+Ce document a pour but de vous guider dans la mise en place de votre environnement de développement pour le JavaScript côté serveur avec NodeJS, et de vous donner les clés d'une organisation de travail rigoureuse et efficace.
+
+== Méthodologie d'Organisation
+
+Une bonne organisation est fondamentale pour votre productivité et la qualité de votre travail. La façon dont vous rangez et nommez vos fichiers fait toute la différence.
+
+=== Organisation des supports de cours
+
+L'objectif est de retrouver facilement les documents (cours, TD, TP) lorsque vous en aurez besoin.
+
+* **Répertoires :** Nommez les répertoires par matière, et éventuellement par professeur si besoin.
+* **Séances :** Chaque séance est stockée dans un sous-répertoire. Le nommage de ce répertoire doit commencer par une date au format `YYYYMMDD` (ex: `20230904-Intro-NodeJS`) pour garantir un tri chronologique.
+
+=== Organisation des programmes
+
+Il faut distinguer les exemples de code fournis en cours et les programmes que vous développez pour vos projets.
+
+IMPORTANT: Tous les programmes que vous réalisez doivent être sur **GIT** et régulièrement poussés sur Gitlab ou Github. C'est une compétence professionnelle de base.
+
+Les étapes fondamentales de Git sont :
+
+. `git init` : Initialise un dépôt Git local.
+. `git add <fichiers>` : Ajoute des fichiers à la "staging area", en préparation du prochain commit.
+. `git commit -m "Message clair"` : Enregistre une version de votre travail.
+. `git push` : Envoie vos commits vers un dépôt distant (ex: Github, Gitlab).
+
+== Mise en Place de l'Environnement NodeJS
+
+Node.js est un environnement d'exécution JavaScript côté serveur, basé sur un modèle événementiel non bloquant. Il vient avec `npm` (Node Package Manager), un gestionnaire de dépendances extrêmement puissant.
+
+=== Utilisation de NVM (Node Version Manager)
+
+Plutôt que d'installer une version fixe de NodeJS, nous utiliserons NVM, un utilitaire qui permet de gérer et de basculer facilement entre plusieurs versions de Node.
+
+. Avant de commencer, désinstallez toute version de NodeJS déjà présente sur votre poste via le gestionnaire de programmes.
+. Installez `nvm-setup.exe` fourni pour la séance.
+. Ouvrez une nouvelle console (PowerShell en administrateur ou Git Bash).
+. Listez les versions de NodeJS disponibles :
++
+[source,bash]
+----
+nvm list available
+----
++
+. Installez la dernière version stable (LTS) ou la plus récente :
++
+[source,bash]
+----
+nvm install latest // Installe la version la plus récente
+----
++
+. Choisissez la version de Node à utiliser :
++
+[source,bash]
+----
+nvm use 20.5.0 // Remplacez par la version que vous venez d'installer
+----
++
+. Vérifiez que l'installation a réussi :
++
+[source,bash]
+----
+node --version
+npm --version
+----
+
+== Configuration de l'IDE : PHPStorm
+
+Nous utiliserons l'IDE PHPStorm de JetBrains, qui intègre tous les outils nécessaires au développement JavaScript et NodeJS (via son composant WebStorm).
+
+=== Création d'un projet NodeJS
+
+. Au démarrage, choisissez `New Project`.
+. Dans la liste à gauche, sélectionnez `Node.js`.
+. Choisissez l'emplacement de votre projet. PHPStorm devrait détecter automatiquement votre installation de Node.
+. Créez un fichier `index.js` (`File > New > JavaScript File`).
+. Collez-y le code "Hello World" de NodeJS :
++
+[source,javascript]
+----
+const http = require('http'); // Importe le module HTTP natif de Node
+
+const hostname = '127.0.0.1';
+const port = 3000;
+
+// Crée un serveur HTTP
+const server = http.createServer((req, res) => {
+  res.statusCode = 200;
+  res.setHeader('Content-Type', 'text/plain');
+  res.end('Coucou les champions SLAM2');
+});
+
+// Le serveur écoute sur le port 3000
+server.listen(port, hostname, () => {
+  console.log(`Le serveur tourne sur http://${hostname}:${port}/`);
+});
+----
++
+. Exécutez le code en cliquant sur la flèche verte à côté des numéros de ligne, ou via le terminal (`ALT+F12`) avec la commande `node index.js`.
+
+NOTE: Vous devriez voir "Le serveur tourne..." s'afficher dans la console de PHPStorm, et "Coucou les champions..." en accédant à `http://localhost:3000` dans votre navigateur.
+
+== Utilitaire de Productivité : Nodemon
+
+À chaque modification de votre code, il est fastidieux de devoir arrêter et relancer le serveur manuellement. `nodemon` est un outil qui surveille vos fichiers et redémarre automatiquement le serveur à chaque changement.
+
+. *Installation :* Dans le terminal de votre projet, installez `nodemon` :
++
+[source,bash]
+----
+npm install nodemon
+----
++
+
+. *Configuration :* Ouvrez le fichier `package.json` (qui a dû être créé par `npm`). Dans la section `"scripts"`, ajoutez une entrée pour démarrer votre application avec `nodemon`:
++
+[source,json]
+----
+"scripts": {
+  "test": "echo \"Error: no test specified\" && exit 1",
+  "demarre": "nodemon routeintro.js"
+},
+----
++
+. *Lancement :* Pour démarrer votre serveur en mode "surveillance", utilisez la commande :
++
+[source,bash]
+----
+npm run demarre
+----
++
+
+Maintenant, chaque fois que vous sauvegarderez une modification dans `routeintro.js`, le serveur redémarrera tout seul !

@@ -1,0 +1,191 @@
+= TP - Applications Web avec NodeJS et Express
+Timothée Robert
+:toc: left
+:toclevels: 3
+:sectnums:
+:source-highlighter: highlight.js
+:imagesdir: images
+
+image::node1.svg[NodeJS Logo]
+
+Ce TP a pour objectif de vous faire créer votre premier serveur web avec NodeJS et le framework Express, en abordant la notion fondamentale de *routage*.
+
+== Architecture d'une application NodeJS
+
+Une application NodeJS s'intègre généralement dans une architecture client-serveur.
+
+image::node2.png[Architecture d'application Node.js]
+
+* **User / Front-end Tech :** Le client peut être une application web (développée avec des frameworks comme React, Vue, Angular) ou une application mobile (iOS, Android).
+* **Server :** C'est là que notre code NodeJS s'exécute. Il utilise des librairies comme Express pour gérer les requêtes web. Il communique avec des bases de données (ex: MySQL, MongoDB) et d'autres services.
+
+Le fonctionnement interne de NodeJS est basé sur une **boucle d'événements (Event Loop)** qui s'exécute dans un seul thread. Cela lui permet de gérer de nombreuses connexions simultanément de manière non-bloquante. Les opérations longues (comme un accès à la base de données) sont déléguées et leur résultat est traité plus tard via une fonction de rappel (callback).
+
+image::node3.png[Schéma de l'Event Loop]
+
+== Introduction à Express
+
+Express est un framework minimaliste pour applications web NodeJS. Il fournit une surcouche simple et robuste pour créer des serveurs et des API REST.
+
+image::node4.png[Couches d'une application Express]
+
+Une requête HTTP arrive, Express la dirige vers la bonne **Route**, qui fait appel à un **Contrôleur**. Celui-ci utilise des **Services** (la logique métier) qui peuvent interagir avec des **Modèles** pour accéder aux données (base de données, API externe).
+
+== Le Routage
+
+Le routage est le mécanisme qui détermine comment une application répond à une requête client vers une URL et une méthode HTTP spécifiques (GET, POST, etc.).
+
+=== Introduction et définition
+
+Le routage est un des aspects les plus importants d’un site Web ou d’un service Web.
+
+Définition:: Le routage est le mécanisme par lequel des requêtes, spécifiées par une URL et une méthode (verbe http), sont dirigées (routées) vers le code qui les prend en charge.
+
+[NOTE]
+.Pré-requis : Connaissances fondamentales
+====
+. Qu'est-ce qu'une requête HTTP ?
+. Qu'est-ce qu'une réponse HTTP ?
+. Qu'est-ce qu'une URL ?
+. Qu'est-ce qu'un verbe HTTP ?
+. Quels sont les verbes HTTP les plus courants ?
+. Quelle est la différence entre GET et POST ?
+. Qu'est-ce qu'une API REST ?
+. Quel verbe HTTP est utilisé pour récupérer des données ?
+. Quel verbe HTTP est utilisé pour envoyer des données ?
+. A quelle balise HTML est généralement associé le verbe de la question précédente ?
+. Quel verbe HTTP est utilisé pour mettre à jour des données ?
+. Quel verbe HTTP est utilisé pour supprimer des données ?
+====
+
+=== Le routage dans Express
+
+Le routage pour un développeur Web a une signification significativement différente de celle qui prévaut pour les réseaux informatiques. Dans NodeJS, une fois le middleware Express importé, on peut utiliser ses méthodes (`get`, `post`, etc.) directement ou via un gestionnaire de routage (Router) dédié.
+
+Pour plus de détails, consultez la link:https://expressjs.com/fr/guide/routing.html[documentation officielle du routage Express].
+
+=== Un exemple complet avec Express
+
+. *Étape 1 : Installation d'Express*
++
+Dans le terminal de votre projet, exécutez la commande :
++
+[source,bash]
+----
+npm install express
+----
++
+Cette commande télécharge la librairie Express et l'ajoute à votre projet, dans le dossier `node_modules` et dans le fichier de configuration `package.json`.
+
+. *Étape 2 : Création du serveur (`routeintro.js`)*
++
+Créez un fichier `routeintro.js` avec le code suivant :
++
+[source,javascript]
+----
+// Ligne 1: On importe la librairie express
+const express = require('express');
+
+// Ligne 2: On crée une instance de l'application Express
+const app = express();
+
+const port = 3000;
+
+// Ligne 4: On définit une route pour la racine de l'application
+// Elle répondra aux requêtes HTTP GET sur l'URL "/"
+app.get('/', (requete, resultat) => {
+  // Ligne 5: On envoie une réponse au client
+  resultat.send('Bonjour aux SIO2 SLAM');
+});
+
+// Ligne 8: On démarre le serveur pour qu'il écoute sur le port 3000
+app.listen(port, () => {
+  console.log(`Serveur démarré sur http://localhost:${port}`);
+});
+----
+
+
+. *Étape 3 : Exécution*
++
+Démarrez le serveur (idéalement avec `npm run demarre` si vous avez configuré nodemon) et allez sur `http://localhost:3000` dans votre navigateur. Vous devriez voir le message "Bonjour aux SIO2 SLAM".
+
+
+
+
+[role="questions",id="questions-recherche"]
+.Questions de recherche
+--
+. Dans quel répertoire l'installation des packages `npm` a-t-elle été effectuée ?
+. Quel fichier de configuration lié à NodeJS contient la liste des dépendances du projet ?
+. Qu’est-ce qu’une dépendance dans ce contexte ?
+. Lorsqu'on met le projet sur GIT, a-t-on besoin de transférer les paquetages (dépendances) ?
+. Quelle commande doit-on généralement effectuer lorsqu’on récupère un projet NodeJS depuis GIT ? Pourquoi ?
+. À quoi sert la librairie Express ?
+--
+
+=== Utilitaire de "Hot Reloading" : nodemon
+
+Pour le moment, à chaque modification du code, il faut manuellement arrêter le processus Node.js puis le relancer. C'est fastidieux. Heureusement, le package `nodemon` automatise cette tâche en surveillant les fichiers et en redémarrant le serveur à chaque sauvegarde.
+
+. *Étape 1 : Installation*
++
+Dans une fenêtre de terminal à la racine du projet, exécutez la commande :
++
+[source,bash]
+----
+npm install nodemon
+----
+
+. *Étape 2 : Ajout d'un script*
++
+Ouvrez le fichier `package.json` et, dans la section `"scripts"`, ajoutez une entrée (par exemple, "demarre") pour lancer votre application avec `nodemon`.
++
+NOTE: Votre document original contenait une image de cette configuration. Vous pouvez l'insérer ici avec `image::nom_de_votre_image.png[]`.
+
+. *Étape 3 : Lancement*
++
+Pour démarrer le serveur en mode surveillance, utilisez le nom du script que vous venez de créer :
++
+[source,bash]
+----
+npm run demarre
+----
++
+Cette commande lance `nodemon`, qui exécute votre programme. Le serveur redémarrera maintenant tout seul à chaque modification.
+
+== Exercices
+
+=== Exercice 1 : Routage simple
+
+Dans votre fichier `routeintro.js`, ajoutez une nouvelle route. Si un utilisateur accède à l'URL `http://localhost:3000/accueil`, il doit recevoir le message "Vous êtes arrivés sur la page d’accueil du site".
+
+=== Exercice 2 : Envoyer un fichier HTML
+
+Le but est de renvoyer une page HTML complète au lieu d'un simple texte.
+
+. Créez un fichier `bienvenue.html` à la racine de votre projet avec un message de bienvenue simple (ex: `<h1>Bienvenue sur notre site !</h1>`).
+. Pour manipuler les chemins de fichiers, il faut importer le module `path`, qui est natif à NodeJS. Ajoutez cette ligne au début de `routeintro.js`:
++
+[source,javascript]
+----
+const path = require('path');
+----
+
++
+. Ajoutez une route pour le chemin `/bienvenue` qui utilise la méthode `res.sendFile()` pour renvoyer le fichier HTML.
++
+TIP: La variable `__dirname` contient le chemin absolu du répertoire où s'exécute le script. Utilisez `path.join(__dirname, 'bienvenue.html')` pour construire un chemin de fichier propre et compatible entre les systèmes d'exploitation.
+
+.Aide (si besoin) :
+[source,javascript]
+----
+app.get('/bienvenue', (req, res) => {
+  res.sendFile(path.join(__dirname, 'bienvenue.html'));
+});
+----
+
+
+=== Exercice 3 : Navigation entre les routes
+
+. Créez une nouvelle route `/panorama` qui renvoie un fichier `planDuSite.html`.
+. Dans ce fichier `planDuSite.html`, ajoutez des liens hypertextes (`<a href="...">`) qui pointent vers les autres routes que vous avez créées : `/`, `/accueil` et `/bienvenue`.
