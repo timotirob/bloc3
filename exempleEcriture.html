@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+Bonjour les SIO2
+
+<script language="JavaScript">
+
+    let nom = 'Robert'
+
+    console.log('Le nom est '+nom)
+
+    nom = 'Dupond'
+
+    /*let contenu = prompt('Lachez vous et exprimez votre colère');
+    if (contenu) {
+        document.open();
+        document.write("<h1>Assez de l'ancien contenu, passons au nouveau !</h1>" + contenu);
+        document.close();
+    }*/
+
+    const jours = ["Lundi", "Mardi", "Mercredi"];
+    console.log(jours[0]); // Affiche "Lundi"
+
+    for (const unJour of jours)
+        console.log('le jour est'+unJour)
+
+
+    const codePostal = {
+        "Paris": 75000,
+        "Lyon": 69000,
+        "Grenoble": 38000
+    };
+
+    console.log(codePostal.Lyon);
+
+    for (const uneVille in codePostal)
+        //console.log(`La ville est ${uneVille} et son code est ${codePostal[uneVille]}`)
+        console.log('La ville est: '+ uneVille + ' et son code est '+ codePostal[uneVille])
+
+
+</script>
+
+</body>
+</html>
