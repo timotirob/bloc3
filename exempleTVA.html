@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+<input id="montantHT" type="number">
+
+<button id="calculer"> Calcul de TVA</button>
+
+<P id = "resultat"> </P>
+
+<script language="JavaScript">
+    const montantHT = document.getElementById("montantHT")
+    const calculer = document.getElementById("calculer")
+    const resultat = document.getElementById("resultat")
+
+    calculer.addEventListener('click',
+        () => {
+
+        const valeurHT = montantHT.value
+           // console.log(valeurHT)
+
+            const montantTVA = valeurHT * 0.2
+            const valeurTTC = valeurHT * 1.2 ;
+
+        resultat.textContent = `Le montant saisi HT est: ${valeurHT} et le montant TTC est ${valeurTTC} et la TVA est de ${montantTVA}`
+
+        }
+    )
+
+</script>
+
+</body>
+</html>
