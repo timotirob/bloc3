@@ -442,7 +442,26 @@ Créez une page HTML avec :
 
 **Notions abordées :** Sélection multiple d'éléments (`querySelectorAll`), boucle pour attacher des événements, gestion d'événements sur plusieurs éléments, manipulation des attributs HTML (`.src`).
 
-=== Exercice 5 : Affichage de données depuis une API
+=== Exercice 5 : Affichage de données depuis une API: hello world pour API
+
+**Objectif :**  Effectuer un appel fetch, parser le JSON, et mettre à jour un seul élément du DOM avec une seule donnée.
+
+**Énoncé :**
+Créez une page avec un bouton "Générer un fait" et un paragraphe. Au clic sur le bouton, interrogez l'API "Cat Facts" pour récupérer un fait aléatoire sur les chats et affichez-le dans le paragraphe.
+
+L'URL de l'API est : https://catfact.ninja/fact
+
+=== Exercice 6 : Affichage d'un objet unique et gestion d'erreur
+
+
+**Objectif :**  Gérer un objet JSON plus complexe (plusieurs propriétés), mettre à jour plusieurs éléments du DOM, et introduire la gestion d'erreur try...catch.
+
+**Énoncé :**
+Créez une page avec un bouton "Afficher l'utilisateur 1". Au clic, interrogez l'API JSONPlaceholder pour récupérer l'utilisateur avec l'ID 1. Affichez son Nom, son Email et sa Ville dans la page. Si une erreur survient, affichez-la.
+
+URL de l'API : https://jsonplaceholder.typicode.com/users/1
+
+=== Exercice 7 : Affichage de données depuis une API
 
 **Objectif :** Utiliser `fetch` et la syntaxe `async/await` pour récupérer des données externes et les afficher.
 
