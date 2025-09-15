@@ -23,12 +23,22 @@ const messageErreur = document.getElementById('messageErreur')
 const envoi = document.getElementById('soumission')
 
 
-monForm.addEventListener('submit', () => {
+monForm.addEventListener('submit', ( evenement ) => {
 
-  submit.preventDefault() ;
+  evenement.preventDefault() ;
 
   if (motDePasse.value.length <=8 ) {
     // Mettre un message dans le DIV
+   // console.log('Trop court')
+    messageErreur.textContent = "Problème de mot de passe trop court"
+    messageErreur.style.backgroundColor = 'red'
+  }
+  else {
+    console.log('Ok')
+    messageErreur.textContent = "c'est bon"
+    messageErreur.style.backgroundColor = 'green'
+
+   // envoi.submit() ;
   }
 
 })
