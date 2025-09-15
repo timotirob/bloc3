@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<form id="monFormulaire">
+<input type="email"> Saisir votre email</input>
+<BR>
+<input type="password" id="motDePasse">  saisissez votre mot de passe</input>
+  <BR>
+<input type="submit" id="soumission"> Soumettre le formulaire </input>
+  <BR>
+</form>
+
+<div id="messageErreur"> </div>
+
+<script language="JavaScript">
+const monForm = document.getElementById('monFormulaire')
+const motDePasse = document.getElementById('motDePasse')
+const messageErreur = document.getElementById('messageErreur')
+const envoi = document.getElementById('soumission')
+
+
+envoi.addEventListener('submit', () => {
+
+  submit.preventDefault() ;
+
+  if (motDePasse.value.length <=8 ) {
+    // Mettre un message dans le DIV
+  }
+
+})
+
+
+</script>
+
+
+</body>
+</html>

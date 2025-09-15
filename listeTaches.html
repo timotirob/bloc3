@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<ul id="listeTaches">
+
+</ul>
+
+<script language="JavaScript">
+    const taches = [
+        { texte: 'Apprendre le JavaScript', fait: true },
+        { texte: 'Faire les exercices', fait: false },
+        { texte: 'Boire un café', fait: true },
+        { texte: 'Reviser le CIPD', fait: false},
+        { texte: 'Reprendre le SQL', fait: false},
+    ];
+
+    const afficheTaches = () => {
+        for (const uneTache of taches) {
+            console.log(uneTache)
+
+            const monLi = document.createElement('li')
+
+            monLi.textContent = uneTache.texte
+
+            if (uneTache.fait === true) {
+                monLi.style.textDecoration = 'line-through'
+            }
+
+            const maListeUl = document.getElementById('listeTaches')
+
+            maListeUl.appendChild(monLi)
+
+        }
+
+    }
+
+    afficheTaches()
+
+</script>
+
+
+</body>
+</html>
