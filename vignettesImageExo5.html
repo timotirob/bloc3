@@ -30,6 +30,18 @@
 
 <script language="JavaScript">
 
+    const imgPrincipale = document.getElementById('imagePrincipale')
+    const vignettes = document.querySelectorAll('.vignette')
+
+    for (const uneVignette of vignettes) {
+        uneVignette.addEventListener('click', () => {
+            imgPrincipale.src = uneVignette.src
+            imgPrincipale.alt = uneVignette.alt
+        })
+
+    }
+
+
 </script>
 
 </body>
