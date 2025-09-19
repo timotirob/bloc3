@@ -1,4 +1,4 @@
-= TP - Applications Web avec NodeJS et Express
+= TP - Applications Web avec NodeJS et Express (Version ESM)
 Timothée Robert
 :toc: left
 :toclevels: 3
@@ -8,7 +8,7 @@ Timothée Robert
 
 image::node1.svg[NodeJS Logo]
 
-Ce TP a pour objectif de vous faire créer votre premier serveur web avec NodeJS et le framework Express, en abordant la notion fondamentale de *routage*.
+Ce TP a pour objectif de vous faire créer votre premier serveur web avec NodeJS et le framework Express, en abordant la notion fondamentale de *routage* en utilisant la syntaxe moderne **ES Modules**.
 
 == Architecture d'une application NodeJS
 
@@ -35,35 +35,6 @@ Une requête HTTP arrive, Express la dirige vers la bonne **Route**, qui fait ap
 
 Le routage est le mécanisme qui détermine comment une application répond à une requête client vers une URL et une méthode HTTP spécifiques (GET, POST, etc.).
 
-=== Introduction et définition
-
-Le routage est un des aspects les plus importants d’un site Web ou d’un service Web.
-
-Définition:: Le routage est le mécanisme par lequel des requêtes, spécifiées par une URL et une méthode (verbe http), sont dirigées (routées) vers le code qui les prend en charge.
-
-[NOTE]
-.Pré-requis : Connaissances fondamentales
-====
-. Qu'est-ce qu'une requête HTTP ?
-. Qu'est-ce qu'une réponse HTTP ?
-. Qu'est-ce qu'une URL ?
-. Qu'est-ce qu'un verbe HTTP ?
-. Quels sont les verbes HTTP les plus courants ?
-. Quelle est la différence entre GET et POST ?
-. Qu'est-ce qu'une API REST ?
-. Quel verbe HTTP est utilisé pour récupérer des données ?
-. Quel verbe HTTP est utilisé pour envoyer des données ?
-. A quelle balise HTML est généralement associé le verbe de la question précédente ?
-. Quel verbe HTTP est utilisé pour mettre à jour des données ?
-. Quel verbe HTTP est utilisé pour supprimer des données ?
-====
-
-=== Le routage dans Express
-
-Le routage pour un développeur Web a une signification significativement différente de celle qui prévaut pour les réseaux informatiques. Dans NodeJS, une fois le middleware Express importé, on peut utiliser ses méthodes (`get`, `post`, etc.) directement ou via un gestionnaire de routage (Router) dédié.
-
-Pour plus de détails, consultez la link:https://expressjs.com/fr/guide/routing.html[documentation officielle du routage Express].
-
 === Un exemple complet avec Express
 
 . *Étape 1 : Installation d'Express*
@@ -74,17 +45,45 @@ Dans le terminal de votre projet, exécutez la commande :
 ----
 npm install express
 ----
-+
-Cette commande télécharge la librairie Express et l'ajoute à votre projet, dans le dossier `node_modules` et dans le fichier de configuration `package.json`.
 
-. *Étape 2 : Création du serveur (`routeintro.js`)*
+. *Étape 2 : Configuration du projet en mode ES Module*
 +
-Créez un fichier `routeintro.js` avec le code suivant :
+Pour pouvoir utiliser la syntaxe `import`, vous devez indiquer à NodeJS que votre projet est un "ES Module". Ouvrez votre fichier `package.json` et ajoutez la ligne suivante :
++
+[source,json]
+----
+"type": "module",
+----
++
+Votre `package.json` devrait ressembler à ceci :
++
+[source,json]
+----
+{
+  "name": "mon-projet-express",
+  "version": "1.0.0",
+  "description": "",
+  "main": "routeintro.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
+----
+
+. *Étape 3 : Création du serveur (`routeintro.js`)*
++
+Créez un fichier `routeintro.js` avec le code suivant, qui utilise maintenant `import` au lieu de `require`.
 +
 [source,javascript]
 ----
-// Ligne 1: On importe la librairie express
-const express = require('express');
+// Ligne 1: On importe la librairie express avec la syntaxe ESM
+import express from 'express';
 
 // Ligne 2: On crée une instance de l'application Express
 const app = express();
@@ -105,53 +104,38 @@ app.listen(port, () => {
 ----
 
 
-. *Étape 3 : Exécution*
+. *Étape 4 : Exécution*
 +
-Démarrez le serveur (idéalement avec `npm run demarre` si vous avez configuré nodemon) et allez sur `http://localhost:3000` dans votre navigateur. Vous devriez voir le message "Bonjour aux SIO2 SLAM".
-
-
-
-
-[role="questions",id="questions-recherche"]
-.Questions de recherche
---
-. Dans quel répertoire l'installation des packages `npm` a-t-elle été effectuée ?
-. Quel fichier de configuration lié à NodeJS contient la liste des dépendances du projet ?
-. Qu’est-ce qu’une dépendance dans ce contexte ?
-. Lorsqu'on met le projet sur GIT, a-t-on besoin de transférer les paquetages (dépendances) ?
-. Quelle commande doit-on généralement effectuer lorsqu’on récupère un projet NodeJS depuis GIT ? Pourquoi ?
-. À quoi sert la librairie Express ?
---
+Démarrez le serveur (avec `node routeintro.js` ou via un script `npm`) et allez sur `http://localhost:3000` dans votre navigateur. Vous devriez voir le message "Bonjour aux SIO2 SLAM".
 
 === Utilitaire de "Hot Reloading" : nodemon
 
-Pour le moment, à chaque modification du code, il faut manuellement arrêter le processus Node.js puis le relancer. C'est fastidieux. Heureusement, le package `nodemon` automatise cette tâche en surveillant les fichiers et en redémarrant le serveur à chaque sauvegarde.
+Le package `nodemon` fonctionne parfaitement avec les ES Modules. L'installation et la configuration sont identiques.
 
 . *Étape 1 : Installation*
-+
-Dans une fenêtre de terminal à la racine du projet, exécutez la commande :
 +
 [source,bash]
 ----
 npm install nodemon
 ----
 
-. *Étape 2 : Ajout d'un script*
+. *Étape 2 : Ajout d'un script dans `package.json`*
 +
-Ouvrez le fichier `package.json` et, dans la section `"scripts"`, ajoutez une entrée (par exemple, "demarre") pour lancer votre application avec `nodemon`.
-+
-NOTE: Votre document original contenait une image de cette configuration. Vous pouvez l'insérer ici avec `image::nom_de_votre_image.png[]`.
+[source,json]
+----
+"scripts": {
+  "demarre": "nodemon routeintro.js"
+},
+----
 
 . *Étape 3 : Lancement*
-+
-Pour démarrer le serveur en mode surveillance, utilisez le nom du script que vous venez de créer :
 +
 [source,bash]
 ----
 npm run demarre
 ----
 +
-Cette commande lance `nodemon`, qui exécute votre programme. Le serveur redémarrera maintenant tout seul à chaque modification.
+Le serveur redémarrera maintenant tout seul à chaque modification.
 
 == Exercices
 
@@ -163,27 +147,58 @@ Dans votre fichier `routeintro.js`, ajoutez une nouvelle route. Si un utilisateu
 
 Le but est de renvoyer une page HTML complète au lieu d'un simple texte.
 
-. Créez un fichier `bienvenue.html` à la racine de votre projet avec un message de bienvenue simple (ex: `<h1>Bienvenue sur notre site !</h1>`).
-. Pour manipuler les chemins de fichiers, il faut importer le module `path`, qui est natif à NodeJS. Ajoutez cette ligne au début de `routeintro.js`:
+. Créez un fichier `bienvenue.html` à la racine de votre projet avec un message de bienvenue simple.
+
+. Pour manipuler les chemins de fichiers, il faut importer des modules natifs de NodeJS. En ESM, la variable `__dirname` n'existe pas. On doit la recréer. Ajoutez ces lignes au début de `routeintro.js`:
 +
 [source,javascript]
 ----
-const path = require('path');
-----
+import path from 'path';
+import { fileURLToPath } from 'url';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+----
 +
+[NOTE]
+====
+Ces lignes permettent de retrouver le chemin absolu du répertoire du script en cours d'exécution, ce qui est indispensable pour servir des fichiers de manière fiable.
+====
+
 . Ajoutez une route pour le chemin `/bienvenue` qui utilise la méthode `res.sendFile()` pour renvoyer le fichier HTML.
-+
-TIP: La variable `__dirname` contient le chemin absolu du répertoire où s'exécute le script. Utilisez `path.join(__dirname, 'bienvenue.html')` pour construire un chemin de fichier propre et compatible entre les systèmes d'exploitation.
 
-.Aide (si besoin) :
+.Aide (structure du fichier `routeintro.js` complet) :
 [source,javascript]
 ----
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Recréation de __dirname pour la compatibilité ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+const port = 3000;
+
+app.get('/', (requete, resultat) => {
+  resultat.send('Bonjour aux SIO2 SLAM');
+});
+
+// Solution Exercice 1
+app.get('/accueil', (req, res) => {
+  res.send('Vous êtes arrivés sur la page d’accueil du site');
+});
+
+// Solution Exercice 2
 app.get('/bienvenue', (req, res) => {
   res.sendFile(path.join(__dirname, 'bienvenue.html'));
 });
-----
 
+app.listen(port, () => {
+  console.log(`Serveur démarré sur http://localhost:${port}`);
+});
+----
 
 === Exercice 3 : Navigation entre les routes
 

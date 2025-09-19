@@ -1,0 +1,318 @@
+= TP - NodeJS : Routes et Paramètres (ESM)
+:author: Timothée Robert
+:revdate: 2025-09-19
+:version-label: Version améliorée et corrigée par Gemini
+:toc: left
+:toclevels: 3
+:sectnums:
+:source-highlighter: highlight.js
+:imagesdir: images
+
+image::node1.svg[NodeJS Logo, 150]
+
+Ce TP fait suite à une première introduction à NodeJS. Nous allons maintenant nous concentrer sur la gestion des routes et des paramètres avec le framework **Express**. Vous apprendrez à créer des API dynamiques capables de recevoir et de traiter des données via l'URL, en utilisant exclusivement la syntaxe moderne **ES Modules (ESM)**.
+
+== Routes GET avec paramètres
+
+=== Introduction et définition
+
+En informatique, un **paramètre** est une donnée transmise à une section de code. Pour une application web, l'URL est un moyen privilégié pour transmettre ces paramètres au serveur. On distingue deux manières principales de le faire.
+
+==== 1. Paramètres de requête (Query Parameters)
+
+Les paramètres de requête sont ajoutés à la fin de l'URL après un point d'interrogation `?`. Ils sont constitués de paires `clé=valeur` séparées par des esperluettes `&`. Ils sont idéaux pour le filtrage, le tri ou la pagination.
+
+image::urlparam.png[Schéma des paramètres d'URL de type query]
+
+Dans l'exemple `amazon.fr/?tag=hydfrabkm-21&ref=pd_sl_12`, on a par exemple deux paramètres :
+
+* `tag` avec la valeur `hydfrabkm-21`
+* `ref` avec la valeur `pd_sl_12`
+
+Avec Express, on récupère ces valeurs via l'objet `req.query`.
+
+.Exemple de code pour récupérer un paramètre de requête
+[source,javascript]
+----
+// GET /exempleParam?nomEtudiant=Robert
+app.get('/exempleParam', (req, res) => {
+  // On récupère la valeur du paramètre 'nomEtudiant'
+  const nomEtudiant = req.query.nomEtudiant;
+  res.send(`Bonjour Mr ou Mme ${nomEtudiant}`);
+});
+----
+
+Si on appelle l'URL `http://localhost:3000/exempleParam?nomEtudiant=Robert`, le serveur répondra "Bonjour Mr ou Mme Robert".
+
+==== 2. Paramètres de route (Route Parameters)
+
+Les paramètres de route font partie intégrante du chemin de l'URL. Ils sont utilisés pour identifier une ressource spécifique. On les définit dans la chaîne de la route avec un préfixe deux-points `:`.
+
+.Exemple de code pour récupérer un paramètre de route
+[source,javascript]
+----
+// GET /exempleParam/Robert
+app.get('/exempleParam/:idEleve', (req, res) => {
+  // On récupère la valeur du paramètre de route 'idEleve'
+  const nomEtudiant = req.params.idEleve;
+  res.send(`Bonjour Mr ou Mme ${nomEtudiant}`);
+});
+----
+
+Si on appelle l'URL `http://localhost:3000/exempleParam/Robert`, le serveur répondra "Bonjour Mr ou Mme Robert".
+
+=== Exercice 1 : Reproduction de l'exemple
+
+. Dans un fichier `server.js`, reproduisez l'un des deux exemples ci-dessus.
+. Assurez-vous d'importer et d'initialiser Express, et de démarrer le serveur.
+. Testez votre route dans le navigateur en entrant l'URL correspondante.
+
+.Aide (structure du fichier `server.js`)
+[source,javascript]
+----
+import express from 'express';
+
+const app = express();
+const port = 3000;
+
+// ... Votre code de route ici ...
+
+app.listen(port, () => {
+  console.log(`Serveur démarré sur http://localhost:${port}`);
+});
+----
+
+=== Exercice 2 : Route avec paramètre numérique
+
+. Créez une nouvelle route `/calcul/:nombre`.
+. Dans la fonction de la route, récupérez le paramètre `nombre`.
+. **Validez** que le paramètre est bien un nombre. Utilisez `parseInt()` puis `isNaN()`.
+[TIP]
+Pourquoi `parseInt()` ? Car les paramètres de route (`req.params`) sont *toujours* des chaînes de caractères. `parseInt("10")` donne le nombre `10`, mais `parseInt("abc")` donne `NaN` (Not a Number).
+. Si c'est un nombre, affichez : "Le nombre saisi est X".
+. Sinon, renvoyez une erreur HTTP 400 (Bad Request) avec un message clair : `res.status(400).send("Le paramètre 'Y' est erroné.")`.
+
+==== Pour aller plus loin (optionnel)
+
+Express permet de valider le format d'un paramètre directement dans la route avec une expression régulière. La route suivante n'acceptera que les nombres entiers pour le paramètre `:nombre`.
+
+[source,javascript]
+----
+app.get('/calcul/double/:nombre(\\d+)', (req, res) => {
+  // Plus besoin de vérifier si c'est un nombre ici, Express l'a déjà fait !
+  const nombre = parseInt(req.params.nombre); // parseInt est toujours nécessaire
+  res.send(`Le double de ${nombre} est ${nombre * 2}`);
+});
+----
+
+== Recherche dans des données locales
+
+Un des usages principaux des paramètres est de rechercher et filtrer des données. Nous allons simuler une base de données avec un tableau JavaScript.
+
+=== Préliminaires : Préparation du projet
+
+==== Étape 1 : Spécification du type module
+
+Pour utiliser la syntaxe `import`/`export`, votre projet doit être configuré en mode "ES Module". Assurez-vous que votre fichier `package.json` contient cette ligne :
+[source,json]
+----
+"type": "module",
+----
+
+==== Étape 2 : Création du fichier de données
+
+. Créez un répertoire `sources` à la racine de votre projet.
+. À l'intérieur, créez un fichier `eleves.mjs`.
+
+[source,javascript]
+// sources/eleves.mjs
+const listeEleves = [
+  { id: 1, nom: 'Tandia', prenom: 'Sekou', age: 20 },
+  { id: 2, nom: 'Poothapillai', prenom: 'Sabetha', age: 19 },
+  { id: 3, nom: 'Ca', prenom: 'Tanavong', age: 19 }
+];
+
+// On exporte la variable pour la rendre accessible depuis d'autres fichiers
+export { listeEleves };
+----
+
+==== Étape 3 : Importation des données
+
+Dans votre fichier `server.js`, importez ce tableau au début du fichier.
+[source,javascript]
+----
+import { listeEleves } from './sources/eleves.mjs';
+----
+
+==== Étape 4 : Création d'une route API
+
+Ajoutez une route qui renvoie l'intégralité du tableau au format JSON. La méthode `res.json()` s'occupe de la conversion et de définir l'en-tête `Content-Type: application/json`.
+
+[source,javascript]
+----
+app.get('/api/leseleves', (req, res) => {
+res.json(listeEleves);
+});
+----
+
+=== Exercice 3 : Exploration des données
+
+. Reproduisez les étapes ci-dessus.
+. Lancez votre serveur (`node server.js`) et visitez `http://localhost:3000/api/leseleves`.
+. Observez le résultat dans le navigateur. Les extensions de navigateur pour formater le JSON (comme "JSON Viewer") sont très utiles ici.
+. Complétez le tableau `listeEleves` avec les informations de vos camarades pour avoir une liste plus conséquente.
+
+=== La méthode `Array.prototype.find()`
+
+La méthode `find()` renvoie la **valeur du premier élément** d'un tableau qui satisfait une condition. Si aucun élément ne correspond, elle renvoie `undefined`.
+
+.Syntaxe
+[source,javascript]
+----
+const resultat = monTableau.find(element => element.propriete === 'valeurRecherchee');
+----
+
+=== Exercice 4 : Recherche d'un élève par nom
+
+. **Spécifications** : Créez une nouvelle route `/api/eleves/:nom` qui recherche un élève par son nom.
+[IMPORTANT]
+Une bonne recherche ne doit pas être sensible à la casse (majuscules/minuscules). "Ca" et "ca" doivent donner le même résultat. Pour cela, on convertit le nom de l'élève et le paramètre de recherche en minuscules avec `.toLowerCase()` avant de les comparer.
+
+. Utilisez la méthode `find()` avec une comparaison insensible à la casse.
+. Si un élève est trouvé, renvoyez son objet.
+. Sinon, renvoyez un statut 404 avec un message d'erreur : `res.status(404).json({ erreur: "Élève non trouvé" })`.
+. **Amélioration (optionnel)** : Modifiez votre logique pour que la recherche fonctionne même si on ne tape qu'une partie du nom (ex: `/api/eleves/Poo` devrait trouver "Poothapillai"). Indice : la méthode `String.prototype.includes()` ou `String.prototype.startsWith()` sera utile, toujours en combinaison avec `.toLowerCase()`.
+
+=== Exercice 5 : Recherche par nom et prénom
+
+On peut avoir plusieurs paramètres dans une route.
+
+.Analysez le code suivant :
+[source,javascript]
+----
+app.get('/chercheParNomEtPrenom/:nomEleve/:prenomEleve', (req, res) => {
+const { nomEleve, prenomEleve } = req.params;
+
+  const trouve = listeEleves.find(eleve =>
+    eleve.nom.toLowerCase() === nomEleve.toLowerCase() &&
+    eleve.prenom.toLowerCase() === prenomEleve.toLowerCase()
+  );
+
+  if (trouve) {
+    res.json(trouve);
+  } else {
+    res.status(404).send('Correspondance non trouvée');
+  }
+});
+----
+
+. **Questions** :
+. Expliquez ce que fait cette route.
+. Donnez l'URL exacte pour trouver l'élève "Tanavong Ca".
+. Écrivez une autre route, `/cherche`, qui obtient le même résultat mais en utilisant des paramètres de requête (ex: `/cherche?nom=Ca&prenom=Tanavong`).
+. Comment modifier la condition du `.find()` pour renvoyer un élève si son nom *OU* son prénom correspond aux paramètres fournis ?
+
+== Routes POST
+
+=== Introduction
+
+La méthode HTTP `POST` est utilisée pour **envoyer des données au serveur**, typiquement pour créer une nouvelle ressource. Ces données ne sont pas dans l'URL, mais dans le **corps** (`body`) de la requête.
+
+Pour qu'Express puisse lire les données du `req.body`, nous devons utiliser des middlewares.
+
+.Configuration des middlewares
+[source,javascript]
+----
+// Au début de votre fichier server.js, après const app = express();
+
+// Middleware pour parser le JSON (pour les requêtes API type application/json)
+app.use(express.json());
+// Middleware pour parser les données de formulaire (type application/x-www-form-urlencoded)
+app.use(express.urlencoded({ extended: true }));
+----
+
+=== Utilisation de Postman pour tester
+
+Postman (ou des alternatives comme Insomnia) est un outil essentiel pour tester des API. Il permet de forger n'importe quel type de requête HTTP.
+
+.Créez votre première route POST :
+[source,javascript]
+----
+app.post('/testPost', (req, res) => {
+  // Les données envoyées par le client sont dans req.body
+  console.log('Données reçues :', req.body);
+  res.json({ message: "Données bien reçues !", donnees: req.body });
+});
+----
+
+.Testez avec Postman :
+. Lancez Postman et créez une nouvelle requête.
+. Sélectionnez la méthode `POST` et entrez l'URL `http://localhost:3000/testPost`.
+. Allez dans l'onglet `Body`, sélectionnez `x-www-form-urlencoded`, et ajoutez des paires clé-valeur (ex: `nom`=`Robert`, `prenom`=`Tim`).
+. Envoyez la requête. Observez la réponse dans Postman et le `console.log` dans votre terminal.
+
+=== Traitement d'un formulaire HTML
+
+Généralement, une route POST traite les données d'un formulaire HTML.
+
+==== Étape 1 : Créer le formulaire HTML
+
+. Créez un répertoire `public` à la racine de votre projet.
+. Dedans, créez un fichier `login.html` :
+
+[source,html]
+----
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+</head>
+<body>
+    <form action="/login" method="post">
+        <input type="text" name="pseudo" placeholder="Pseudo" required>
+        <input type="password" name="motDePasse" placeholder="Mot de passe" required>
+        <input type="submit" value="Authentification">
+    </form>
+</body>
+</html>
+----
+NOTE: `action="/login"` et `method="post"` indiquent au navigateur d'envoyer les données à la route `/login` via une requête POST.
+
+==== Étape 2 : Servir le fichier HTML et traiter les données
+
+Pour servir des fichiers statiques comme le HTML, on peut utiliser `res.sendFile`. En ESM, `__dirname` n'existe pas, il faut le recréer.
+
+[source,javascript]
+----
+// Au début de server.js
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// --- Plus bas, dans vos routes ---
+
+// Route GET pour AFFICHER le formulaire de login
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public/login.html'));
+});
+
+// Route POST pour TRAITER les données du formulaire
+app.post('/login', (req, res) => {
+  const { pseudo, motDePasse } = req.body;
+
+  if (pseudo === 'admin' && motDePasse === 'admin') {
+    res.send('Bonjour Mr l\'administrateur');
+  } else {
+    res.status(401).send('Login invalide'); // 401 Unauthorized
+  }
+});
+----
+
+=== Exercice 6 : Test et amélioration du formulaire
+
+. Testez le formulaire : Quelle URL permet d'y accéder dans le navigateur ?
+. Commentez ligne par ligne le code de la route `app.post('/login', ...)` pour expliquer ce qu'il fait.
+. Ajoutez deux champs au formulaire (`nom` et `prenom`) et modifiez la route `POST` pour que si l'utilisateur n'est pas "admin", le serveur réponde "Bonjour [prénom] [nom], votre identifiant [pseudo] est inconnu."
