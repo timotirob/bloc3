@@ -153,11 +153,18 @@ Le but est de renvoyer une page HTML complète au lieu d'un simple texte.
 +
 [source,javascript]
 ----
+/** Pour les versions antérieures à Node.js 20
+
 import path from 'path';
 import { fileURLToPath } from 'url';
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+*/
+
+// Avec les versions récentes de Node.js, on peut  utiliser :
+// Recréation de __dirname pour la compatibilité ESM
+const __dirname = import.meta.dirname;
 ----
 +
 [NOTE]
@@ -171,12 +178,21 @@ Ces lignes permettent de retrouver le chemin absolu du répertoire du script en 
 [source,javascript]
 ----
 import express from 'express';
+/** Pour les versions antérieures à Node.js 20
+
 import path from 'path';
 import { fileURLToPath } from 'url';
-
-// Recréation de __dirname pour la compatibilité ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+*/
+
+// Avec les versions récentes de Node.js, on peut  utiliser :
+// Recréation de __dirname pour la compatibilité ESM
+const __dirname = import.meta.dirname;
+
+
+
 
 const app = express();
 const port = 3000;
