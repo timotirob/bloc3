@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Title</title>
+</head>
+<body>
+
+
+<button id="afficheTout"> affiche tous les utilisateurs</button>
+<div id = "listeUtilisateur">
+<ul id="listeBulletUtilisateurs">
+
+  </ul>
+</div>
+
+
+<script type="text/javascript">
+  const monBouton = document.getElementById("afficheTout");
+  const listeUtilisateur = document.getElementById("listeUtilisateur");
+const listeBulletUtilisateurs = document.getElementById("listeBulletUtilisateurs");
+
+  const apiUtilisateur = "https://jsonplaceholder.typicode.com/users";
+  const recupereUtilisateurs = async () =>{
+    try {
+
+      const reponse =await fetch(apiUtilisateur);
+
+      // console.log(reponse) ;
+
+      const donnees = await reponse.json();
+      console.log("La liste des utilisateurs" +donnees);
+
+      donnees.forEach( (utilisateur) => {
+        console.log(utilisateur.name);
+        // const unParagraphe = document.createElement("p");
+        const unElement = document.createElement("li")
+        // unParagraphe.textContent = utilisateur.name;
+        unElement.textContent = utilisateur.name
+        // listeUtilisateur.appendChild(unParagraphe);
+        listeBulletUtilisateurs.appendChild(unElement)
+      } )
+
+
+
+    }
+    catch (uneErreur) {
+      console.log("Une erreur est survenue : " + uneErreur.message);
+    }
+  }
+
+  monBouton.addEventListener("click", () => {
+    recupereUtilisateurs()
+  });
+
+
+
+
+</script>
+</body>
+</html>

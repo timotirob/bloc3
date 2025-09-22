@@ -20,7 +20,7 @@ const mailUtilisateur = document.getElementById("mailUtilisateur");
 const villeUtilisateur = document.getElementById("villeUtilisateur");
 
 const apiUtilisateur = "https://jsonplaceholder.typicode.com/users/1";
-async function recupereUtilisateur() {
+const recupereUtilisateur = async () =>{
     try {
 
         const reponse =await fetch(apiUtilisateur);
