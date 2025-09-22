@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<p id="taille"></p>
+<p id="faitAAfficher"></p>
+
+<button id="afficher">Afficher un fait aléatoire</button>
+
+
+<script language="JavaScript">
+const monFait = document.getElementById('faitAAfficher');
+const taille = document.getElementById('taille');
+const monBouton = document.getElementById('afficher');
+const API_URL = 'https://catfact.ninja/fact'
+const recupererFait= async () => {
+    const reponse = await fetch(API_URL);
+    //console.log(reponse);
+    const data = await reponse.json();
+    console.log(data);
+    return data
+}
+monBouton.addEventListener('click', async () => {
+    const donnees = await recupererFait();
+    console.log(donnees)
+    monFait.textContent = donnees.fact;
+    // taille.textContent = `Taille du fait : ${donnees.length} caractères`;
+    taille.textContent = 'Taille du fait :'+ donnees.length +'caractères'
+})
+
+</script>
+</body>
+</html>
