@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+
+<button id="afficheUtilisateur"> affiche le 1er</button>
+<p id="nomUtilisateur"></p>
+<p id="mailUtilisateur"></p>
+<p id="villeUtilisateur"></p>
+
+
+<script type="text/javascript">
+const monBouton = document.getElementById("afficheUtilisateur");
+const nomUtilisateur = document.getElementById("nomUtilisateur");
+const mailUtilisateur = document.getElementById("mailUtilisateur");
+const villeUtilisateur = document.getElementById("villeUtilisateur");
+
+const apiUtilisateur = "https://jsonplaceholder.typicode.com/users/1";
+async function recupereUtilisateur() {
+    try {
+
+        const reponse =await fetch(apiUtilisateur);
+
+        // console.log(reponse) ;
+
+        const donnees = await reponse.json();
+        console.log("Le nom est" +donnees.name);
+        // console.log(await reponse.json())
+
+        nomUtilisateur.textContent = "Nom : " + donnees.name;
+        mailUtilisateur.textContent = "Mail : " + donnees.email;
+        villeUtilisateur.textContent = "Ville : " + donnees.address.city;
+
+
+    }
+    catch (uneErreur) {
+        console.log("Une erreur est survenue : " + uneErreur.message);
+    }
+}
+
+monBouton.addEventListener("click", () => {
+    recupereUtilisateur()
+});
+
+
+
+
+</script>
+</body>
+</html>
