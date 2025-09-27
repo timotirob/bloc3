@@ -1,0 +1,279 @@
+= TP - Middleware, Gestion des Erreurs et Tests en NodeJS
+:author: Timothée Robert
+:revdate: 2025-09-27
+:version-label: Version ESM, revue et corrigée
+:toc: left
+:toclevels: 3
+:sectnums:
+:source-highlighter: highlight.js
+:imagesdir: images
+
+[IMPORTANT]
+.Note : évolutions du cours
+====
+Ce document est le résultat de la fusion des éléments concernant les middleware et ceux qui concernent les tests unitaires. Le code JavaScript a été intégralement mis à jour pour utiliser la syntaxe **ES Modules (ESM)**.
+====
+
+== Partie 1 : Middleware et Gestion des Erreurs
+
+=== Introduction
+
+Nous avons déjà abordé NodeJS, la librairie Express, les principes du routage, des paramètres et des verbes HTTP GET/POST.
+
+Avant d'aborder la Cybersécurité (authentification, sessions, protection CSRF/XSS), nous allons nous intéresser à deux outils fondamentaux : les **middlewares** et la **gestion des erreurs**.
+
+=== Les middlewares dans NodeJS
+
+==== Définition
+
+Un middleware, dans le contexte d'Express, est une fonction qui a accès à l'objet requête (`req`), à l'objet réponse (`res`), et à la prochaine fonction middleware dans le cycle requête-réponse de l'application. Cette "prochaine fonction" est communément désignée par une variable nommée `next`.
+
+Les middlewares peuvent :
+* Exécuter n'importe quel code.
+* Apporter des modifications aux objets requête et réponse.
+* Mettre fin au cycle requête-réponse.
+* Appeler le middleware suivant dans la pile.
+
+Si le middleware en cours n'achève pas le cycle requête-réponse, il doit appeler `next()` pour passer le contrôle à la fonction middleware suivante. Sinon, la requête restera bloquée.
+
+==== Types de Middleware
+
+Express utilise plusieurs types de middleware. Nous allons nous concentrer sur le **middleware au niveau de l'application**. Il peut être lié à l'instance de l'application avec `app.use()` ou avec les méthodes `app.METHOD()` (où `METHOD` est un verbe HTTP comme `get`, `post`, etc.).
+
+==== Code de départ
+
+Voici le code de départ pour nos exercices, dans un fichier `middleware.js`.
+
+[IMPORTANT]
+.Corrections apportées au fichier initial
+====
+* La syntaxe est **100% ESM** (`import` au lieu de `require`).
+* Pensez à ajouter `"type": "module"` dans votre `package.json`.
+====
+
+.middleware.js
+[source,javascript]
+----
+import express from 'express';
+const app = express();
+const port = 3000;
+
+app.get('/accueil', (requete, resultat, suivant) => {
+    resultat.write('Accueil et on voudrait passer au suivant');
+    resultat.end();
+});
+
+app.get('/login', (requete, resultat, suivant) => {
+    resultat.write('Login et on voudrait passer au suivant');
+    resultat.end();
+});
+
+app.get('/bonjour', (requete, resultat, suivant) => {
+    resultat.write("Bonjour et on voudrait passer au suivant");
+    resultat.end();
+});
+
+app.get('/', (requete, resultat, suivant) => {
+    resultat.write("Ici c'est la racine et on voudrait passer au suivant");
+    resultat.end();
+});
+
+// Attention: cette route est définie une deuxième fois !
+app.get('/bonjour', (requete, resultat, suivant) => {
+    console.log("On dit bonjour dans la console en plus");
+    resultat.write("\nEncore bonjour vraiment j'insiste et on veut passer au suivant");
+    resultat.end();
+});
+
+app.listen(port, () => {
+    console.log(`Serveur démarré sur http://localhost:${port}`);
+});
+----
+
+[NOTE]
+.Point sur la syntaxe `res.write()` et `res.end()`
+====
+Jusqu'à présent, nous utilisions `res.send()`. La combinaison de `res.write()` et `res.end()` est équivalente. L'intérêt est de pouvoir appeler `res.write()` plusieurs fois pour construire une réponse par morceaux avant de l'envoyer définitivement avec `res.end()`.
+====
+
+==== Exercice 1 : Chaînage de middlewares
+
+. *Question 1 :* En regardant vos TP précédents, quels middlewares avons-nous déjà utilisés sans forcément les nommer ainsi ?
++
+[TIP]
+Réponse : `express.json()` et `express.urlencoded({ extended: true })` sont des middlewares intégrés qui analysent le corps des requêtes entrantes. Chaque fonction de routage `app.get(...)` est également un middleware !
+
+. *Tâches à réaliser :*
+. Reproduisez l'exemple de middleware suivant et placez-le au début de `middleware.js`, juste après `const app = express();`. Que se passe-t-il lorsque vous accédez à n'importe quelle URL de votre serveur ?
++
+[source,javascript]
+----
+// Middleware qui logue la date et l'heure de chaque requête
+app.use((req, res, next) => {
+  console.log('Time:', Date.now());
+  next(); // Passe à la suite (autre middleware ou route)
+});
+----
++
+. Déplacez ce middleware tout à la fin du fichier (juste avant `app.listen`). Que constatez-vous ? Pourquoi ?
+. Ajoutez un second middleware qui incrémente un compteur global et affiche dans la console : `"Requête numéro X reçue"`, où `X` est la valeur du compteur.
+. *Analyse du code :*
+.. Pourquoi utilisons-nous `resultat.write()` et non `resultat.send()` ? (voir note plus haut).
+.. Le fichier contient une route en double (`/bonjour`). Laquelle des deux est appelée lorsque vous visitez l'URL ? Comment pourriez-vous faire pour que les *deux* fonctions de cette route soient appelées l'une après l'autre ?
+
+[TIP]
+.Aides
+====
+* L'ordre des middlewares est **crucial**. Un middleware placé après les routes ne sera jamais appelé, car les routes terminent le cycle de la requête (avec `res.end()` ou `res.send()`).
+* Pour qu'un middleware déclaré en fin de fichier soit quand même exécuté, il faut que *toutes* les fonctions de route qui le précèdent appellent `next()`.
+* Pour la route en double, seule la première déclaration est exécutée. Pour exécuter la seconde, la première doit appeler `next()` au lieu de `resultat.end()`.
+====
+
+=== Gestion des erreurs
+
+Une application Express peut être vue comme une série de middlewares. La gestion des erreurs est elle-même un middleware spécial.
+
+image::gestionErreur.png[Schéma du flux de middlewares et gestion d'erreurs]
+
+Lorsqu'une erreur survient, Express recherche un middleware de gestion d'erreurs. On le reconnaît à sa signature spécifique qui comporte **quatre arguments** : `(err, req, res, next)`.
+
+.Exemple de middleware de gestion d'erreurs
+[source,javascript]
+----
+app.use((err, req, res, next) => {
+  console.error(err.stack); // Affiche l'erreur complète dans la console serveur
+  res.status(500).send('Oups ! Quelque chose s\'est mal passé !');
+});
+----
+
+==== Exercice 2 : Middleware de gestion d'erreurs en pratique
+
+Nous allons simuler des erreurs en créant des routes spécifiques.
+
+. *Analyse de scénarios :*
+. Créez une route `/erreur-volontaire` qui déclenche une erreur.
++
+[source,javascript]
+----
+app.get('/erreur-volontaire', (req, res, next) => {
+    // On simule une erreur en la passant à next()
+    next(new Error("Ceci est une erreur intentionnelle !"));
+});
+----
++
+. Créez une route `/totoro` qui n'existe pas.
+. Ajoutez le middleware de gestion d'erreurs (vu ci-dessus) *à la toute fin* de votre fichier, juste avant `app.listen()`.
+
+. *Questions :*
+. Que se passe-t-il quand vous accédez à `/erreur-volontaire` ? Expliquez le cheminement.
+. Quel est le statut de la réponse HTTP ? (Utilisez les outils de développement de votre navigateur, onglet Réseau).
+. Que se passe-t-il quand vous accédez à la route inexistante `/totoro` ? Quel middleware est appelé ?
+. Quel est le statut de la réponse HTTP pour `/totoro` et pourquoi ?
+
+[TIP]
+.Aide
+====
+* Une route qui appelle `next(erreur)` déclenchera directement le middleware de gestion d'erreurs.
+* Une route qui n'existe pas n'est pas une "erreur" au sens programmation, mais une "non-trouvée". Express renvoie par défaut un statut 404. Pour gérer cela de manière personnalisée, il faudrait un middleware "attrape-tout" juste avant le gestionnaire d'erreurs.
+====
+
+== Partie 2 : Introduction aux Tests Unitaires avec Mocha
+
+=== Pourquoi les tests unitaires ?
+
+Les tests unitaires permettent de résoudre de nombreux problèmes récurrents en développement logiciel : peur de modifier le code existant (refactoring), temps de maintenance élevé, inadéquation du produit avec les attentes, etc.
+
+Le **Test-Driven Development (TDD)** est une approche qui place les tests au cœur du processus de développement.
+
+Un bon test unitaire doit être, entre autres :
+* **Automatisé et répétable**
+* **Rapide**
+* **Isolé** (indépendant des autres tests)
+* **Clair** en cas d'échec
+
+=== Principe des tests unitaires
+
+On teste une "unité" de code (une fonction, une méthode) en vérifiant que pour une entrée donnée, le résultat est bien celui attendu.
+
+Pour cela, on utilise une **assertion** : une déclaration qui doit être vraie pour que le test réussisse.
+
+.Exemple : une fonction `addition`
+[source,javascript]
+// Fichier : source/addition.mjs
+export const addition = (...listeNombres) => {
+  let somme = 0;
+  for (const nombre of listeNombres) {
+    somme += nombre;
+  }
+  return somme;
+};
+----
+
+Pour tester cette fonction, on va écrire un autre fichier qui contient des assertions. Avec la bibliothèque **Mocha** et le module `assert` de NodeJS, cela ressemble à ceci :
+
+.Fichier : test/addition.test.mjs
+[source,javascript]
+----
+import { addition } from '../source/addition.mjs';
+import assert from 'assert';
+
+// 'it' définit un cas de test individuel
+it('devrait additionner 2 nombres correctement', () => {
+  // Assertion : on vérifie que addition(2, 2) est bien égal à 4
+  assert.equal(addition(2, 2), 4);
+});
+
+it('devrait additionner plusieurs nombres positifs', () => {
+  assert.equal(addition(9, 5, 12, 32), 58);
+});
+
+it('devrait gérer les nombres négatifs', () => {
+  assert.equal(addition(-7, 8, -4, 12, 2), 11);
+});
+----
+
+=== Annexe : Exemple de Tests dans un Autre Écosystème (PHPUnit)
+
+L'esprit des tests unitaires est universel, même si la syntaxe change. Voici un exemple en PHP avec le framework PHPUnit, tiré d'un sujet d'examen.
+
+Une fonction `verifPassword` attribue des points à un mot de passe en fonction de sa complexité.
+
+.fonction verifPassword en PHP
+[source,php]
+----
+<?php
+function verifPassword($mdp): bool
+{
+    $points_total = 6;
+    $longueur = strlen($mdp);
+    $points_long = 0;
+    $points_comp = 0;
+
+    if ($longueur >= 8) { $points_long = 1; }
+
+    if (preg_match("/[a-z]/", $mdp)) { $points_comp = $points_comp + 1; }
+    if (preg_match("/[A-Z]/", $mdp)) { $points_comp = $points_comp + 2; }
+    if (preg_match("/[0-9]/", $mdp)) { $points_comp = $points_comp + 3; }
+
+    $resultat = $points_long * $points_comp;
+    return ($points_total == $resultat);
+}
+----
+
+Les tests unitaires pour cette fonction vérifient différents cas de mots de passe.
+
+.Tests unitaires avec PHPUnit
+[source,php]
+----
+<?php
+// Extrait d'une classe de test
+public function testVerifPassword()
+{
+    //assertSame vérifie que la valeur ET le type sont identiques
+    $this->assertSame(false, verifPassword("Qam3")); // Trop court
+    $this->assertSame(false, verifPassword("qamQdVDbdAbc")); // Manque un chiffre
+    $this->assertSame(false, verifPassword("qamqdvdbabc3")); // Manque une majuscule
+    $this->assertSame(false, verifPassword("QAMQDVDBABC3")); // Manque une minuscule
+    $this->assertSame(true, verifPassword("qamQdVD3")); // Valide (1+2+3)*1 = 6
+}
+----
