@@ -134,7 +134,6 @@ const listeEleves = [
 
 // On exporte la variable pour la rendre accessible depuis d'autres fichiers
 export { listeEleves };
-----
 
 ==== Étape 3 : Importation des données
 
