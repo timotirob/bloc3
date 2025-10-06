@@ -284,11 +284,15 @@ Pour servir des fichiers statiques comme le HTML, on peut utiliser `res.sendFile
 [source,javascript]
 ----
 // Au début de server.js
-import path from 'path';
+/*import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+*/
+// nouvelle syntaxes:
+const __dirname = import.meta.dirname;
+
 
 // --- Plus bas, dans vos routes ---
 
