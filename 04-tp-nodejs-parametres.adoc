@@ -131,7 +131,6 @@ const listeEleves = [
   { id: 2, nom: 'Poothapillai', prenom: 'Sabetha', age: 19 },
   { id: 3, nom: 'Ca', prenom: 'Tanavong', age: 19 }
 ];
-
 // On exporte la variable pour la rendre accessible depuis d'autres fichiers
 export { listeEleves };
 
