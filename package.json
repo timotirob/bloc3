@@ -4,10 +4,12 @@
     "start": "node index.js",
     "dev": "nodemon routeintro.mjs",
     "eleve": "nodemon exploiteEleves.js",
-    "middle": "nodemon middleware.js"
+    "middle": "nodemon middleware.js",
+    "test": "mocha test/testAdditions.mjs"
   },
   "dependencies": {
     "express": "^5.1.0",
+    "mocha": "^11.7.4",
     "nodemon": "^3.1.10"
   }
 }
