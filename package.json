@@ -3,7 +3,8 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon routeintro.mjs",
-    "eleve": "nodemon exploiteEleves.js"
+    "eleve": "nodemon exploiteEleves.js",
+    "middle": "nodemon middleware.js"
   },
   "dependencies": {
     "express": "^5.1.0",
