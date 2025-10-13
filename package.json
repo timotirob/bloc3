@@ -5,11 +5,14 @@
     "dev": "nodemon routeintro.mjs",
     "eleve": "nodemon exploiteEleves.js",
     "middle": "nodemon middleware.js",
-    "test": "mocha test/testAdditions.mjs"
+    "test": "mocha test/testAdditions.mjs",
+    "mysql": "nodemon databasemysql.js"
   },
   "dependencies": {
+    "better-sqlite3": "^12.4.1",
     "express": "^5.1.0",
     "mocha": "^11.7.4",
+    "mysql2": "^3.15.2",
     "nodemon": "^3.1.10"
   }
 }
