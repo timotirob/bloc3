@@ -29,6 +29,7 @@ Avant d'aborder la Cybersécurité (authentification, sessions, protection CSRF/
 Un middleware, dans le contexte d'Express, est une fonction qui a accès à l'objet requête (`req`), à l'objet réponse (`res`), et à la prochaine fonction middleware dans le cycle requête-réponse de l'application. Cette "prochaine fonction" est communément désignée par une variable nommée `next`.
 
 Les middlewares peuvent :
+
 * Exécuter n'importe quel code.
 * Apporter des modifications aux objets requête et réponse.
 * Mettre fin au cycle requête-réponse.
