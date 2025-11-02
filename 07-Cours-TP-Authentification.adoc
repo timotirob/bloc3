@@ -1,0 +1,563 @@
+= TP - Cybersécurité : Authentification et Mot de Passe en NodeJS
+:author: Timothée Robert
+:revdate: 2025-10-10
+:version-label: Version ESM compilée
+:toc: left
+:toclevels: 3
+:sectnums:
+:source-highlighter: highlight.js
+:imagesdir: images
+
+image::node1.svg[NodeJS Logo]
+
+== Introduction
+
+Nous avons maintenant les outils (NodeJS, Express, Middlewares, BDD) pour aborder la sécurité des applications Web. Nous commencerons par l'authentification, puis la notion de session, les protections CSRF, XSS et contre les injections.
+
+=== Objectifs de la séance
+
+Dans cette séance, nous allons analyser les bases de l’authentification par login et mot de passe :
+
+* L’enregistrement (inscription) d'un utilisateur.
+* Le hachage du mot de passe, avec un "grain de sel" pour éviter les attaques par tables "arc-en-ciel" (rainbow table).
+* Le stockage sécurisé des données d’authentification en base de données.
+* La validation du mot de passe lors des connexions ultérieures.
+
+== Étape 1 : Mise en place de l'application
+
+=== Prérequis
+
+Créez un nouveau projet NodeJS et installez les paquets nécessaires. Assurez-vous d'avoir `"type": "module"` dans votre `package.json` pour activer le mode ESM.
+
+[source,bash]
+----
+npm install express mysql2
+npm install --save-dev nodemon
+----
+
+=== Initialisation de l'application
+
+Créez un fichier `server.js` de base.
+
+[source,javascript]
+----
+import express from 'express';
+import mysql from 'mysql2/promise';
+import path from 'path';
+
+// Syntaxe ESM moderne pour __dirname
+const __dirname = import.meta.dirname;
+
+const app = express();
+const port = 3000;
+
+// Middlewares intégrés pour parser les formulaires
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Paramétrage de la connexion à la BDD
+// (Idéalement, ces infos seraient dans un fichier .env)
+const dbConfig = {
+    host: 'localhost',
+    user: 'nodejs_user', // Utilisez un utilisateur dédié, PAS root
+    password: 'test',
+    database: 'nodemysql'
+};
+
+// ... nos routes viendront ici ...
+
+app.listen(port, () => {
+  console.log(`Serveur démarré sur http://localhost:${port}`);
+});
+----
+
+=== Création de la table UTILISATEURS
+
+Dans votre base de données MySQL, créez un utilisateur dédié (ex: `nodejs_user`) avec les droits sur votre base `nodemysql`. N'utilisez pas `root` pour une application.
+
+Ensuite, exécutez ce script pour créer la table qui stockera les informations.
+
+[source,sql]
+----
+CREATE TABLE IF NOT EXISTS UTILISATEURS (
+  id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+  login VARCHAR(200) NOT NULL UNIQUE,
+  motDePasse VARCHAR(200) NOT NULL,
+  EMAIL VARCHAR(200) UNIQUE,
+  TELEPHONE VARCHAR(10),
+  SALT VARCHAR(100),
+  DATE_CREATION DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+----
+
+== Étape 2 : Enregistrement d'un utilisateur
+
+=== Formulaire d'enregistrement (côté client)
+
+1.  Créez un dossier `public` et un fichier `public/enregistrement.html`.
+2.  Créez un formulaire avec les champs : `login`, `email`, `telephone`, `motDePasse`, `confMdp`.
+3.  L'attribut `action` du formulaire doit pointer vers `/register` et la `method` doit être `POST`.
+
+=== Validation de la complexité du mot de passe (côté client)
+
+On peut ajouter une vérification en JavaScript *avant* de soumettre le formulaire pour améliorer l'expérience utilisateur.
+
+[CAUTION]
+La validation côté client est pratique mais **NE DOIT JAMAIS** remplacer la validation côté serveur. Un attaquant peut facilement la contourner.
+
+.Cahier des charges pour la complexité :
+* Entre 8 et 30 caractères.
+* Au moins une valeur numérique.
+* Au moins une lettre minuscule.
+* Au moins une lettre majuscule.
+* Au moins un caractère spécial.
+
+Vous pouvez implémenter cela dans une fonction JS séparée, appelée par votre formulaire (par exemple, sur l'événement `onsubmit`).
+
+=== Hachage du mot de passe (côté serveur)
+
+Ne *jamais* stocker un mot de passe en clair. Nous devons le hacher avec un "grain de sel" (salt).
+
+==== Qu'est-ce que le hachage et le salage ?
+
+* **Hachage** : Une fonction mathématique (ex: SHA-512) qui transforme une donnée en une empreinte unique de taille fixe. C'est irréversible : on ne peut pas retrouver le mot de passe original à partir du hach.
+* **Grain de sel (Salt)** : Une chaîne de caractères aléatoire unique, générée pour *chaque* utilisateur. On la combine au mot de passe *avant* de hacher.
+* **Pourquoi ?** Sans sel, deux utilisateurs avec le même mot de passe ("123456") auraient le même hach. Un attaquant pourrait pré-calculer les hachs de millions de mots de passe (une "Rainbow Table") et les comparer. Le sel rend chaque hach unique, même pour des mots de passe identiques.
+
+==== Implémentation avec le module `crypto`
+
+Nous allons créer des fonctions utilitaires dans des fichiers séparés.
+
+.utils/genereSel.mjs
+[source,javascript]
+----
+import crypto from 'crypto';
+
+/**
+ * Génération du grain de sel en utilisant la fonction
+ * randomBytes du module crypto.
+ * @param {number} longueur - Longueur de la chaîne aléatoire souhaitée.
+ */
+export const genereChaineAleatoire = (longueur = 64) => {
+  return crypto.randomBytes(Math.ceil(longueur / 2))
+    .toString('hex') // conversion en héxadecimal
+    .slice(0, longueur); // on ne garde que le nombre de caractères demandé
+};
+----
+
+.utils/hashPassword.mjs
+[source,javascript]
+----
+import crypto from 'crypto';
+
+/**
+ * Hash password avec sha512 (HMAC).
+ * @param {string} password - mot de passe de l'utilisateur.
+ * @param {string} salt - grain de sel généré
+ */
+export const sha512 = (password, salt) => {
+  // Hashing algorithm sha512
+  const hash = crypto.createHmac('sha512', salt);
+  hash.update(password);
+  const valeurHashee = hash.digest('hex');
+  return {
+    salt: salt,
+    passwordHash: valeurHashee,
+  };
+};
+----
+
+[NOTE]
+.HMAC vs Hash simple
+====
+* `crypto.createHash('sha512')` est une simple fonction de hachage.
+* `crypto.createHmac('sha512', cleSecrete)` (Hash-based Message Authentication Code) est un hachage qui inclut une clé secrète (ici, nous l'utilisons avec le *sel*). C'est une méthode robuste.
+====
+
+=== Route d'enregistrement (POST /register)
+
+Maintenant, assemblons le tout dans `server.js`.
+
+[source,javascript]
+----
+// ... (imports et configuration en haut du server.js) ...
+
+import { genereChaineAleatoire } from './utils/genereSel.mjs';
+import { sha512 } from './utils/hashPassword.mjs';
+
+// Route GET pour servir le formulaire d'enregistrement
+app.get('/register', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public/enregistrement.html'));
+});
+
+// Route POST pour traiter l'enregistrement
+app.post('/register', async (req, res) => {
+    const { login, email, telephone, motDePasse, confMdp } = req.body;
+
+    // 1. Validation (simpliste, à améliorer)
+    if (motDePasse !== confMdp) {
+        return res.status(400).send("Les mots de passe ne correspondent pas.");
+    }
+    // (Ici, ajoutez la validation de complexité côté serveur)
+
+    let connection;
+    try {
+        // 2. Hachage du mot de passe
+        const grainDeSel = genereChaineAleatoire(64);
+        const donneesMdp = sha512(motDePasse, grainDeSel);
+        
+        const motDePasseFinalBDD = donneesMdp.passwordHash;
+
+        // 3. Stockage en BDD
+        connection = await mysql.createConnection(dbConfig);
+        const sql = `
+            INSERT INTO UTILISATEURS (login, motDePasse, EMAIL, TELEPHONE, SALT)
+            VALUES (?, ?, ?, ?, ?)
+        `;
+        
+        await connection.execute(sql, [
+            login,
+            motDePasseFinalBDD,
+            email,
+            telephone,
+            grainDeSel
+        ]);
+
+        res.status(201).send("Utilisateur enregistré avec succès !");
+
+    } catch (error) {
+        console.error("Erreur lors de l'enregistrement :", error);
+        res.status(500).send("Erreur lors de la création du compte.");
+    } finally {
+        if (connection) await connection.end();
+    }
+});
+----
+
+== Étape 3 : Validation du mot de passe (Login)
+
+Le processus est l'inverse :
+1.  L'utilisateur saisit son login et son mot de passe.
+2.  On récupère l'utilisateur dans la BDD grâce à son `login`.
+3.  Si l'utilisateur n'existe pas, on renvoie une erreur.
+4.  Si on le trouve, on récupère son `salt` et son `motDePasse` (haché) stockés.
+5.  On hache le mot de passe que l'utilisateur vient de saisir *en utilisant le même sel*.
+6.  On compare le hachage *nouvellement calculé* avec le hachage *stocké dans la BDD*.
+7.  S'ils sont identiques, le mot de passe est correct.
+
+=== Route de validation (POST /login)
+
+1.  Créez un formulaire `public/login.html` (champs `login` et `motDePasse`, action `POST /login`).
+2.  Ajoutez les routes correspondantes dans `server.js`.
+
+[source,javascript]
+----
+// ... (dans server.js) ...
+
+// Route GET pour servir le formulaire de login
+app.get('/login', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public/login.html'));
+});
+
+// Route POST pour valider le login
+app.post('/login', async (req, res) => {
+    const { login, motDePasse } = req.body;
+    
+    let connection;
+    try {
+        // 1. Récupérer l'utilisateur par son login
+        connection = await mysql.createConnection(dbConfig);
+        const sqlSelect = 'SELECT * FROM UTILISATEURS WHERE login = ?';
+        const [rows] = await connection.execute(sqlSelect, [login]);
+
+        if (rows.length === 0) {
+            return res.status(401).send("Login ou mot de passe incorrect.");
+        }
+
+        const utilisateur = rows[0];
+
+        // 2. Récupérer le sel et le hach stocké
+        const saltStocke = utilisateur.SALT;
+        const hashStocke = utilisateur.motDePasse;
+
+        // 3. Re-hacher le mot de passe fourni avec le sel stocké
+        const hashCalcule = sha512(motDePasse, saltStocke).passwordHash;
+
+        // 4. Comparaison
+        if (hashCalcule === hashStocke) {
+            res.send("Connexion réussie ! Bienvenue " + utilisateur.login);
+            // C'est ici qu'on créera une SESSION dans le prochain TP
+        } else {
+            res.status(401).send("Login ou mot de passe incorrect.");
+        }
+
+    } catch (error) {
+        console.error("Erreur lors du login :", error);
+        res.status(500).send("Erreur serveur.");
+    } finally {
+        if (connection) await connection.end();
+    }
+});
+----
+
+== (Bonus) Améliorations de l'Authentification
+
+Ce que nous avons fait est bien, mais daté. La sécurité évolue vite.
+
+=== Bonus 1 : Utiliser un algorithme de Hachage Moderne (Argon2)
+
+Un audit de sécurité conclurait que `SHA-512` est rapide, ce qui est mauvais. Un attaquant peut tester des milliards de combinaisons très vite.
+
+Les algorithmes modernes comme **Argon2** (gagnant du Password Hashing Competition) sont conçus pour être **lents** et gourmands en mémoire, ce qui les rend résistants aux attaques par force brute (y compris avec des GPU).
+
+L'OWASP recommande Argon2id.
+
+==== Implémentation avec `argon2`
+
+L'utilisation est encore plus simple car **le sel est géré automatiquement** par la librairie. Le hach final contient toutes les informations (sel, coût mémoire, etc.) en une seule chaîne.
+
+1.  **Installation** : `npm install argon2`
+2.  **Code** : Voici un exemple simple.
+
+[source,javascript]
+----
+import argon2 from 'argon2';
+
+async function hashMonMdp() {
+  let hash = '';
+  try {
+    // 1. HACHAGE
+    // Pas besoin de gérer le sel !
+    hash = await argon2.hash('mon Voisin est Totoro');
+    console.log("Hach généré:", hash);
+    // Le hach change à chaque fois, car le sel est auto-généré
+  } catch (err) {
+    console.log(err);
+  }
+
+  try {
+    // 2. VÉRIFICATION
+    // La fonction verify extrait le sel du hach et fait la comparaison
+    if (await argon2.verify(hash, 'mon Voisin est Totoro')) {
+      console.log('Mot de passe correct !');
+    } else {
+      console.log('Mot de passe incorrect.');
+    }
+  } catch (err) {
+    // Erreur si le hach est malformé, etc.
+    console.log(err);
+  }
+}
+
+hashMonMdp();
+----
+
+Pour implémenter cela dans notre projet, il suffirait de remplacer les appels à `sha512` par `argon2.hash` (à l'enregistrement) et la comparaison manuelle par `argon2.verify` (au login). On n'aurait plus besoin de la colonne `SALT`.
+
+---
+
+=== Bonus 2 : Refactoring de l'application en MVC
+
+Pour un projet plus grand, garder tout dans `server.js` devient ingérable. On refactore selon l'architecture **Modèle-Vue-Contrôleur (MVC)**.
+
+.Arborescence du projet
+[source,text]
+----
+/
+|-- /config
+|   |-- db.js           (Connexion à la BDD)
+|-- /controllers
+|   |-- authController.js (Logique métier : registerUser, valideLogin)
+|-- /models
+|   |-- (Ici, nos fonctions hashPassword.mjs, genereSel.mjs...)
+|-- /routes
+|   |-- authRoutes.js     (Définition des URL : /login, /register)
+|-- /views
+|   |-- enregistrement.html
+|   |-- login.html
+|   |-- request-password-reset.html
+|   |-- reset-password.html
+|-- .env                  (Variables d'environnement : mots de passe BDD, etc.)
+|-- package.json
+|-- server.js             (Point d'entrée principal)
+----
+
+==== Fichier `.env`
+Pour ne pas écrire les mots de passe en dur dans le code. (N'oubliez pas `npm install dotenv`).
+[source,ini]
+----
+DB_HOST=localhost
+DB_USER=nodejs_user
+DB_PASS=test
+DB_NAME=nodemysql
+EMAIL=mon-email@gmail.com
+EMAIL_PASSWORD=mon-mot-de-passe-application
+----
+
+==== `config/db.js`
+Utilise un "pool" de connexions, bien plus performant pour un serveur web que `createConnection`.
+[source,javascript]
+----
+import mysql from 'mysql2/promise';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const pool = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
+
+export default pool;
+----
+
+==== `routes/authRoutes.js`
+Utilise `express.Router` pour regrouper les routes.
+[source,javascript]
+----
+import express from 'express';
+import path from 'path';
+import { registerUser, valideLogin } from '../controllers/authController.js';
+// import { check } from 'express-validator'; // Pour une validation avancée
+
+const router = express.Router();
+const __dirname = import.meta.dirname;
+
+// --- Routes GET pour servir les vues ---
+router.get('/register', (req, res) => {
+  res.sendFile(path.join(__dirname, '../views/enregistrement.html'));
+});
+// (Ajouter les autres routes GET pour login, reset, etc.)
+
+// --- Routes POST pour le traitement ---
+router.post('/register', registerUser);
+router.post('/login', valideLogin);
+// (Ajouter les autres routes POST)
+
+export default router;
+----
+
+==== `controllers/authController.js`
+C'est ici que se trouve toute la logique (le "Cerveau").
+[source,javascript]
+----
+import pool from '../config/db.js';
+import { sha512 } from '../models/hashPassword.mjs';
+import { genereChaineAleatoire } from '../models/genereSel.mjs';
+// import { validationResult } from 'express-validator';
+
+export const registerUser = async (req, res) => {
+  const { login, motDePasse } = req.body;
+  
+  // (Ici la validation de complexité mdp)
+  // if (!verifieMdp(mdp)) {
+  //   return res.status(400).send('Mot de passe trop faible.');
+  // }
+
+  try {
+    const salt = genereChaineAleatoire(64);
+    const { passwordHash } = sha512(motDePasse, salt);
+
+    const sql = "INSERT INTO UTILISATEURS (login, motDePasse, SALT) VALUES (?, ?, ?)";
+    // On utilise le pool
+    await pool.execute(sql, [login, passwordHash, salt]);
+
+    res.status(201).send('Utilisateur enregistré.');
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Erreur serveur.');
+  }
+};
+
+export const valideLogin = async (req, res) => {
+  // ... (logique de validation du login, mais en utilisant pool.execute())
+};
+
+// (Ajouter les fonctions pour le reset de mot de passe)
+export const requestPasswordReset = async (req, res) => { /* ... */ };
+export const resetPassword = async (req, res) => { /* ... */ };
+----
+
+==== `server.js` (final)
+Le point d'entrée devient très simple.
+[source,javascript]
+----
+import express from 'express';
+import dotenv from 'dotenv';
+import authRoutes from './routes/authRoutes.js';
+
+dotenv.config();
+
+const app = express();
+const port = process.env.PORT || 3000;
+
+// Middlewares
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Utilise les routes définies dans authRoutes.js
+// Toutes les routes commenceront par /auth
+app.use('/auth', authRoutes);
+
+app.listen(port, () => {
+  console.log(`Serveur démarré sur le port ${port}`);
+});
+----
+
+---
+
+=== Bonus 3 : Implémenter la réinitialisation du mot de passe
+
+Une fois l'architecture MVC en place, on peut ajouter cette fonctionnalité.
+
+.Objectif
+L'utilisateur oublie son mot de passe. Il doit pouvoir le réinitialiser de manière sécurisée, généralement par email.
+
+.Étapes
+1.  **Configuration du serveur SMTP** : Pour envoyer des emails. Nous utiliserons `nodemailer` avec Gmail (voir Annexe A).
+2.  **Nouveaux formulaires (Vues)** :
+* `request-password-reset.html` : Un champ pour saisir son email.
+* `reset-password.html` : Deux champs (nouveau mot de passe et confirmation).
+3.  **Nouvelles routes** :
+* `GET /auth/request-reset` : Affiche le formulaire de demande.
+* `POST /auth/request-reset` : Traite la demande. (Génère un token unique, le stocke, et envoie l'email).
+* `GET /auth/reset-password?token=...` : Affiche le formulaire de saisie du nouveau mot de passe (si le token est valide).
+* `POST /auth/reset-password` : Traite la saisie du nouveau mot de passe.
+4.  **Logique (Contrôleur)** : C'est la partie la plus complexe. Il faut générer un **token de réinitialisation** sécurisé, à usage unique et à durée de vie limitée (ex: 15 minutes), le stocker en BDD (associé à l'utilisateur), et l'envoyer par email dans un lien.
+
+---
+
+== Annexes
+
+=== Annexe A : Configuration de Google pour Nodemailer
+
+Pour envoyer des emails via Gmail avec `nodemailer`, vous ne pouvez plus utiliser votre mot de passe habituel. Vous devez générer un **Mot de passe d'application**.
+
+1.  **Activer la validation en deux étapes (2FA)** :
+* Allez dans votre compte Google -> Sécurité.
+* Cliquez sur "Validation en deux étapes" et activez-la.
+2.  **Générer un mot de passe d'application** :
+* Sur la même page Sécurité, cliquez sur "Mots de passe des applications".
+* Sélectionnez "Messagerie" pour l'application et "Autre (Nom personnalisé)" pour l'appareil (ex: "Mon App NodeJS").
+* Google génère un mot de passe de 16 caractères.
+3.  **Utilisation** :
+* Copiez ce mot de passe de 16 caractères. C'est lui que vous mettrez dans votre fichier `.env` pour la variable `EMAIL_PASSWORD`.
+
+=== Annexe B : Bonnes pratiques de l'OWASP
+
+L'**OWASP (Open Web Application Security Project)** est la référence en matière de sécurité web.
+
+.Stockage des mots de passe (Password Storage Cheat Sheet)
+* **Utiliser Argon2id** comme algorithme de hachage principal.
+* **Saler les mots de passe** : Utiliser un sel unique et aléatoire pour chaque mot de passe. (Argon2 le fait pour vous).
+* **Ne pas inventer son propre algorithme** de cryptographie.
+* **Poivrage (Peppering)** : En plus du sel (stocké en BDD), on peut ajouter un "poivre" (pepper) global, qui est une chaîne secrète stockée *hors* de la BDD (ex: dans une variable d'environnement). Cela protège les hachs même si la BDD est volée.
+
+.Attaques courantes
+* **Rainbow Table** : Bases de données de hachs pré-calculés. Inefficaces si les mots de passe sont salés.
+* **Force Brute / Dictionnaire** : Essayer toutes les combinaisons ou tous les mots d'un dictionnaire. Contré par un algorithme lent (comme Argon2) et un verrouillage de compte (ex: 5 tentatives échouées = compte bloqué 10 min).
