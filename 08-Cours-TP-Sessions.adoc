@@ -1,0 +1,347 @@
+= TP - Authentification Web I : Gestion des Sessions
+:author: Timothée Robert
+:revdate: 2025-11-09
+:version-label: Version ESM, revue et améliorée
+:toc: left
+:toclevels: 3
+:sectnums:
+:source-highlighter: highlight.js
+:imagesdir: images
+
+== Introduction
+
+Nous avons vu comment authentifier un utilisateur avec un mot de passe haché et salé.  Cependant, le protocole **HTTP est "stateless"** (sans état). Une fois l'authentification réussie sur une requête, le serveur "oublie" l'utilisateur pour la requête suivante.
+
+Comment, dès lors, donner accès à des ressources protégées sans redemander le mot de passe à chaque clic ?
+
+C'est le rôle de la **gestion de session**. Aujourd'hui, nous étudions le mécanisme de session web "classique" (stateful). Par la suite, nous aborderons les tokens (JWT), OAuth2, et l'authentification à double facteur.
+
+[NOTE]
+.Complexité des méthodes d'authentification
+====
+image::modesAuth.png[Tableau des choix d'authentification]
+
+Comme le montre ce schéma, la gestion de session est le point de départ, et la complexité augmente avec des solutions comme JWT ou OAuth.
+====
+
+=== Analyse préliminaire
+
+.Question de recherche :
+Pourquoi les cookies "simples" (contenant directement des informations utilisateur) et les paramètres d'une requête GET (ex: `?user=tim&role=admin`) ne sont-ils **absolument pas** appropriés pour gérer une authentification ?
+
+== Fonctionnement d'une session HTTP
+
+=== Principes
+
+HTTP est sans état, mais on peut utiliser ses en-têtes (`headers`) et les **cookies** pour simuler un état.
+
+* **En-têtes (Headers) :** Informations de métadonnées qui voyagent avec chaque requête et réponse.
+* **Cookies :** Petits morceaux de données que le serveur demande au client (navigateur) de stocker.
+
+Le flux de base est le suivant :
+
+image::sessionsCookies.png[Flux de session HTTP]
+
+1.  Le client demande une page.
+2.  Le serveur, dans sa réponse, inclut un en-tête `Set-Cookie: session-id=12345;`. Le navigateur stocke ce cookie.
+3.  Pour toutes les requêtes suivantes vers *le même domaine*, le navigateur inclut automatiquement un en-tête `Cookie: session-id=12345;`.
+4.  Le serveur lit cet ID, recherche la session "12345" dans sa base de données et "sait" ainsi qui est l'utilisateur.
+
+
+=== Exercice : Examen d'un cookie
+
+.  Dans Chrome, allez sur une page (ex: google.fr) et ouvrez la console (F12).
+.  Dans la console, tapez le code suivant :
++
+[source,javascript]
+----
+const maDate = new Date();
+// Ajoute 30000 millisecondes (30 secondes) à la date actuelle
+maDate.setTime(maDate.getTime() + 30000);
+// Crée un cookie côté client
+document.cookie = "monCookie=Totoro; expires=" + maDate.toUTCString() + ";";
+----
++
+.  *Analyse :*
+.. Que fait ce code ?
+.. Allez dans l'onglet `Application` -> `Stockage` -> `Cookies`. Que constatez-vous ?
+.. Combien de temps avez-vous pour voir ce cookie avant qu'il ne disparaisse ?
+.  *Visualisation (optionnel) :*
+.. Rechargez la page (F5) et allez dans l'onglet `Réseau (Network)`.
+.. Cliquez sur la première requête (le nom de la page).
+.. Dans les en-têtes (`Headers`), cherchez `Cookie` dans la section `Request Headers`. Vous devriez y voir votre cookie "monCookie=Totoro" être envoyé au serveur.
+
+=== Données de session
+
+La différence fondamentale est simple :
+
+* Le **cookie** est stocké **côté client** (navigateur).
+* Les **données de session** (qui est l'utilisateur, son rôle, etc.) sont stockées **côté serveur** (en mémoire, dans un fichier, ou en BDD).
+
+Le cookie de session ne contient qu'un **identifiant aléatoire et dénué de sens** (le `session-id`). Il sert uniquement de "clé" pour retrouver les vraies données côté serveur. C'est pour cela que ce mécanisme est dit **"stateful"** (le serveur maintient un état).
+
+=== Authentification vs. Autorisation
+
+.Question de cours :
+Rappelez en une phrase la différence fondamentale entre **l'authentification** et **l'autorisation**.
+
+[TIP]
+.Réponse
+====
+* **Authentification** : Prouver qui vous êtes (ex: login + mot de passe). C'est le "contrôle d'identité".
+* **Autorisation** : Vérifier ce que vous avez le droit de faire (ex: un "admin" peut voir le panel, un "user" ne peut pas). Ce sont les "permissions".
+====
+
+=== Exercice : Utilisation de cURL (Challenge)
+
+Cet exercice (basé sur un challenge PHP) démontre parfaitement la persistance de session.
+
+.  Installez les deux fichiers PHP (`session.php` et `supprime.php`), fournis dans le répertoire sources, dans votre répertoire `www` de Laragon.
+.  Démarrez Laragon.
+.  Avec votre navigateur, visitez les URL dans cet ordre :
+.. `http://localhost/session.php` (Affiche "Je ne sais pas qui vous êtes")
+.. `http://localhost/session.php?nom=Django` (Affiche "Je sais que vous vous appelez Django")
+.. `http://localhost/session.php` (Affiche "Je sais que vous vous appelez Django")
+.  Le serveur se "souvient" de vous grâce à la session.
+.  **Votre challenge :** Reproduisez ce scénario exact en ligne de commande avec `cURL`. (Indice : `cURL` ne sauvegarde pas les cookies par défaut, il faudra utiliser les options `-c` (cookie-jar) et `-b` (cookie) pour simuler le navigateur).
+
+== Partie 2 : Implémentation avec NodeJS et `express-session`
+
+Nous allons implémenter ce mécanisme dans notre application d'authentification.
+
+=== Étape 1 : Installation
+
+Nous avons besoin de `express-session` pour gérer les sessions.
+
+[source,bash]
+----
+# express-session gère la session
+# connect-session-file-store (optionnel) pour stocker les sessions dans des fichiers
+npm install express-session session-file-store
+----
+
+[NOTE]
+.Nettoyage des dépendances
+====
+Dans le document original (année dernière), `cookie-parser` et `body-parser` étaient listés.
+
+* `body-parser` est **obsolète**. `express.json()` et `express.urlencoded()` sont intégrés à Express.
+* `cookie-parser` n'est **plus nécessaire** pour `express-session` depuis la version 1.5.0. La librairie gère les cookies elle-même.
+====
+
+=== Étape 2 : Démarrage express (100% ESM)
+
+Voici le code de démarrage d'un `server.js` 100% ESM, nettoyé et corrigé.
+
+[source,javascript]
+----
+// --- Imports des modules ---
+import express from 'express';
+import session from 'express-session';
+// import mysql from 'mysql2'; // Plus tard, pour stocker en BDD
+import path from 'path';
+
+// --- Imports de nos modules (du TP précédent) ---
+// import { verifieMdp } from './verifieMdp.mjs';
+// import { sha512 } from './hashPassword.mjs';
+
+// --- Configuration initiale ---
+const app = express();
+const port = 3000;
+
+// Syntaxe ESM moderne pour __dirname
+const __dirname = import.meta.dirname;
+
+// --- Middlewares ---
+app.use(express.json()); // Pour parser le JSON
+app.use(express.urlencoded({ extended: true })); // Pour parser les formulaires
+app.use(express.static(path.join(__dirname, 'static'))); // Servir les fichiers statiques (CSS, etc.)
+----
+
+=== Étape 3 : Création et configuration de la session
+
+Nous ajoutons `express-session` comme un middleware. Il doit être placé **avant** toutes les routes qui en ont besoin.
+
+[source,javascript]
+----
+// ... (suite du server.js) ...
+
+app.use(session({
+  // 'secret' est utilisé pour signer le cookie de session
+  // NE PAS le hardcoder en production !
+  secret: 'les SIO font toujours dodo',
+
+  // 'name' est le nom du cookie
+  name: 'monCookieDeSession',
+
+  // Ne pas sauvegarder la session si elle n'est pas modifiée
+  resave: false,
+
+  // Ne pas créer de session pour un utilisateur non-authentifié
+  saveUninitialized: false,
+
+  cookie: {
+    // Le cookie ne sera pas accessible par le JS côté client
+    httpOnly: true,
+    // Mettre 'true' en production (nécessite HTTPS)
+    secure: false,
+    // Durée de vie du cookie (ex: 30 secondes pour tester)
+    maxAge: 30000
+  }
+}));
+
+// --- Démarrage du serveur ---
+app.listen(port, () => {
+  console.log(`Serveur démarré sur http://localhost:${port}`);
+});
+----
+
+[IMPORTANT]
+.Critiques de Sécurité et Bonnes Pratiques
+====
+1.  **Secret :** Le `secret` hardcodé est une faille de sécurité. S'il est découvert, un attaquant peut forger des ID de session. Ce secret DOIT provenir d'un fichier `.env` et être long et aléatoire (`process.env.SESSION_SECRET`).
+2.  **`resave: false` :** Très bonne pratique. Cela évite de ré-enregistrer la session en BDD à chaque requête si rien n'a changé.
+3.  **`saveUninitialized: false` :** Très bonne pratique. Cela évite de polluer le stockage de sessions avec des sessions vides pour les visiteurs anonymes (important pour le RGPD).
+4.  **`cookie.secure: true` :** Doit être mis à `true` en production. Cela force le cookie à n'être envoyé que sur une connexion HTTPS, empêchant son interception.
+5.  **Stockage Mémoire :** Par défaut, `express-session` stocke les sessions en mémoire vive. C'est mauvais pour la production :
+* Les sessions sont perdues à chaque redémarrage du serveur.
+* Cela ne fonctionne pas si vous avez plusieurs serveurs (load balancing).
+* Cela peut saturer la mémoire (fuite de mémoire).
+====
+
+=== Étape 4 : Analyse et utilisation de la session
+
+Une fois le middleware `session` activé, un objet `req.session` est **automatiquement ajouté** à chaque requête. Nous pouvons lire et écrire des données dedans.
+
+[source,javascript]
+----
+// ... (à ajouter avant app.listen) ...
+
+app.get('/compteur', (requete, resultat) => {
+  // On vérifie si la propriété 'compteur' existe dans la session
+  // Si non, on l'initialise à 0. Puis on l'incrémente.
+  requete.session.compteur = (requete.session.compteur || 0) + 1;
+
+  // On peut lire l'ID de session
+  const idSession = requete.sessionID;
+
+  // On peut lire les cookies
+  console.log(requete.cookies); // Affiche les cookies non-signés
+
+  resultat.send(`
+    <h1>Bonjour les rigolos</h1>
+    <p>Vous êtes venus ${requete.session.compteur} fois.</p>
+    <p>Votre ID de session est : ${idSession}</p>
+  `);
+});
+----
+
+[TIP]
+.Amélioration du code
+====
+La ligne :
+`requete.session.compteur = (requete.session.compteur || 0) + 1;`
+...est une manière idiomatique et concise d'initialiser et d'incrémenter un compteur en JavaScript.
+====
+
+=== Étape 5 : Destruction d'une session
+
+Pour déconnecter un utilisateur, on utilise `req.session.destroy()`.
+
+[source,javascript]
+----
+app.get('/logout', (requete, resultat) => {
+  requete.session.destroy((err) => {
+    if (err) {
+      return resultat.send("Erreur lors de la déconnexion");
+    }
+    // Optionnel : effacer le cookie côté client
+    resultat.clearCookie('monCookieDeSession');
+    resultat.send("Session détruite !");
+  });
+});
+----
+
+=== À faire (Exercice final)
+
+1.  Intégrez ce code dans votre projet d'authentification (de la séance précédente).
+2.  Modifiez la route `POST /login` : si l'authentification (`argon2.verify` ou `sha512`) réussit, **n'affichez pas** "Bienvenue", mais :
+* Stockez l'ID de l'utilisateur dans la session (ex: `req.session.userId = utilisateur.id`).
+* Redirigez l'utilisateur vers une nouvelle page (ex: `res.redirect('/profil')`).
+3.  Créez une nouvelle route `GET /profil`.
+4.  Dans cette route `/profil`, vérifiez si `req.session.userId` existe.
+* Si **oui**, récupérez les infos de l'utilisateur en BDD et affichez "Bienvenue [NomUtilisateur]".
+* Si **non** (l'utilisateur n'est pas connecté), redirigez-le vers la page de login (`res.redirect('/login')`).
+5.  Implémentez la route `GET /logout` qui détruit la session et redirige vers `/login`.
+
+== Bonus : Architectures d'Authentification (Schémas)
+
+Précisions sur les différents schémas d'authentification (Session, JWT, OAuth, FIDO2) avec analogies et flux.
+
+[NOTE]
+.Synthèse sur les architectures d'authentification
+====
+Avant de commencer, voici un tableau récapitulatif des différentes méthodes que nous allons aborder. Comprendre leurs différences fondamentales (avec ou sans état) est crucial.
+====
+
+[cols="1,2,1,2", options="header"]
+|===
+| Schéma | Principe de base | Analogie | Flux (très simplifié)
+
+| Session (Stateful)
+| Le serveur stocke tout (état) et donne un simple ID (cookie) au client.
+| 🎟️ Ticket de vestiaire
+| 1. Login/Pass -> 2. Serveur crée session, stocke données, renvoie session-id (cookie). -> 3. Client envoie session-id à chaque requête. -> 4. Serveur vérifie l'ID dans son "vestiaire" (BDD/mémoire).
+
+| JWT (Stateless)
+| Le serveur ne stocke rien (sans état). Le client possède un jeton auto-suffisant et signé.
+| 🛂 Passeport / Badge VIP
+| 1. Login/Pass -> 2. Serveur crée, signe et renvoie un JWT (ex: {"userId": 123}). -> 3. Client stocke le JWT et l'envoie à chaque requête (Header Authorization). -> 4. Serveur vérifie la signature du JWT (pas de BDD requise pour valider).
+
+| OAuth2 (Délégation)
+| N'est pas de l'authentification, mais de l'autorisation. Permet à une app d'agir au nom d'un utilisateur sans son mot de passe.
+| 🔑 Double de clé (limité)
+| 1. App A demande à App B (ex: Google) un accès. -> 2. App B demande à l'utilisateur : "Autoriser App A ?". -> 3. L'utilisateur dit "Oui". -> 4. App B donne un jeton d'accès (limité) à App A.
+
+| FIDO2 / WebAuthn (Passkeys)
+| Authentification sans mot de passe, basée sur la cryptographie (clé publique/privée).
+| 🔒 Clé physique / Biométrie
+| 1. Enregistrement : L'appareil crée une clé privée (secrète) et envoie la clé publique au serveur. -> 2. Login : Le serveur envoie un défi. -> 3. L'appareil signe le défi avec la clé privée (protégée par biométrie). -> 4. Serveur vérifie la signature avec la clé publique.
+|===
+
+
+
+### 1. Session Standard (Stateful)
+* **Ce que c'est :** Ce que nous venons de faire. Le serveur crée un ID de session, le stocke (en BDD/mémoire) et envoie l'ID au client dans un cookie.
+* **Analogie :** C'est un ticket de *vestiaire*.
+* **Flux :**
+1.  Vous donnez votre manteau (login/pass).
+2.  Le vestiaire garde votre manteau (données de session) et vous donne un ticket (cookie `session-id`).
+3.  À chaque fois que vous voulez votre chapeau (une ressource), vous montrez votre ticket. Le serveur vérifie dans son vestiaire et vous donne ce qui vous appartient.
+
+
+### 2. JSON Web Token (JWT) (Stateless)
+* **Ce que c'est :** Le serveur ne stocke *rien*. Il donne au client un "jeton" (le JWT) qui contient les informations de l'utilisateur (ex: `{"userId": 123, "role": "admin"}`) signées cryptographiquement.
+* **Analogie :** C'est un *badge VIP* ou un passeport.
+* **Flux :**
+1.  Vous prouvez votre identité (login/pass).
+2.  Le serveur vous donne un badge VIP scellé et infalsifiable (le JWT) qui dit "Cette personne est un admin".
+3.  À chaque fois que vous voulez accéder à une zone, vous montrez votre badge. Le videur (serveur) vérifie juste la signature (le sceau) du badge. Il n'a pas besoin de vérifier une liste ou un vestiaire.
+
+
+### 3. OAuth2 (Délégation)
+* **Ce que c'est :** Ce n'est *pas* de l'authentification, mais de **l'autorisation déléguée**. C'est ce qui gère le "Se connecter avec Google / Facebook".
+* **Analogie :** C'est un *double de clé limité*.
+* **Flux :**
+1.  Vous êtes sur `un-site-random.com` et cliquez sur "Se connecter avec Google".
+2.  Le site vous redirige vers Google, qui vous demande : "Acceptez-vous que `un-site-random.com` accède à votre email et votre nom ?".
+3.  Vous dites "Oui".
+4.  Google ne donne *pas* votre mot de passe à `un-site-random.com`. Il lui donne un *jeton spécial* (un jeton OAuth) qui dit "J'ai vérifié cet utilisateur, et je t'autorise à voir son email".
+
+
+### 4. FIDO2 / WebAuthn (Authentification)
+* **Ce que c'est :** Une méthode d'authentification *sans mot de passe* basée sur la cryptographie à clé publique/privée. Utilise des dispositifs physiques (clé USB, biométrie).
+* **Analogie :** C'est une *clé physique* ou votre *empreinte digitale*.
+* **Flux :**
+1.  Lors de l'inscription, votre appareil crée une paire de clés (publique/privée). La clé publique est envoyée au serveur, la clé privée reste sur votre appareil.
+2.  Lors de la connexion, le serveur envoie un défi (challenge) à votre appareil.
