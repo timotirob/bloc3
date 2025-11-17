@@ -1,0 +1,678 @@
+= TP - Authentification Web II : JSON Web Tokens (JWT)
+:author: Timothée Robert
+:revdate: 2025-11-18
+:version-label: Version ESM, Corrigée
+:toc: left
+:toclevels: 3
+:sectnums:
+:source-highlighter: highlight.js
+:imagesdir: images
+
+image::developpeur.png[Image d'un développeur travaillant sur la sécurité NodeJS]
+
+== Introduction
+
+=== Objectifs
+* Comprendre et implémenter l’authentification basée sur JWT (JSON Web Tokens).
+* Gérer les tokens de rafraîchissement (Refresh Tokens) pour une authentification durable.
+* Journaliser (loguer) les activités des utilisateurs pour un suivi des actions.
+* Revoir le hachage sécurisé avec **Argon2**.
+* Utiliser l'ORM **Sequelize** pour l'interaction avec la BDD.
+
+=== Principe de JWT et positionnement
+
+L'objectif de JWT (JSON Web Tokens) est de permettre une authentification **sans état** (stateless). Le serveur n'a pas besoin de stocker les informations de session. À la place, il encode les informations utilisateur (comme son ID) directement dans un **token** signé et le renvoie au client.
+
+Ce token est inclus par le client dans chaque requête (généralement dans l'en-tête `Authorization`), permettant au serveur de vérifier l'identité de l'utilisateur sans consulter une base de données de session.
+
+.JWT (Stateless) vs. Sessions (Stateful)
+* **Sessions (TP précédent) :** Approche *avec état* (stateful). Le serveur stocke les données de session (en mémoire, fichier, ou BDD) et envoie un simple ID (cookie) au client. C'est simple mais plus difficile à mettre à l'échelle sur plusieurs serveurs.
+* **JWT (ce TP) :** Approche *sans état* (stateless). Le serveur ne stocke rien. Le token est auto-suffisant. C'est idéal pour les API REST et les microservices.
+
+=== Principes des tokens (jetons)
+
+Un token est une chaîne de caractères générée par la librairie `jsonwebtoken` pour authentifier un utilisateur.
+
+.Création des tokens (au Login)
+Les tokens sont créés au **login**, et non à l'enregistrement.
+
+* **Enregistrement :** L'objectif est de *créer* un compte. Les données (login, mot de passe haché) sont stockées en BDD.
+* **Login :** L'objectif est d'*authentifier* un utilisateur existant. Le serveur vérifie les identifiants et, s'ils sont corrects, génère un **Access Token** (jeton d'accès) et un **Refresh Token** (jeton de rafraîchissement).
+
+.Rafraîchissement des tokens
+Pour la sécurité, les **Access Tokens** ont une durée de vie très courte (ex: 15 minutes). S'il est volé, il expire rapidement.
+Le **Refresh Token** est un second token, avec une durée de vie beaucoup plus longue (ex: 7 jours).
+
+* Il est stocké de manière plus sécurisée (ex: dans un cookie `HttpOnly`).
+* Son seul but est de permettre au client de demander un *nouvel* Access Token lorsque l'ancien a expiré, sans que l'utilisateur ait à se reconnecter.
+
+.Transmission et Stockage
+* **Access Token :** Généralement stocké côté client en mémoire (variable JavaScript) et envoyé dans l'en-tête `Authorization: Bearer <token>`.
+* **Refresh Token :** Stocké côté client dans un cookie `HttpOnly` (inaccessible par JavaScript) et côté serveur dans une base de données (pour pouvoir le révoquer).
+
+== Contenu du TP
+
+Nous allons mettre en œuvre un flux d'authentification complet basé sur JWT.
+
+=== 1. Configuration initiale
+
+. On continue sur le projet existant
++
+[source,bash]
+----
+# express pour le serveur
+# jsonwebtoken pour les tokens
+# argon2 pour le hachage sécurisé
+# sequelize et mysql2 pour l'ORM et la BDD
+# dotenv pour les variables d'environnement
+# cookie-parser pour lire le refresh token
+npm install express jsonwebtoken argon2 mysql2 sequelize dotenv cookie-parser
+npm install --save-dev nodemon
+----
++
+[NOTE]
+.Correction : `body-parser`
+====
+L'ancien `body-parser` n'est plus nécessaire. Express intègre les middlewares `express.json()` et `express.urlencoded()` qui font le même travail. Nous utiliserons ces versions modernes.
+====
+
+=== 2. Fichier `.env`
+
+Créez un fichier `.env` à la racine pour stocker les secrets.
+**Important :** Ne *jamais* "commiter" ce fichier sur Git.
+
+.`.env-jwt-exemple`
+[source,ini]
+----
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=
+DB_NAME=tp_jwt
+
+# Clés secrètes (longues et aléatoires en production !)
+SECRET_KEY=les_sio_font_toujours_dodo
+REFRESH_SECRET_KEY=c_est_une_dinguerie
+----
+
+=== 3. Configuration de Sequelize (Modèles)
+
+Créez un dossier `models` et un fichier `jwt-models.js` pour définir les tables.
+
+.`models/jwt-models.js`
+[source,javascript]
+----
+import { Sequelize, DataTypes, Op } from 'sequelize';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const sequelize = new Sequelize(
+    process.env.DB_NAME,
+    process.env.DB_USER,
+    process.env.DB_PASSWORD,
+    {
+        host: process.env.DB_HOST,
+        dialect: 'mysql',
+    }
+);
+
+// --- Définition des Modèles ---
+
+const User = sequelize.define('User', {
+    login: { type: DataTypes.STRING, allowNull: false, unique: true },
+    password: { type: DataTypes.STRING, allowNull: false },
+    email: { type: DataTypes.STRING, allowNull: false, unique: true },
+}, { timestamps: true });
+
+const RefreshToken = sequelize.define('RefreshToken', {
+    token: { type: DataTypes.STRING, allowNull: false },
+    userId: { type: DataTypes.INTEGER, allowNull: false },
+}, { timestamps: true });
+
+const ActivityLog = sequelize.define('ActivityLog', {
+    userId: { type: DataTypes.INTEGER, allowNull: false },
+    activity: { type: DataTypes.STRING, allowNull: false },
+}, { timestamps: true });
+
+// --- Synchronisation et Nettoyage ---
+
+sequelize.sync()
+    .then(() =>{
+        console.log('Base de données et tables synchronisées.');
+
+        // Lance un nettoyage périodique des anciens refresh tokens
+        setInterval(async () => {
+            const SEVEN_DAYS_AGO = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+            await RefreshToken.destroy({
+                where: { createdAt: { [Op.lt]: SEVEN_DAYS_AGO } },
+            });
+            console.log('Nettoyage des anciens refresh tokens effectué.');
+        }, 24 * 60 * 60 * 1000); // Tourne une fois par jour
+    })
+    .catch(err => console.error('Erreur de synchronisation BDD:', err));
+
+export { sequelize, User, RefreshToken, ActivityLog };
+----
+
+=== 4. Mise en place du Serveur Express
+
+Créez le fichier `jwt-server.js` à la racine du projet.
+
+.`jwt-server.js`
+[source,javascript]
+----
+// --- Configuration de BASE ---
+import express from 'express';
+import jwt from 'jsonwebtoken';
+import argon2 from 'argon2';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import cookieParser from 'cookie-parser';
+
+// Import de nos modèles Sequelize
+import { User, RefreshToken, ActivityLog } from './models/jwt-models.js';
+
+dotenv.config();
+
+// Configuration ESM pour __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+
+// --- Middlewares ---
+app.use(express.urlencoded({ extended: true })); // Parser les formulaires
+app.use(express.json()); // Remplacement de bodyParser.json()
+app.use(cookieParser()); // Pour lire les cookies (pour le refresh token)
+app.use('/static', express.static(path.join(__dirname, 'static'))); // Servir fichiers JS/CSS
+
+const SECRET_KEY = process.env.SECRET_KEY;
+const REFRESH_SECRET_KEY = process.env.REFRESH_SECRET_KEY;
+
+// --- Route 1 : Page d'enregistrement (GET) ---
+app.get("/", (req, res) => {
+    res.sendFile(__dirname + "/pages/enregistrement.html");
+});
+
+// --- Route 2 : Traitement de l'enregistrement (POST) ---
+app.post('/enregistrement', async (req, res) => {
+    const { identifiant: login, motDePasse: password, email } = req.body;
+
+    if (!login || !password) {
+        return res.status(400).json({ message: 'Le login et le mot de passe sont requis' });
+    }
+
+    try {
+        const hashedPassword = await argon2.hash(password);
+        const user = await User.create({ login, password: hashedPassword, email });
+        await ActivityLog.create({ userId: user.id, activity: 'Utilisateur créé' });
+
+        res.status(201).json({ message: 'Utilisateur enregistré avec succès' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Email ou login déjà utilisé' });
+    }
+});
+
+// --- Route 3 : Page de Login (GET) ---
+app.get("/login", (req, res) => {
+    res.sendFile(__dirname + "/pages/login.html");
+});
+
+// --- Route 4 : Traitement du Login (POST) ---
+app.post('/login', async (req, res) => {
+    const { identifiantFormulaire: login, motDePasseFormulaire: password } = req.body;
+
+    try {
+        const user = await User.findOne({ where: { login } });
+        if (!user) {
+            return res.status(404).json({ message: 'Utilisateur non trouvé' });
+        }
+
+        const isPasswordValid = await argon2.verify(user.password, password);
+        if (!isPasswordValid) {
+            return res.status(401).json({ message: 'Mot de passe invalide' });
+        }
+
+        // Création des deux tokens
+        const accessToken = jwt.sign({ id: user.id }, SECRET_KEY, { expiresIn: '15m' });
+        const refreshToken = jwt.sign({ id: user.id }, REFRESH_SECRET_KEY, { expiresIn: '7d' });
+
+        // Stockage du refresh token en BDD (pour la révocation)
+        await RefreshToken.create({ token: refreshToken, userId: user.id });
+        await ActivityLog.create({ userId: user.id, activity: 'Utilisateur connecté' });
+
+        // Envoi du refresh token dans un cookie HttpOnly sécurisé
+        res.cookie('refreshToken', refreshToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production', // 'true' en prod (HTTPS)
+                sameSite: 'Strict',
+                maxAge: 7 * 24 * 60 * 60 * 1000, // 7 jours
+            })
+            .status(200)
+            .json({ accessToken }); // On envoie seulement l'access token au client
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erreur lors du login' });
+    }
+});
+
+// --- Route 5 : Page de Logout (GET) ---
+app.get("/logout", (req, res) => {
+    res.sendFile(__dirname + "/pages/logout.html");
+});
+
+// --- Route 6 : Traitement du Logout (POST) ---
+app.post('/logout', async (requete, resultat) => {
+    const refreshToken = requete.cookies.refreshToken;
+    if (!refreshToken) {
+        return resultat.status(400).json({ message: 'Pas de token disponible.' });
+    }
+
+    try {
+        // On supprime le token de la BDD pour le révoquer
+        await RefreshToken.destroy({ where: { token: refreshToken } });
+
+        // On efface le cookie
+        resultat.clearCookie('refreshToken').status(200).json({ message: 'Déconnecté avec succès.' });
+    } catch (error) {
+        console.error(error);
+        resultat.status(500).json({ message: 'Erreur lors de la déconnexion.' });
+    }
+});
+
+// --- Route 7 : Rafraîchissement du Token (POST) ---
+app.post('/token', async (requete, resultat) => {
+    const refreshToken = requete.cookies?.refreshToken;
+    if (!refreshToken) {
+        return resultat.status(401).json({ message: 'Token de rafraîchissement requis' });
+    }
+
+    try {
+
+// Vérifie si le token est dans notre BDD (non révoqué)
+        const storedToken = await RefreshToken.findOne({ where: { token: refreshToken } });
+        if (!storedToken) {
+            return resultat.status(403).json({ message: 'Token de rafraîchissement invalide' });
+        }
+
+        // Vérifie la validité du token (signature, expiration)
+        jwt.verify(refreshToken, REFRESH_SECRET_KEY, async (err, user) => {
+            if (err) return resultat.status(403).json({ message: 'Token de rafraîchissement invalide' });
+
+            // Crée un nouvel access token
+            const nouveauTokenAcces = jwt.sign({ id: user.id }, SECRET_KEY, { expiresIn: '15m' });
+            await ActivityLog.create({ userId: user.id, activity: 'Token d\'accès rafraîchi' });
+
+            resultat.status(200).json({ accessToken: nouveauTokenAcces });
+        });
+    } catch (error) {
+        console.error(error);
+        resultat.status(500).json({ message: 'Erreur serveur.' });
+    }
+});
+
+// --- Middleware d'Authentification (pour les routes protégées) ---
+const authenticateToken = (requete, resultat, suivant) => {
+    const authHeader = requete.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // Format: "Bearer TOKEN"
+
+    if (!token) return resultat.status(401).json({ message: 'Accès non autorisé' });
+
+    jwt.verify(token, SECRET_KEY, (err, user) => {
+        if (err) return resultat.status(403).json({ message: 'Token invalide' }); // Expiré ou faux
+        requete.user = user; // Ajoute les infos user (ex: {id: 123}) à l'objet requête
+        suivant();
+    });
+};
+
+// --- Route 8 : Route Protégée (GET) ---
+app.get('/profil', authenticateToken, async (requete, resultat) => {
+    try {
+        // 'requete.user' a été ajouté par le middleware authenticateToken
+        const user = await User.findByPk(requete.user.id, {
+            attributes: ['id', 'login', 'email', 'createdAt'] // Ne jamais renvoyer le mdp
+        });
+
+        if (!user) return resultat.status(404).json({ message: 'Utilisateur inconnu.' });
+
+        await ActivityLog.create({ userId: user.id, activity: 'Accès au profil' });
+        resultat.status(200).json({ user });
+    } catch (error) {
+        console.error(error);
+        resultat.status(500).json({ message: 'Erreur serveur' });
+    }
+});
+
+// --- Route 9 : Page d'accès au profil (Client) (GET) ---
+app.get("/accesProfil", (requete, resultat) => {
+    resultat.sendFile(__dirname + "/pages/profil.html");
+});
+
+// --- Démarrage ---
+if (process.env.NODE_ENV !== 'test') {
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+        console.log(`Serveur lancé sur http://localhost:${PORT}`);
+    });
+}
+
+export default app;
+----
+
+=== 5. Pages HTML (dans un dossier `pages`)
+
+.`pages/enregistrement.html`
+[source,html]
+----
+<html>
+<head>
+  <title>Enregistrement</title>
+</head>
+<body>
+  <FORM METHOD="POST" ACTION="/enregistrement" ID="enregistrement" >
+    <table>
+      <tr>
+        <td>Saisissez votre identifiant:</td>
+        <td><input type="text" name="identifiant" /></td>
+      </tr>
+      <tr>
+        <td>Saisissez votre mot de passe:</td>
+        <td><input type="password" id="motDePasse" name="motDePasse" /></td>
+      </tr>
+      <tr>
+        <td>Confirmez votre mot de passe:</td>
+        <td><input type="password" id="confirmMotDePasse" name="confirmMotDePasse" /></td>
+      </tr>
+      <tr>
+        <td>Saisissez votre email:</td>
+        <td><input type="text" name="email" /></td>
+      </tr>
+      <tr>
+        <td></td>
+        <td><input type="button" id="btnSubmit" value="Submit" onclick="return validation()" /></td>
+      </tr>
+    </table>
+  </FORM>
+
+<script type="text/javascript">
+  function validation() {
+    const motDePasse = document.getElementById("motDePasse").value;
+    if ( egalite() && verifieMdp(motDePasse) ) {
+      // Si la validation passe, on soumet le formulaire
+      // En production, on utiliserait fetch() pour un retour JSON
+      document.getElementById('enregistrement').submit();
+    }
+  }
+
+  function egalite() {
+    const motDePasse = document.getElementById("motDePasse").value;
+    const confirmMotDePasse = document.getElementById('confirmMotDePasse').value;
+    if (motDePasse != confirmMotDePasse) {
+      alert("Votre mot de passe est différent du mot de passe de confirmation");
+      return false;
+    }
+    return true;
+  }
+
+  function verifieMdp(motDePasse) {
+    if (motDePasse.length < 8) {
+      alert("Mot de passe trop court (8 caractères min)");
+      return false;
+    }
+    if (motDePasse.length > 30) {
+      alert("Mot de passe trop long (30 caractères max)");
+      return false;
+    }
+    if (motDePasse.search(/\d/) == -1) {
+      alert("Le mot de passe doit contenir au moins un chiffre.");
+      return false;
+    }
+    if (motDePasse.search(/[a-z]/) == -1) {
+      alert("Le mot de passe doit contenir au moins une minuscule.");
+      return false;
+    }
+    if (motDePasse.search(/[A-Z]/) == -1) {
+      alert("Le mot de passe doit contenir au moins une majuscule.");
+      return false;
+    }
+    // Note : l'expression régulière originale était complexe,
+    // voici une version plus standard pour les spéciaux
+    if (motDePasse.search(/[^a-zA-Z0-9]/) == -1) {
+      alert("Le mot de passe doit contenir au moins un caractère spécial.");
+      return false;
+    }
+    return true;
+  }
+</script>
+</body>
+</html>
+----
+
+.`pages/login.html`
+[source,html]
+----
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+</head>
+<body>
+  <FORM METHOD="POST" ACTION="http://localhost:3000/login">
+    <INPUT TYPE="text" name="identifiantFormulaire" placeholder="Identifiant">
+    <INPUT TYPE="password" name="motDePasseFormulaire" placeholder="Mot de passe">
+    <BUTTON> Soumettre</BUTTON>
+  </FORM>
+</body>
+</html>
+----
+
+.`pages/logout.html`
+[source,html]
+----
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Logout</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src http://localhost:3000;">
+</head>
+<body>
+<form action="http://localhost:3000/logout" method="POST">
+  <button type="submit">Se déconnecter</button>
+</form>
+</body>
+</html>
+----
+
+.`pages/profil.html`
+[source,html]
+----
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Profil</title>
+</head>
+<body>
+  <h2>Accès à la ressource protégée</h2>
+  <button id="getProfile">Accéder au Profil</button>
+  <div id="resultat"></div>
+
+  <script src="/static/jwt-client-script.js"></script>
+</body>
+</html>
+----
+
+=== 6. Script Côté Client (dans un dossier `static`)
+
+Ce script gère la logique de `fetch`, stocke l'Access Token en mémoire et gère le rafraîchissement automatique en cas d'erreur 401.
+
+.`static/jwt-client-script.js`
+[source,javascript]
+----
+// Variable globale 'window' pour stocker le token en mémoire
+window.lastAccessToken = '';
+
+/**
+ * Fonction wrapper pour fetch() qui gère l'authentification JWT
+ * et le rafraîchissement automatique du token.
+ */
+async function apiFetch(url, options = {}) {
+    try {
+        const headers = {
+            ...options.headers,
+            'Authorization': `Bearer ${window.lastAccessToken || ''}`,
+            'Content-Type': 'application/json'
+        };
+
+        let response = await fetch(url, {
+            ...options,
+            headers,
+            credentials: 'include', // Important: Inclure les cookies (pour le refreshToken)
+        });
+
+        // Si le token d'accès est expiré (401), on le renouvelle
+        if (response.status === 401) {
+            console.log('Access token expiré, tentative de rafraîchissement...');
+
+            const tokenResponse = await fetch('/token', {
+                method: 'POST',
+                credentials: 'include', // Envoyer le cookie refreshToken
+            });
+
+            if (tokenResponse.ok) {
+                const { accessToken: newAccessToken } = await tokenResponse.json();
+                console.log('Token rafraîchi avec succès.');
+                window.lastAccessToken = newAccessToken; // On met à jour le token en mémoire
+
+                // On réessaye la requête initiale avec le nouveau token
+                response = await fetch(url, {
+                    ...options,
+                    headers: {
+                        ...headers,
+                        'Authorization': `Bearer ${newAccessToken}`,
+                    },
+                    credentials: 'include',
+                });
+            } else {
+                console.error('Échec du rafraîchissement du token');
+                // Rediriger vers la page de login si le refresh échoue
+                window.location.href = '/login';
+                throw new Error('Refresh token invalide ou expiré.');
+            }
+        }
+
+        return response;
+    } catch (error) {
+        console.error('Erreur API Fetch:', error);
+        throw error;
+    }
+}
+
+// --- Logique de la page profil.html ---
+
+document.getElementById('getProfile').addEventListener('click', async () => {
+    const resultatDiv = document.getElementById('resultat');
+    try {
+        const response = await apiFetch('/profil'); // Utilise notre fonction wrapper
+
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Données du profil:', data);
+            resultatDiv.innerHTML = `<pre>${JSON.stringify(data.user, null, 2)}</pre>`;
+        } else {
+            const errorData = await response.json();
+            console.error('Erreur lors de l\'accès au profil:', errorData.message);
+            resultatDiv.textContent = `Erreur: ${errorData.message}`;
+        }
+    } catch (error) {
+        console.error('Erreur lors de l\'appel à l\'API:', error);
+        resultatDiv.textContent = `Erreur: ${error.message}`;
+    }
+});
+----
+
+== Exercices
+
+=== Rôle des tokens
+
+. *Expliquez à quoi sert le token de rafraîchissement. Pourquoi ne se contente-t-on pas d’un token d’accès ?*
++
+L'Access Token est volontairement de courte durée (ex: 15 min) pour des raisons de sécurité. S'il est volé, l'attaquant n'a qu'une petite fenêtre pour l'utiliser. Le Refresh Token a une longue durée (ex: 7 jours) et est stocké de manière plus sécurisée (cookie HttpOnly). Son *seul* rôle est de permettre de demander un nouvel Access Token sans avoir à retaper son mot de passe, offrant un bon équilibre entre sécurité et expérience utilisateur.
+
+. *Listez tous les éléments de code où interviennent le paramétrage de délai et de temps en rapport avec des tokens (emplacement et rôle).*
+* **`jwt-server.js` (Route `/login`) :** `jwt.sign(..., { expiresIn: '15m' })` -> Crée un Access Token expirant dans 15 minutes.
+* **`jwt-server.js` (Route `/login`) :** `jwt.sign(..., { expiresIn: '7d' })` -> Crée un Refresh Token expirant dans 7 jours.
+* **`jwt-server.js` (Route `/login`) :** `res.cookie(..., { maxAge: 7 * 24 * 60 * 60 * 1000 })` -> Crée le cookie du Refresh Token pour qu'il expire dans 7 jours côté navigateur.
+* **`jwt-server.js` (Route `/token`) :** `jwt.sign(..., { expiresIn: '15m' })` -> Crée un *nouvel* Access Token (lors du rafraîchissement) expirant dans 15 minutes.
+* **`jwt-models.js` (setInterval) :** `new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)` -> Calcule une date "il y a 7 jours" pour la purge.
+* **`jwt-models.js` (setInterval) :** `24 * 60 * 60 * 1000` -> Fréquence de la purge (toutes les 24 heures).
+
+. *Modifiez ce paramétrage pour que :*
+.. *Les tokens d’accès durent 1 minute*
++
+[source,javascript]
+// jwt-server.js (routes /login et /token)
+jwt.sign(..., { expiresIn: '1m' }); // ou '60s'
+----
+.. *Les tokens de rafraîchissement durent 10 minutes*
++
+[source,javascript]
+// jwt-server.js (route /login)
+jwt.sign(..., { expiresIn: '10m' });
+res.cookie(..., { maxAge: 10 * 60 * 1000 });
+----
+.. *Nettoyage BDD : toutes les 5 minutes, on nettoie les tokens créés il y a plus de 12 minutes*
++
+[source,javascript]
+// jwt-models.js (dans sequelize.sync().then())
+const TWELVE_MINUTES_AGO = new Date(Date.now() - 12 * 60 * 1000);
+await RefreshToken.destroy({
+    where: { createdAt: { [Op.lt]: TWELVE_MINUTES_AGO } },
+});
+}, 5 * 60 * 1000); // Fréquence de 5 minutes
+----
+
+=== Accès à la route Profil
+
+. *La route Profil (`/profil`) est une route protégée. Peut-on y accéder directement via le navigateur ?*
++
+Non. Si vous tapez `http://localhost:3000/profil` dans votre navigateur, celui-ci fait une requête GET simple, sans l'en-tête `Authorization: Bearer <token>`. Le middleware `authenticateToken` va intercepter la requête, ne trouvera pas de token, et renverra une erreur 401 (Accès non autorisé).
+
+. *Accès via Postman :*
+1.  **Login :** Ouvrez Postman. Créez une requête `POST` vers `http://localhost:3000/login`. Allez dans l'onglet `Body`, sélectionnez `x-www-form-urlencoded`, et entrez vos clés (ex: `identifiantFormulaire` et `motDePasseFormulaire`) avec leurs valeurs.
+2.  **Récupérer Tokens :** Envoyez la requête. Vous recevrez une réponse JSON contenant l'Access Token (ex: `{"accessToken": "eyJ..."}`). Postman stockera aussi automatiquement le Refresh Token (dans l'onglet `Cookies` de la réponse).
+3.  **Accès Protégé (Succès) :** Créez une nouvelle requête `GET` vers `http://localhost:3000/profil`. Allez dans l'onglet `Authorization`, choisissez `Bearer Token`, et collez l'Access Token que vous venez de recevoir. Envoyez. Le profil devrait s'afficher.
+4.  **Accès Protégé (Échec - Expiré) :** Attendez le délai d'expiration de l'Access Token (ex: 1 minute avec les modifications). Renvoyez la même requête `GET /profil`. Vous devriez recevoir une erreur 403 (Token invalide).
+5.  **Rafraîchissement (Postman) :** Créez une requête `POST` vers `http://localhost:3000/token`. N'ajoutez rien (Postman enverra automatiquement le cookie `refreshToken`). Vous recevrez un nouvel Access Token.
+6.  **Nouvel Accès (Succès) :** Retournez à votre requête `GET /profil`, collez ce *nouveau* Access Token dans l'onglet `Authorization`, et envoyez. L'accès devrait à nouveau fonctionner.
+
+=== Bonus : Programmation solution Client
+
+. *Tester la route `/accesProfil` puis le bouton.*
++
+Si vous ouvrez `http://localhost:3000/accesProfil` et cliquez sur le bouton "Accéder au Profil" *sans vous être connecté*, le script `jwt-client-script.js` s'exécute :
+1.  Il tente un `apiFetch('/profil')`.
+2.  `window.lastAccessToken` est vide. La requête part sans en-tête `Authorization`.
+3.  Le serveur renvoie `401 Unauthorized` (comme vu dans le middleware).
+4.  `apiFetch` intercepte le 401 et tente d'appeler `POST /token` pour rafraîchir.
+5.  Le client n'a pas de cookie `refreshToken` (car jamais loggé). Le serveur renvoie `401 Unauthorized` sur la route `/token`.
+6.  `apiFetch` intercepte cette erreur, constate l'échec du rafraîchissement, et (si vous avez implémenté la redirection) vous renvoie vers `/login`.
+7.  Le résultat est affiché dans la console et la page : "Erreur: Refresh token invalide ou expiré."
+
+. *Si vous vous êtes connecté (dans un autre onglet) puis que vous cliquez :*
+1.  Le login (sur `POST /login`) a renvoyé un Access Token (qui n'est pas stocké par `profil.html`) et un cookie `refreshToken` (qui est partagé par le navigateur).
+2.  Vous cliquez sur le bouton. `apiFetch` s'exécute. `window.lastAccessToken` est vide.
+3.  La requête `GET /profil` part sans token, le serveur renvoie 401.
+4.  `apiFetch` intercepte le 401 et appelle `POST /token`.
+5.  Cette fois, le navigateur **envoie le cookie `refreshToken`** (grâce à `credentials: 'include'`).
+6.  Le serveur (Route `/token`) valide le cookie, le trouve en BDD, le vérifie, et renvoie un *nouvel* Access Token (ex: `{"accessToken": "eyJ..."}`).
+7.  `apiFetch` reçoit ce token, le stocke dans `window.lastAccessToken`.
+8.  `apiFetch` réessaye la requête `GET /profil`, cette fois avec le *nouveau* token dans l'en-tête `Authorization`.
+9.  Le middleware `authenticateToken` valide le token.
+10. La route `/profil` s'exécute et renvoie les données de l'utilisateur.
+11. La page `profil.html` affiche les données JSON de l'utilisateur.
