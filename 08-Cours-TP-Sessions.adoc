@@ -1,7 +1,7 @@
-= TP - Authentification Web I : Gestion des Sessions
+= TP - Authentification Web : Sessions et Persistance
 :author: Timothée Robert
-:revdate: 2025-11-09
-:version-label: Version ESM, revue et améliorée
+:revdate: 2025-11-17
+:version-label: Version ESM, revue et complétée
 :toc: left
 :toclevels: 3
 :sectnums:
@@ -10,11 +10,13 @@
 
 == Introduction
 
-Nous avons vu comment authentifier un utilisateur avec un mot de passe haché et salé.  Cependant, le protocole **HTTP est "stateless"** (sans état). Une fois l'authentification réussie sur une requête, le serveur "oublie" l'utilisateur pour la requête suivante.
+Nous avons vu comment authentifier un utilisateur avec un mot de passe haché et salé.
+Cependant, le protocole **HTTP est "stateless"** (sans état). Une fois l'authentification réussie sur une requête, le serveur "oublie" l'utilisateur pour la requête suivante.
 
 Comment, dès lors, donner accès à des ressources protégées sans redemander le mot de passe à chaque clic ?
 
-C'est le rôle de la **gestion de session**. Aujourd'hui, nous étudions le mécanisme de session web "classique" (stateful). Par la suite, nous aborderons les tokens (JWT), OAuth2, et l'authentification à double facteur.
+C'est le rôle de la **gestion de session**. Aujourd'hui, nous étudions le mécanisme de session web "classique" (stateful).
+Par la suite, nous aborderons les tokens (JWT), OAuth2, et l'authentification à double facteur.
 
 [NOTE]
 .Complexité des méthodes d'authentification
@@ -34,7 +36,6 @@ Pourquoi les cookies "simples" (contenant directement des informations utilisate
 === Principes
 
 HTTP est sans état, mais on peut utiliser ses en-têtes (`headers`) et les **cookies** pour simuler un état.
-
 * **En-têtes (Headers) :** Informations de métadonnées qui voyagent avec chaque requête et réponse.
 * **Cookies :** Petits morceaux de données que le serveur demande au client (navigateur) de stocker.
 
@@ -46,7 +47,6 @@ image::sessionsCookies.png[Flux de session HTTP]
 2.  Le serveur, dans sa réponse, inclut un en-tête `Set-Cookie: session-id=12345;`. Le navigateur stocke ce cookie.
 3.  Pour toutes les requêtes suivantes vers *le même domaine*, le navigateur inclut automatiquement un en-tête `Cookie: session-id=12345;`.
 4.  Le serveur lit cet ID, recherche la session "12345" dans sa base de données et "sait" ainsi qui est l'utilisateur.
-
 
 === Exercice : Examen d'un cookie
 
@@ -95,7 +95,6 @@ Rappelez en une phrase la différence fondamentale entre **l'authentification** 
 === Exercice : Utilisation de cURL (Challenge)
 
 Cet exercice (basé sur un challenge PHP) démontre parfaitement la persistance de session.
-
 .  Installez les deux fichiers PHP (`session.php` et `supprime.php`), fournis dans le répertoire sources, dans votre répertoire `www` de Laragon.
 .  Démarrez Laragon.
 .  Avec votre navigateur, visitez les URL dans cet ordre :
@@ -116,7 +115,7 @@ Nous avons besoin de `express-session` pour gérer les sessions.
 [source,bash]
 ----
 # express-session gère la session
-# connect-session-file-store (optionnel) pour stocker les sessions dans des fichiers
+# session-file-store (optionnel) pour stocker les sessions dans des fichiers
 npm install express-session session-file-store
 ----
 
@@ -124,7 +123,6 @@ npm install express-session session-file-store
 .Nettoyage des dépendances
 ====
 Dans le document original (année dernière), `cookie-parser` et `body-parser` étaient listés.
-
 * `body-parser` est **obsolète**. `express.json()` et `express.urlencoded()` sont intégrés à Express.
 * `cookie-parser` n'est **plus nécessaire** pour `express-session` depuis la version 1.5.0. La librairie gère les cookies elle-même.
 ====
@@ -168,7 +166,7 @@ Nous ajoutons `express-session` comme un middleware. Il doit être placé **avan
 
 app.use(session({
   // 'secret' est utilisé pour signer le cookie de session
-  // NE PAS le hardcoder en production !
+  // NE PAS le hardcoder en production ! Doit venir d'un .env
   secret: 'les SIO font toujours dodo',
 
   // 'name' est le nom du cookie
@@ -181,7 +179,7 @@ app.use(session({
   saveUninitialized: false,
 
   cookie: {
-    // Le cookie ne sera pas accessible par le JS côté client
+    // Le cookie ne sera pas accessible par le JS côté client (sécurité XSS)
     httpOnly: true,
     // Mettre 'true' en production (nécessite HTTPS)
     secure: false,
@@ -225,7 +223,8 @@ app.get('/compteur', (requete, resultat) => {
   // On peut lire l'ID de session
   const idSession = requete.sessionID;
 
-  // On peut lire les cookies
+  // On peut lire les cookies (nécessitait cookie-parser,
+  // mais l'ID de session est dans le cookie signé)
   console.log(requete.cookies); // Affiche les cookies non-signés
 
   resultat.send(`
@@ -239,9 +238,10 @@ app.get('/compteur', (requete, resultat) => {
 [TIP]
 .Amélioration du code
 ====
+Le code original (`let compteur = typeof requete.session.compteur === "undefined" ? ...`) est fonctionnel mais verbeux.
 La ligne :
 `requete.session.compteur = (requete.session.compteur || 0) + 1;`
-...est une manière idiomatique et concise d'initialiser et d'incrémenter un compteur en JavaScript.
+...est une manière plus idiomatique et concise d'initialiser et d'incrémenter un compteur en JavaScript.
 ====
 
 === Étape 5 : Destruction d'une session
@@ -262,86 +262,279 @@ app.get('/logout', (requete, resultat) => {
 });
 ----
 
-=== À faire (Exercice final)
+== Partie 3 : Lier l'Authentification et la Session
 
-1.  Intégrez ce code dans votre projet d'authentification (de la séance précédente).
-2.  Modifiez la route `POST /login` : si l'authentification (`argon2.verify` ou `sha512`) réussit, **n'affichez pas** "Bienvenue", mais :
-* Stockez l'ID de l'utilisateur dans la session (ex: `req.session.userId = utilisateur.id`).
-* Redirigez l'utilisateur vers une nouvelle page (ex: `res.redirect('/profil')`).
-3.  Créez une nouvelle route `GET /profil`.
-4.  Dans cette route `/profil`, vérifiez si `req.session.userId` existe.
-* Si **oui**, récupérez les infos de l'utilisateur en BDD et affichez "Bienvenue [NomUtilisateur]".
-* Si **non** (l'utilisateur n'est pas connecté), redirigez-le vers la page de login (`res.redirect('/login')`).
-5.  Implémentez la route `GET /logout` qui détruit la session et redirige vers `/login`.
+L'exercice "À faire" du document précédent est maintenant notre objectif principal. Nous allons lier l'authentification (TP précédent) à la session (ce TP).
+
+=== Étape 1 : Plugguer l'authentification
+
+Reprenez votre route `POST /login` (ou `POST /auth/login` si vous avez refactorisé).
+
+.Au lieu de :
+[source,javascript]
+----
+// ... vérification du mot de passe ...
+if (isMatch) {
+  res.send(`Connexion réussie ! Bienvenue ${utilisateur.login}`);
+}
+----
+
+.Faites ceci :
+[source,javascript]
+----
+// ... vérification du mot de passe ...
+if (isMatch) {
+  // ON STOCKE LES DONNÉES DANS LA SESSION
+  requete.session.loggedin = true;
+  requete.session.username = utilisateur.login;
+  requete.session.userId = utilisateur.id; // Très important
+
+  // On redirige vers la page protégée
+  res.redirect('/maison');
+} else {
+  // ...
+}
+----
+
+=== Étape 2 : Créer une route protégée
+
+Ajoutons la route `/maison` (ou `/profil`) qui vérifie si l'utilisateur est connecté.
+
+[source,javascript]
+----
+app.get('/maison', (requete, resultat) => {
+  // Si l'utilisateur est loggé
+  if (requete.session.loggedin) {
+    // Affiche l'identifiant
+    resultat.send(`
+      <h1>Bienvenue de nouveau, ${requete.session.username} !</h1>
+      <p>Votre Id de session est : ${requete.sessionID}</p>
+      <a href="/logout">Se déconnecter</a>
+    `);
+    console.log(requete.session.cookie);
+  } else {
+    // Non loggé
+    resultat.status(401).send('<a href="/login">Identifiez-vous pour visualiser la page</a>');
+  }
+});
+----
+
+.Question Piège (du TP) :
+Dans la route `/maison`, on voit `loggedin`, `username`, `cookie` et `id` (ou `sessionID`). Lesquels sont automatiques et lesquels sont créés par nous ?
+
+.Réponse :
+* **Automatiques (gérés par `express-session`) :** `cookie` (l'objet cookie) et `sessionID` (l'ID unique).
+* **Manuels (créés par nous) :** `loggedin` et `username`. Ce sont de simples propriétés que nous ajoutons à l'objet `req.session`.
+
+== Partie 4 : Persistance des Sessions (Stores)
+
+Le stockage en mémoire par défaut est une mauvaise pratique. Nous devons rendre les sessions persistantes.
+
+=== Stockage de session dans un fichier (session-file-store)
+
+On peut stocker nos sessions dans des fichiers JSON sur le serveur.
+
+1.  **Installation :** `npm install session-file-store`
+2.  **Configuration :**
+
+[source,javascript]
+----
+// ... imports ...
+import session from 'express-session';
+import FileStore from 'session-file-store';
+
+const FileStoreSession = FileStore(session);
+
+// ... app.use(express...) ...
+
+// Options pour le stockage fichier
+const fileStoreOptions = {
+  path: './sessions',         // Répertoire de stockage (créez-le !)
+  reapInterval: 3600,         // Nettoyage des vieilles sessions (toutes les heures)
+  ttl: 180000                 // Durée de vie d'une session (3 min)
+};
+
+// Configuration du middleware session AVEC un store
+app.use(session({
+  secret: 'les SIO font toujours dodo', // DOIT venir d'un .env
+  store: new FileStoreSession(fileStoreOptions),
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    maxAge: 180000, // Doit correspondre à 'ttl'
+    httpOnly: true,
+    secure: false // Mettre à 'true' en production (HTTPS)
+  }
+}));
+----
+
+.Questions (du TP) :
+1.  **Q1 :** Identifiez-vous. Que contient le fichier de session créé dans le dossier `./sessions` ? (Réponse : un objet JSON contenant les données de session, y compris le compteur, `loggedin`, etc.).
+2.  **Q2 (Champion) :** Si vous fermez le navigateur et le rouvrez, vous êtes toujours connecté (tant que le cookie `maxAge` n'a pas expiré). Pourquoi ? (Réponse : Contrairement au cookie de session par défaut, le `maxAge` que nous avons défini crée un cookie *persistant* sur le disque du client). Au bout de combien de temps devez-vous vous ré-identifier ? (Réponse : Au bout de 3 minutes, `maxAge: 180000`).
+3.  **Q3 :** Connectez-vous avec le même utilisateur sur Chrome et Firefox. Combien de sessions (fichiers) y a-t-il ? (Réponse : Deux. Une session est liée à un navigateur, pas à un utilisateur. Une session ne peut pas être partagée par plusieurs utilisateurs).
+
+=== Stockage de session dans une base de données MySQL
+
+C'est la méthode la plus courante en production.
+
+[CAUTION]
+.Note Pédagogique : `mysql` vs `mysql2`
+====
+Le document original suggère d'installer et d'utiliser l'ancien package `mysql` car la configuration avec `mysql2/promise` était jugée "pénible".
+
+C'est une **mauvaise pratique** en 2025. Jongler avec deux drivers (l'ancien `mysql` et le moderne `mysql2`) est source de confusion et de problèmes.
+
+La **bonne méthode** est d'utiliser un "store" compatible avec `mysql2`. Le plus simple est `connect-mysql2`.
+====
+
+==== Solution Moderne avec `connect-mysql2` (Recommandée)
+
+1.  **Installation :** `npm install connect-mysql2`
+2.  **Configuration :** Nous réutilisons le `pool` de connexion du TP précédent.
+
+[source,javascript]
+----
+// ... imports ...
+import session from 'express-session';
+import MySQLStore from 'connect-mysql2';
+import mysql from 'mysql2/promise'; // Notre pool de connexion existant
+
+// (1) Options de la BDD (celles de votre .env)
+const dbOptions = {
+  host: 'localhost',
+  user: 'nodeJs',
+  password: 'test',
+  database: 'nodemysql'
+};
+
+// (2) Créer le pool de connexion pour notre *application*
+const connectionPool = mysql.createPool(dbOptions);
+
+// (3) Créer le store de session
+const MySQLSessionStore = MySQLStore(session);
+// On passe le pool de connexion au store
+const sessionStore = new MySQLSessionStore({}, connectionPool);
+
+// (4) Configurer le middleware de session
+app.use(session({
+  secret: 'les SIO font toujours dodo',
+  store: sessionStore, // On utilise notre store MySQL
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    maxAge: 180000, // 3 minutes
+    httpOnly: true,
+    secure: false
+  }
+}));
+----
+
+.Questions (du TP) :
+1.  **Q4 :** Où est stockée la session ? (Réponse : Dans une nouvelle table `sessions` créée automatiquement dans la BDD `nodemysql`).
+2.  **Q4 (suite) :** Ouvrez un navigateur et loggez-vous. Ouvrez un autre navigateur en navigation privée et allez sur `/compteur`. Qu'en concluez-vous ? (Réponse : Le premier navigateur a une session authentifiée, stockée en BDD. Le second a une session anonyme (ou pas de session du tout, grâce à `saveUninitialized: false`), il n'a pas accès aux données de l'autre).
+
+=== Stockage de session via un ORM (Sequelize)
+
+Si votre application utilise déjà l'ORM Sequelize, vous pouvez l'utiliser pour stocker les sessions.
+
+1.  **Installation :** `npm install express-session-sequelize sequelize` (et `mysql2`)
+2.  **Configuration :**
+
+[source,javascript]
+----
+// ... imports ...
+import session from 'express-session';
+import { Sequelize } from 'sequelize';
+import SequelizeStore from 'express-session-sequelize';
+
+// (1) Initialiser Sequelize (connexion BDD)
+const sequelize = new Sequelize('nodemysql', 'nodeJs', 'test', {
+  host: 'localhost',
+  dialect: 'mysql'
+});
+
+// (2) Créer le constructeur de store
+const SequelizeSessionStore = SequelizeStore(session.Store);
+
+// (3) Créer le store
+const sessionStore = new SequelizeSessionStore({
+  db: sequelize, // On passe l'instance de Sequelize
+  tableName: 'Sessions', // Nom de la table
+  checkExpirationInterval: 15 * 60 * 1000, // Nettoyage toutes les 15 min
+  expiration: 180000 // Expire après 3 minutes
+});
+
+// (4) Configurer le middleware
+app.use(session({
+  secret: 'les SIO font toujours dodo',
+  store: sessionStore,
+  resave: false,
+  saveUninitialized: false,
+  cookie: { maxAge: 180000 }
+}));
+
+// (5) IMPORTANT : Synchroniser le modèle avec la BDD
+// Crée la table 'Sessions' si elle n'existe pas
+sessionStore.sync();
+----
+
+.Questions (du TP) :
+1.  **Q5 :** Lancez l'application (après avoir supprimé l'ancienne table `sessions`). Quel message s'affiche ? (Réponse : Sequelize logue `Executing (default): CREATE TABLE IF NOT EXISTS...`). Une nouvelle table `Sessions` (avec un 'S' majuscule par défaut) est créée.
+2.  **Q5 (suite) :** Attendez le timeout (3 minutes). La session est-elle purgée de la BDD ? (Réponse : Oui, le paramètre `checkExpirationInterval` lance un "ramasse-miettes" qui supprime les sessions expirées).
+
+== Partie 5 : Synthèse et Bilan des Menaces sur les Sessions (OWASP)
+
+La session est un élément de sécurité critique. Si un attaquant vole un ID de session, il vole l'identité de l'utilisateur (vol de session).
+
+.Gestion des sessions et OWASP Top 10
+Le "Broken Access Control" (Contrôle d'accès défaillant) est la menace n°1 de l'OWASP 2021. Une mauvaise gestion de session mène directement à :
+* **Élévation de privilège** (passer d'utilisateur à admin).
+* **Accès au compte d’un tiers** (vol de session).
+* **Bypass du mécanisme de contrôle d’accès**.
+
+.Synthèse des menaces (OWASP Session Management Cheat Sheet)
+Pour sécuriser les sessions, il faut se défendre contre :
+* **La prédiction d'ID de session :** Si l'ID est "1", "2", "3", un attaquant peut deviner. (Notre `secret` long et aléatoire empêche cela).
+* **Le vol de session (Session Hijacking) :** Intercepter le cookie (via une attaque XSS ou en écoutant un réseau Wi-Fi non chiffré). (Les flags `httpOnly` et `secure` aident à mitiger cela).
+* **La fixation de session :** L'attaquant force un utilisateur à utiliser un ID de session qu'il connaît.
 
 == Bonus : Architectures d'Authentification (Schémas)
 
-Précisions sur les différents schémas d'authentification (Session, JWT, OAuth, FIDO2) avec analogies et flux.
-
 [NOTE]
-.Synthèse sur les architectures d'authentification
+.Rappel sur les architectures d'authentification
 ====
-Avant de commencer, voici un tableau récapitulatif des différentes méthodes que nous allons aborder. Comprendre leurs différences fondamentales (avec ou sans état) est crucial.
+Voici un tableau récapitulatif des différentes méthodes que nous allons aborder. Comprendre leurs différences fondamentales (avec ou sans état) est crucial.
 ====
 
-[cols="1,2,1,2", options="header"]
+[cols="1,2,1,2,a", options="header"]
 |===
-| Schéma | Principe de base | Analogie | Flux (très simplifié)
+| Schéma | Principe de base | Analogie | Flux (très simplifié) | Illustration
 
 | Session (Stateful)
 | Le serveur stocke tout (état) et donne un simple ID (cookie) au client.
 | 🎟️ Ticket de vestiaire
 | 1. Login/Pass -> 2. Serveur crée session, stocke données, renvoie session-id (cookie). -> 3. Client envoie session-id à chaque requête. -> 4. Serveur vérifie l'ID dans son "vestiaire" (BDD/mémoire).
+| image::schema-session.png[Schéma Session Stateful, width=200]
 
 | JWT (Stateless)
 | Le serveur ne stocke rien (sans état). Le client possède un jeton auto-suffisant et signé.
 | 🛂 Passeport / Badge VIP
 | 1. Login/Pass -> 2. Serveur crée, signe et renvoie un JWT (ex: {"userId": 123}). -> 3. Client stocke le JWT et l'envoie à chaque requête (Header Authorization). -> 4. Serveur vérifie la signature du JWT (pas de BDD requise pour valider).
+| image::schema-jwt.png[Schéma JWT Stateless, width=200]
 
 | OAuth2 (Délégation)
 | N'est pas de l'authentification, mais de l'autorisation. Permet à une app d'agir au nom d'un utilisateur sans son mot de passe.
 | 🔑 Double de clé (limité)
 | 1. App A demande à App B (ex: Google) un accès. -> 2. App B demande à l'utilisateur : "Autoriser App A ?". -> 3. L'utilisateur dit "Oui". -> 4. App B donne un jeton d'accès (limité) à App A.
+| image::schema-oauth2.png[Schéma OAuth2, width=200]
 
 | FIDO2 / WebAuthn (Passkeys)
 | Authentification sans mot de passe, basée sur la cryptographie (clé publique/privée).
 | 🔒 Clé physique / Biométrie
 | 1. Enregistrement : L'appareil crée une clé privée (secrète) et envoie la clé publique au serveur. -> 2. Login : Le serveur envoie un défi. -> 3. L'appareil signe le défi avec la clé privée (protégée par biométrie). -> 4. Serveur vérifie la signature avec la clé publique.
+| image::schema-fido2.png[Schéma FIDO2, width=200]
 |===
 
+== Annexe : Diagramme de Séquence d'une Session
 
-
-### 1. Session Standard (Stateful)
-* **Ce que c'est :** Ce que nous venons de faire. Le serveur crée un ID de session, le stocke (en BDD/mémoire) et envoie l'ID au client dans un cookie.
-* **Analogie :** C'est un ticket de *vestiaire*.
-* **Flux :**
-1.  Vous donnez votre manteau (login/pass).
-2.  Le vestiaire garde votre manteau (données de session) et vous donne un ticket (cookie `session-id`).
-3.  À chaque fois que vous voulez votre chapeau (une ressource), vous montrez votre ticket. Le serveur vérifie dans son vestiaire et vous donne ce qui vous appartient.
-
-
-### 2. JSON Web Token (JWT) (Stateless)
-* **Ce que c'est :** Le serveur ne stocke *rien*. Il donne au client un "jeton" (le JWT) qui contient les informations de l'utilisateur (ex: `{"userId": 123, "role": "admin"}`) signées cryptographiquement.
-* **Analogie :** C'est un *badge VIP* ou un passeport.
-* **Flux :**
-1.  Vous prouvez votre identité (login/pass).
-2.  Le serveur vous donne un badge VIP scellé et infalsifiable (le JWT) qui dit "Cette personne est un admin".
-3.  À chaque fois que vous voulez accéder à une zone, vous montrez votre badge. Le videur (serveur) vérifie juste la signature (le sceau) du badge. Il n'a pas besoin de vérifier une liste ou un vestiaire.
-
-
-### 3. OAuth2 (Délégation)
-* **Ce que c'est :** Ce n'est *pas* de l'authentification, mais de **l'autorisation déléguée**. C'est ce qui gère le "Se connecter avec Google / Facebook".
-* **Analogie :** C'est un *double de clé limité*.
-* **Flux :**
-1.  Vous êtes sur `un-site-random.com` et cliquez sur "Se connecter avec Google".
-2.  Le site vous redirige vers Google, qui vous demande : "Acceptez-vous que `un-site-random.com` accède à votre email et votre nom ?".
-3.  Vous dites "Oui".
-4.  Google ne donne *pas* votre mot de passe à `un-site-random.com`. Il lui donne un *jeton spécial* (un jeton OAuth) qui dit "J'ai vérifié cet utilisateur, et je t'autorise à voir son email".
-
-
-### 4. FIDO2 / WebAuthn (Authentification)
-* **Ce que c'est :** Une méthode d'authentification *sans mot de passe* basée sur la cryptographie à clé publique/privée. Utilise des dispositifs physiques (clé USB, biométrie).
-* **Analogie :** C'est une *clé physique* ou votre *empreinte digitale*.
-* **Flux :**
-1.  Lors de l'inscription, votre appareil crée une paire de clés (publique/privée). La clé publique est envoyée au serveur, la clé privée reste sur votre appareil.
-2.  Lors de la connexion, le serveur envoie un défi (challenge) à votre appareil.
+image:img.png[Diagramme de séquence d'une session, width=700]
