@@ -369,9 +369,17 @@ app.use(session({
 ----
 
 .Questions (du TP) :
-1.  **Q1 :** Identifiez-vous. Que contient le fichier de session créé dans le dossier `./sessions` ? (Réponse : un objet JSON contenant les données de session, y compris le compteur, `loggedin`, etc.).
-2.  **Q2 (Champion) :** Si vous fermez le navigateur et le rouvrez, vous êtes toujours connecté (tant que le cookie `maxAge` n'a pas expiré). Pourquoi ? (Réponse : Contrairement au cookie de session par défaut, le `maxAge` que nous avons défini crée un cookie *persistant* sur le disque du client). Au bout de combien de temps devez-vous vous ré-identifier ? (Réponse : Au bout de 3 minutes, `maxAge: 180000`).
-3.  **Q3 :** Connectez-vous avec le même utilisateur sur Chrome et Firefox. Combien de sessions (fichiers) y a-t-il ? (Réponse : Deux. Une session est liée à un navigateur, pas à un utilisateur. Une session ne peut pas être partagée par plusieurs utilisateurs).
+1.  **Q1 :** Identifiez-vous. Que contient le fichier de session créé dans le dossier `./sessions` ?
+
+(Réponse : un objet JSON contenant les données de session, y compris le compteur, `loggedin`, etc.).
+
+2.  **Q2 (Champion) :** Si vous fermez le navigateur et le rouvrez, vous êtes toujours connecté (tant que le cookie `maxAge` n'a pas expiré). Pourquoi ?
+
+(Réponse : Contrairement au cookie de session par défaut, le `maxAge` que nous avons défini crée un cookie *persistant* sur le disque du client). Au bout de combien de temps devez-vous vous ré-identifier ? (Réponse : Au bout de 3 minutes, `maxAge: 180000`).
+
+3.  **Q3 :** Connectez-vous avec le même utilisateur sur Chrome et Firefox. Combien de sessions (fichiers) y a-t-il ?
+
+(Réponse : Deux. Une session est liée à un navigateur, pas à un utilisateur. Une session ne peut pas être partagée par plusieurs utilisateurs).
 
 === Stockage de session dans une base de données MySQL
 
@@ -430,8 +438,13 @@ app.use(session({
 ----
 
 .Questions (du TP) :
-1.  **Q4 :** Où est stockée la session ? (Réponse : Dans une nouvelle table `sessions` créée automatiquement dans la BDD `nodemysql`).
-2.  **Q4 (suite) :** Ouvrez un navigateur et loggez-vous. Ouvrez un autre navigateur en navigation privée et allez sur `/compteur`. Qu'en concluez-vous ? (Réponse : Le premier navigateur a une session authentifiée, stockée en BDD. Le second a une session anonyme (ou pas de session du tout, grâce à `saveUninitialized: false`), il n'a pas accès aux données de l'autre).
+1.  **Q4 :** Où est stockée la session ?
+
+(Réponse : Dans une nouvelle table `sessions` créée automatiquement dans la BDD `nodemysql`).
+
+2.  **Q4 (suite) :** Ouvrez un navigateur et loggez-vous. Ouvrez un autre navigateur en navigation privée et allez sur `/compteur`. Qu'en concluez-vous ?
+
+(Réponse : Le premier navigateur a une session authentifiée, stockée en BDD. Le second a une session anonyme (ou pas de session du tout, grâce à `saveUninitialized: false`), il n'a pas accès aux données de l'autre).
 
 === Stockage de session via un ORM (Sequelize)
 
@@ -479,8 +492,13 @@ sessionStore.sync();
 ----
 
 .Questions (du TP) :
-1.  **Q5 :** Lancez l'application (après avoir supprimé l'ancienne table `sessions`). Quel message s'affiche ? (Réponse : Sequelize logue `Executing (default): CREATE TABLE IF NOT EXISTS...`). Une nouvelle table `Sessions` (avec un 'S' majuscule par défaut) est créée.
-2.  **Q5 (suite) :** Attendez le timeout (3 minutes). La session est-elle purgée de la BDD ? (Réponse : Oui, le paramètre `checkExpirationInterval` lance un "ramasse-miettes" qui supprime les sessions expirées).
+1.  **Q5 :** Lancez l'application (après avoir supprimé l'ancienne table `sessions`). Quel message s'affiche ?
+
+(Réponse : Sequelize logue `Executing (default): CREATE TABLE IF NOT EXISTS...`). Une nouvelle table `Sessions` (avec un 'S' majuscule par défaut) est créée.
+
+2.  **Q5 (suite) :** Attendez le timeout (3 minutes). La session est-elle purgée de la BDD ?
+
+(Réponse : Oui, le paramètre `checkExpirationInterval` lance un "ramasse-miettes" qui supprime les sessions expirées).
 
 == Partie 5 : Synthèse et Bilan des Menaces sur les Sessions (OWASP)
 
@@ -488,12 +506,14 @@ La session est un élément de sécurité critique. Si un attaquant vole un ID d
 
 .Gestion des sessions et OWASP Top 10
 Le "Broken Access Control" (Contrôle d'accès défaillant) est la menace n°1 de l'OWASP 2021. Une mauvaise gestion de session mène directement à :
+
 * **Élévation de privilège** (passer d'utilisateur à admin).
 * **Accès au compte d’un tiers** (vol de session).
 * **Bypass du mécanisme de contrôle d’accès**.
 
 .Synthèse des menaces (OWASP Session Management Cheat Sheet)
 Pour sécuriser les sessions, il faut se défendre contre :
+
 * **La prédiction d'ID de session :** Si l'ID est "1", "2", "3", un attaquant peut deviner. (Notre `secret` long et aléatoire empêche cela).
 * **Le vol de session (Session Hijacking) :** Intercepter le cookie (via une attaque XSS ou en écoutant un réseau Wi-Fi non chiffré). (Les flags `httpOnly` et `secure` aident à mitiger cela).
 * **La fixation de session :** L'attaquant force un utilisateur à utiliser un ID de session qu'il connaît.
