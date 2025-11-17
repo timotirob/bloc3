@@ -626,8 +626,8 @@ jwt.sign(..., { expiresIn: '1m' }); // ou '60s'
 jwt.sign(..., { expiresIn: '10m' });
 res.cookie(..., { maxAge: 10 * 60 * 1000 });
 ----
-.. *Nettoyage BDD : toutes les 5 minutes, on nettoie les tokens créés il y a plus de 12 minutes*
-+
+*Nettoyage BDD : toutes les 5 minutes, on nettoie les tokens créés il y a plus de 12 minutes*
+
 [source,javascript]
 // jwt-models.js (dans sequelize.sync().then())
 const TWELVE_MINUTES_AGO = new Date(Date.now() - 12 * 60 * 1000);
@@ -635,7 +635,6 @@ await RefreshToken.destroy({
     where: { createdAt: { [Op.lt]: TWELVE_MINUTES_AGO } },
 });
 }, 5 * 60 * 1000); // Fréquence de 5 minutes
-----
 
 === Accès à la route Profil
 
