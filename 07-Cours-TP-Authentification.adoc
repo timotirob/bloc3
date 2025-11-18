@@ -37,7 +37,7 @@ npm install --save-dev nodemon
 
 === Initialisation de l'application
 
-Créez un fichier `server.js` de base.
+Créez un fichier `server-sessions.js` de base.
 
 [source,javascript]
 ----
@@ -176,11 +176,11 @@ export const sha512 = (password, salt) => {
 
 === Route d'enregistrement (POST /register)
 
-Maintenant, assemblons le tout dans `server.js`.
+Maintenant, assemblons le tout dans `server-sessions.js`.
 
 [source,javascript]
 ----
-// ... (imports et configuration en haut du server.js) ...
+// ... (imports et configuration en haut du server-sessions.js) ...
 
 import { genereChaineAleatoire } from './utils/genereSel.mjs';
 import { sha512 } from './utils/hashPassword.mjs';
@@ -248,11 +248,11 @@ Le processus est l'inverse :
 === Route de validation (POST /login)
 
 1.  Créez un formulaire `public/login.html` (champs `login` et `motDePasse`, action `POST /login`).
-2.  Ajoutez les routes correspondantes dans `server.js`.
+2.  Ajoutez les routes correspondantes dans `server-sessions.js`.
 
 [source,javascript]
 ----
-// ... (dans server.js) ...
+// ... (dans server-sessions.js) ...
 
 // Route GET pour servir le formulaire de login
 app.get('/login', (req, res) => {
@@ -358,7 +358,7 @@ Pour implémenter cela dans notre projet, il suffirait de remplacer les appels �
 
 === Bonus 2 : Refactoring de l'application en MVC
 
-Pour un projet plus grand, garder tout dans `server.js` devient ingérable. On refactore selon l'architecture **Modèle-Vue-Contrôleur (MVC)**.
+Pour un projet plus grand, garder tout dans `server-sessions.js` devient ingérable. On refactore selon l'architecture **Modèle-Vue-Contrôleur (MVC)**.
 
 .Arborescence du projet
 [source,text]
@@ -379,7 +379,7 @@ Pour un projet plus grand, garder tout dans `server.js` devient ingérable. On r
 |   |-- reset-password.html
 |-- .env                  (Variables d'environnement : mots de passe BDD, etc.)
 |-- package.json
-|-- server.js             (Point d'entrée principal)
+|-- server-sessions.js             (Point d'entrée principal)
 ----
 
 ==== Fichier `.env`
@@ -483,7 +483,7 @@ export const requestPasswordReset = async (req, res) => { /* ... */ };
 export const resetPassword = async (req, res) => { /* ... */ };
 ----
 
-==== `server.js` (final)
+==== `server-sessions.js` (final)
 Le point d'entrée devient très simple.
 [source,javascript]
 ----

@@ -2,3 +2,15 @@
 .idea/*
 node_modules
 package-lock.json
+# Ignorer les modules node dans tous les sous-dossiers
+**/node_modules
+
+# Ignorer les fichiers de configuration système
+.DS_Store
+Thumbs.db
+
+# Ignorer les fichiers d'environnement (CRITIQUE pour la sécurité)
+.env
+
+# Ignorer les logs
+npm-debug.log

@@ -63,11 +63,11 @@ Si on appelle l'URL `http://localhost:3000/exempleParam/Robert`, le serveur rép
 
 === Exercice 1 : Reproduction de l'exemple
 
-. Dans un fichier `server.js`, reproduisez l'un des deux exemples ci-dessus.
+. Dans un fichier `server-sessions.js`, reproduisez l'un des deux exemples ci-dessus.
 . Assurez-vous d'importer et d'initialiser Express, et de démarrer le serveur.
 . Testez votre route dans le navigateur en entrant l'URL correspondante.
 
-.Aide (structure du fichier `server.js`)
+.Aide (structure du fichier `server-sessions.js`)
 [source,javascript]
 ----
 import express from 'express';
@@ -136,7 +136,7 @@ export { listeEleves };
 
 ==== Étape 3 : Importation des données
 
-Dans votre fichier `server.js`, importez ce tableau au début du fichier.
+Dans votre fichier `server-sessions.js`, importez ce tableau au début du fichier.
 [source,javascript]
 ----
 import { listeEleves } from './sources/eleves.mjs';
@@ -221,7 +221,7 @@ Pour qu'Express puisse lire les données du `req.body`, nous devons utiliser des
 .Configuration des middlewares
 [source,javascript]
 ----
-// Au début de votre fichier server.js, après const app = express();
+// Au début de votre fichier server-sessions.js, après const app = express();
 
 // Middleware pour parser le JSON (pour les requêtes API type application/json)
 app.use(express.json());
@@ -283,7 +283,7 @@ Pour servir des fichiers statiques comme le HTML, on peut utiliser `res.sendFile
 
 [source,javascript]
 ----
-// Au début de server.js
+// Au début de server-sessions.js
 /*import path from 'path';
 import { fileURLToPath } from 'url';
 

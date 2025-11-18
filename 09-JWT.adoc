@@ -158,7 +158,7 @@ export { sequelize, User, RefreshToken, ActivityLog };
 
 Créez le fichier `jwt-server.js` à la racine du projet.
 
-.`jwt-server.js`
+.`jwt-server-sessions.js`
 [source,javascript]
 ----
 // --- Configuration de BASE ---
@@ -616,13 +616,13 @@ L'Access Token est volontairement de courte durée (ex: 15 min) pour des raisons
 .. *Les tokens d’accès durent 1 minute*
 +
 [source,javascript]
-// jwt-server.js (routes /login et /token)
+// jwt-server-sessions.js (routes /login et /token)
 jwt.sign(..., { expiresIn: '1m' }); // ou '60s'
 ----
 .. *Les tokens de rafraîchissement durent 10 minutes*
 +
 [source,javascript]
-// jwt-server.js (route /login)
+// jwt-server-sessions.js (route /login)
 jwt.sign(..., { expiresIn: '10m' });
 res.cookie(..., { maxAge: 10 * 60 * 1000 });
 ----

@@ -12,9 +12,7 @@
 
 Nous avons vu comment authentifier un utilisateur avec un mot de passe haché et salé.
 Cependant, le protocole **HTTP est "stateless"** (sans état). Une fois l'authentification réussie sur une requête, le serveur "oublie" l'utilisateur pour la requête suivante.
-
 Comment, dès lors, donner accès à des ressources protégées sans redemander le mot de passe à chaque clic ?
-
 C'est le rôle de la **gestion de session**. Aujourd'hui, nous étudions le mécanisme de session web "classique" (stateful).
 Par la suite, nous aborderons les tokens (JWT), OAuth2, et l'authentification à double facteur.
 
@@ -69,7 +67,8 @@ document.cookie = "monCookie=Totoro; expires=" + maDate.toUTCString() + ";";
 .  *Visualisation (optionnel) :*
 .. Rechargez la page (F5) et allez dans l'onglet `Réseau (Network)`.
 .. Cliquez sur la première requête (le nom de la page).
-.. Dans les en-têtes (`Headers`), cherchez `Cookie` dans la section `Request Headers`. Vous devriez y voir votre cookie "monCookie=Totoro" être envoyé au serveur.
+.. Dans les en-têtes (`Headers`), cherchez `Cookie` dans la section `Request Headers`.
+Vous devriez y voir votre cookie "monCookie=Totoro" être envoyé au serveur.
 
 === Données de session
 
@@ -78,7 +77,9 @@ La différence fondamentale est simple :
 * Le **cookie** est stocké **côté client** (navigateur).
 * Les **données de session** (qui est l'utilisateur, son rôle, etc.) sont stockées **côté serveur** (en mémoire, dans un fichier, ou en BDD).
 
-Le cookie de session ne contient qu'un **identifiant aléatoire et dénué de sens** (le `session-id`). Il sert uniquement de "clé" pour retrouver les vraies données côté serveur. C'est pour cela que ce mécanisme est dit **"stateful"** (le serveur maintient un état).
+Le cookie de session ne contient qu'un **identifiant aléatoire et dénué de sens** (le `session-id`).
+Il sert uniquement de "clé" pour retrouver les vraies données côté serveur.
+C'est pour cela que ce mécanisme est dit **"stateful"** (le serveur maintient un état).
 
 === Authentification vs. Autorisation
 
@@ -89,7 +90,8 @@ Rappelez en une phrase la différence fondamentale entre **l'authentification** 
 .Réponse
 ====
 * **Authentification** : Prouver qui vous êtes (ex: login + mot de passe). C'est le "contrôle d'identité".
-* **Autorisation** : Vérifier ce que vous avez le droit de faire (ex: un "admin" peut voir le panel, un "user" ne peut pas). Ce sont les "permissions".
+* **Autorisation** : Vérifier ce que vous avez le droit de faire (ex: un "admin" peut voir le panel, un "user" ne peut pas).
+Ce sont les "permissions".
 ====
 
 === Exercice : Utilisation de cURL (Challenge)
@@ -102,7 +104,8 @@ Cet exercice (basé sur un challenge PHP) démontre parfaitement la persistance 
 .. `http://localhost/session.php?nom=Django` (Affiche "Je sais que vous vous appelez Django")
 .. `http://localhost/session.php` (Affiche "Je sais que vous vous appelez Django")
 .  Le serveur se "souvient" de vous grâce à la session.
-.  **Votre challenge :** Reproduisez ce scénario exact en ligne de commande avec `cURL`. (Indice : `cURL` ne sauvegarde pas les cookies par défaut, il faudra utiliser les options `-c` (cookie-jar) et `-b` (cookie) pour simuler le navigateur).
+.  **Votre challenge :** Reproduisez ce scénario exact en ligne de commande avec `cURL`.
+(Indice : `cURL` ne sauvegarde pas les cookies par défaut, il faudra utiliser les options `-c` (cookie-jar) et `-b` (cookie) pour simuler le navigateur).
 
 == Partie 2 : Implémentation avec NodeJS et `express-session`
 
@@ -129,19 +132,16 @@ Dans le document original (année dernière), `cookie-parser` et `body-parser` �
 
 === Étape 2 : Démarrage express (100% ESM)
 
-Voici le code de démarrage d'un `server.js` 100% ESM, nettoyé et corrigé.
+Voici le code de démarrage d'un `server-sessions.js` 100% ESM, nettoyé et corrigé.
 
 [source,javascript]
 ----
 // --- Imports des modules ---
 import express from 'express';
 import session from 'express-session';
-// import mysql from 'mysql2'; // Plus tard, pour stocker en BDD
+// import mysql from 'mysql2';
+// Plus tard, pour stocker en BDD
 import path from 'path';
-
-// --- Imports de nos modules (du TP précédent) ---
-// import { verifieMdp } from './verifieMdp.mjs';
-// import { sha512 } from './hashPassword.mjs';
 
 // --- Configuration initiale ---
 const app = express();
@@ -151,18 +151,21 @@ const port = 3000;
 const __dirname = import.meta.dirname;
 
 // --- Middlewares ---
-app.use(express.json()); // Pour parser le JSON
+app.use(express.json());
+// Pour parser le JSON
 app.use(express.urlencoded({ extended: true })); // Pour parser les formulaires
-app.use(express.static(path.join(__dirname, 'static'))); // Servir les fichiers statiques (CSS, etc.)
+app.use(express.static(path.join(__dirname, 'static')));
+// Servir les fichiers statiques (CSS, etc.)
 ----
 
 === Étape 3 : Création et configuration de la session
 
-Nous ajoutons `express-session` comme un middleware. Il doit être placé **avant** toutes les routes qui en ont besoin.
+Nous ajoutons `express-session` comme un middleware.
+Il doit être placé **avant** toutes les routes qui en ont besoin.
 
 [source,javascript]
 ----
-// ... (suite du server.js) ...
+// ... (suite du server-sessions.js) ...
 
 app.use(session({
   // 'secret' est utilisé pour signer le cookie de session
@@ -197,11 +200,15 @@ app.listen(port, () => {
 [IMPORTANT]
 .Critiques de Sécurité et Bonnes Pratiques
 ====
-1.  **Secret :** Le `secret` hardcodé est une faille de sécurité. S'il est découvert, un attaquant peut forger des ID de session. Ce secret DOIT provenir d'un fichier `.env` et être long et aléatoire (`process.env.SESSION_SECRET`).
+1.  **Secret :** Le `secret` hardcodé est une faille de sécurité.
+S'il est découvert, un attaquant peut forger des ID de session.
+Ce secret DOIT provenir d'un fichier `.env` et être long et aléatoire (`process.env.SESSION_SECRET`).
 2.  **`resave: false` :** Très bonne pratique. Cela évite de ré-enregistrer la session en BDD à chaque requête si rien n'a changé.
 3.  **`saveUninitialized: false` :** Très bonne pratique. Cela évite de polluer le stockage de sessions avec des sessions vides pour les visiteurs anonymes (important pour le RGPD).
-4.  **`cookie.secure: true` :** Doit être mis à `true` en production. Cela force le cookie à n'être envoyé que sur une connexion HTTPS, empêchant son interception.
-5.  **Stockage Mémoire :** Par défaut, `express-session` stocke les sessions en mémoire vive. C'est mauvais pour la production :
+4.  **`cookie.secure: true` :** Doit être mis à `true` en production.
+Cela force le cookie à n'être envoyé que sur une connexion HTTPS, empêchant son interception.
+5.  **Stockage Mémoire :** Par défaut, `express-session` stocke les sessions en mémoire vive.
+C'est mauvais pour la production :
 * Les sessions sont perdues à chaque redémarrage du serveur.
 * Cela ne fonctionne pas si vous avez plusieurs serveurs (load balancing).
 * Cela peut saturer la mémoire (fuite de mémoire).
@@ -209,7 +216,8 @@ app.listen(port, () => {
 
 === Étape 4 : Analyse et utilisation de la session
 
-Une fois le middleware `session` activé, un objet `req.session` est **automatiquement ajouté** à chaque requête. Nous pouvons lire et écrire des données dedans.
+Une fois le middleware `session` activé, un objet `req.session` est **automatiquement ajouté** à chaque requête.
+Nous pouvons lire et écrire des données dedans.
 
 [source,javascript]
 ----
@@ -225,7 +233,7 @@ app.get('/compteur', (requete, resultat) => {
 
   // On peut lire les cookies (nécessitait cookie-parser,
   // mais l'ID de session est dans le cookie signé)
-  console.log(requete.cookies); // Affiche les cookies non-signés
+  console.log(requete.headers.cookie); // Affiche les cookies bruts
 
   resultat.send(`
     <h1>Bonjour les rigolos</h1>
@@ -264,7 +272,8 @@ app.get('/logout', (requete, resultat) => {
 
 == Partie 3 : Lier l'Authentification et la Session
 
-L'exercice "À faire" du document précédent est maintenant notre objectif principal. Nous allons lier l'authentification (TP précédent) à la session (ce TP).
+L'exercice "À faire" du document précédent est maintenant notre objectif principal.
+Nous allons lier l'authentification (TP précédent) à la session (ce TP).
 
 === Étape 1 : Plugguer l'authentification
 
@@ -311,7 +320,6 @@ app.get('/maison', (requete, resultat) => {
       <p>Votre Id de session est : ${requete.sessionID}</p>
       <a href="/logout">Se déconnecter</a>
     `);
-    console.log(requete.session.cookie);
   } else {
     // Non loggé
     resultat.status(401).send('<a href="/login">Identifiez-vous pour visualiser la page</a>');
@@ -320,7 +328,8 @@ app.get('/maison', (requete, resultat) => {
 ----
 
 .Question Piège (du TP) :
-Dans la route `/maison`, on voit `loggedin`, `username`, `cookie` et `id` (ou `sessionID`). Lesquels sont automatiques et lesquels sont créés par nous ?
+Dans la route `/maison`, on voit `loggedin`, `username`, `cookie` et `id` (ou `sessionID`).
+Lesquels sont automatiques et lesquels sont créés par nous ?
 
 .Réponse :
 * **Automatiques (gérés par `express-session`) :** `cookie` (l'objet cookie) et `sessionID` (l'ID unique).
@@ -328,7 +337,8 @@ Dans la route `/maison`, on voit `loggedin`, `username`, `cookie` et `id` (ou `s
 
 == Partie 4 : Persistance des Sessions (Stores)
 
-Le stockage en mémoire par défaut est une mauvaise pratique. Nous devons rendre les sessions persistantes.
+Le stockage en mémoire par défaut est une mauvaise pratique.
+Nous devons rendre les sessions persistantes.
 
 === Stockage de session dans un fichier (session-file-store)
 
@@ -342,7 +352,6 @@ On peut stocker nos sessions dans des fichiers JSON sur le serveur.
 // ... imports ...
 import session from 'express-session';
 import FileStore from 'session-file-store';
-
 const FileStoreSession = FileStore(session);
 
 // ... app.use(express...) ...
@@ -370,67 +379,61 @@ app.use(session({
 
 .Questions (du TP) :
 1.  **Q1 :** Identifiez-vous. Que contient le fichier de session créé dans le dossier `./sessions` ?
-
 (Réponse : un objet JSON contenant les données de session, y compris le compteur, `loggedin`, etc.).
-
-2.  **Q2 (Champion) :** Si vous fermez le navigateur et le rouvrez, vous êtes toujours connecté (tant que le cookie `maxAge` n'a pas expiré). Pourquoi ?
-
-(Réponse : Contrairement au cookie de session par défaut, le `maxAge` que nous avons défini crée un cookie *persistant* sur le disque du client). Au bout de combien de temps devez-vous vous ré-identifier ? (Réponse : Au bout de 3 minutes, `maxAge: 180000`).
-
+2.  **Q2 (Champion) :** Si vous fermez le navigateur et le rouvrez, vous êtes toujours connecté (tant que le cookie `maxAge` n'a pas expiré).
+Pourquoi ?
+(Réponse : Contrairement au cookie de session par défaut, le `maxAge` que nous avons défini crée un cookie *persistant* sur le disque du client).
+Au bout de combien de temps devez-vous vous ré-identifier ? (Réponse : Au bout de 3 minutes, `maxAge: 180000`).
 3.  **Q3 :** Connectez-vous avec le même utilisateur sur Chrome et Firefox. Combien de sessions (fichiers) y a-t-il ?
-
 (Réponse : Deux. Une session est liée à un navigateur, pas à un utilisateur. Une session ne peut pas être partagée par plusieurs utilisateurs).
 
 === Stockage de session dans une base de données MySQL
 
 C'est la méthode la plus courante en production.
 
-[CAUTION]
-.Note Pédagogique : `mysql` vs `mysql2`
+[IMPORTANT]
+.Correction Importante : Librairie MySQL
 ====
-Le document original suggère d'installer et d'utiliser l'ancien package `mysql` car la configuration avec `mysql2/promise` était jugée "pénible".
-
-C'est une **mauvaise pratique** en 2025. Jongler avec deux drivers (l'ancien `mysql` et le moderne `mysql2`) est source de confusion et de problèmes.
-
-La **bonne méthode** est d'utiliser un "store" compatible avec `mysql2`. Le plus simple est `connect-mysql2`.
+Pour éviter l'erreur technique `TypeError: Cannot read properties of undefined (reading 'isServer')` liée à des incompatibilités de versions avec `mysql2` et l'usage de `pool` asynchrone, nous utiliserons la librairie standard **`express-mysql-session`** (au lieu de `connect-mysql2`).
 ====
 
-==== Solution Moderne avec `connect-mysql2` (Recommandée)
+==== Solution Moderne avec `express-mysql-session` (Recommandée)
 
-1.  **Installation :** `npm install connect-mysql2`
-2.  **Configuration :** Nous réutilisons le `pool` de connexion du TP précédent.
+1.  **Installation :** `npm install express-mysql-session`
+2.  **Configuration :**
 
 [source,javascript]
 ----
 // ... imports ...
 import session from 'express-session';
-import MySQLStore from 'connect-mysql2';
-import mysql from 'mysql2/promise'; // Notre pool de connexion existant
+import MySQLStoreFactory from 'express-mysql-session'; // Librairie officielle
 
-// (1) Options de la BDD (celles de votre .env)
+// 1. Initialisation du constructeur
+const MySQLStore = MySQLStoreFactory(session);
+
+// 2. Options de connexion (les mêmes que dans .env)
 const dbOptions = {
-  host: 'localhost',
-  user: 'nodeJs',
-  password: 'test',
-  database: 'nodemysql'
+    host: 'localhost', // process.env.DB_HOST
+    user: 'nodeJs',    // process.env.DB_USER
+    password: 'test',  // process.env.DB_PASS
+    database: 'nodemysql', // process.env.DB_NAME
+    // Options de nettoyage auto
+    clearExpired: true,
+    checkExpirationInterval: 900000, // 15 minutes
+    expiration: 86400000 // 1 jour
 };
 
-// (2) Créer le pool de connexion pour notre *application*
-const connectionPool = mysql.createPool(dbOptions);
+// 3. Créer le store
+const sessionStore = new MySQLStore(dbOptions);
 
-// (3) Créer le store de session
-const MySQLSessionStore = MySQLStore(session);
-// On passe le pool de connexion au store
-const sessionStore = new MySQLSessionStore({}, connectionPool);
-
-// (4) Configurer le middleware de session
+// 4. Configurer le middleware de session
 app.use(session({
   secret: 'les SIO font toujours dodo',
   store: sessionStore, // On utilise notre store MySQL
   resave: false,
   saveUninitialized: false,
   cookie: {
-    maxAge: 180000, // 3 minutes
+    maxAge: 86400000, // 1 jour
     httpOnly: true,
     secure: false
   }
@@ -439,11 +442,9 @@ app.use(session({
 
 .Questions (du TP) :
 1.  **Q4 :** Où est stockée la session ?
-
 (Réponse : Dans une nouvelle table `sessions` créée automatiquement dans la BDD `nodemysql`).
-
-2.  **Q4 (suite) :** Ouvrez un navigateur et loggez-vous. Ouvrez un autre navigateur en navigation privée et allez sur `/compteur`. Qu'en concluez-vous ?
-
+2.  **Q4 (suite) :** Ouvrez un navigateur et loggez-vous.
+Ouvrez un autre navigateur en navigation privée et allez sur `/compteur`. Qu'en concluez-vous ?
 (Réponse : Le premier navigateur a une session authentifiée, stockée en BDD. Le second a une session anonyme (ou pas de session du tout, grâce à `saveUninitialized: false`), il n'a pas accès aux données de l'autre).
 
 === Stockage de session via un ORM (Sequelize)
@@ -493,16 +494,15 @@ sessionStore.sync();
 
 .Questions (du TP) :
 1.  **Q5 :** Lancez l'application (après avoir supprimé l'ancienne table `sessions`). Quel message s'affiche ?
-
-(Réponse : Sequelize logue `Executing (default): CREATE TABLE IF NOT EXISTS...`). Une nouvelle table `Sessions` (avec un 'S' majuscule par défaut) est créée.
-
+(Réponse : Sequelize logue `Executing (default): CREATE TABLE IF NOT EXISTS...`).
+Une nouvelle table `Sessions` (avec un 'S' majuscule par défaut) est créée.
 2.  **Q5 (suite) :** Attendez le timeout (3 minutes). La session est-elle purgée de la BDD ?
-
 (Réponse : Oui, le paramètre `checkExpirationInterval` lance un "ramasse-miettes" qui supprime les sessions expirées).
 
 == Partie 5 : Synthèse et Bilan des Menaces sur les Sessions (OWASP)
 
-La session est un élément de sécurité critique. Si un attaquant vole un ID de session, il vole l'identité de l'utilisateur (vol de session).
+La session est un élément de sécurité critique.
+Si un attaquant vole un ID de session, il vole l'identité de l'utilisateur (vol de session).
 
 .Gestion des sessions et OWASP Top 10
 Le "Broken Access Control" (Contrôle d'accès défaillant) est la menace n°1 de l'OWASP 2021. Une mauvaise gestion de session mène directement à :
@@ -514,8 +514,10 @@ Le "Broken Access Control" (Contrôle d'accès défaillant) est la menace n°1 d
 .Synthèse des menaces (OWASP Session Management Cheat Sheet)
 Pour sécuriser les sessions, il faut se défendre contre :
 
-* **La prédiction d'ID de session :** Si l'ID est "1", "2", "3", un attaquant peut deviner. (Notre `secret` long et aléatoire empêche cela).
-* **Le vol de session (Session Hijacking) :** Intercepter le cookie (via une attaque XSS ou en écoutant un réseau Wi-Fi non chiffré). (Les flags `httpOnly` et `secure` aident à mitiger cela).
+* **La prédiction d'ID de session :** Si l'ID est "1", "2", "3", un attaquant peut deviner.
+(Notre `secret` long et aléatoire empêche cela).
+* **Le vol de session (Session Hijacking) :** Intercepter le cookie (via une attaque XSS ou en écoutant un réseau Wi-Fi non chiffré).
+(Les flags `httpOnly` et `secure` aident à mitiger cela).
 * **La fixation de session :** L'attaquant force un utilisateur à utiliser un ID de session qu'il connaît.
 
 == Bonus : Architectures d'Authentification (Schémas)
@@ -523,7 +525,8 @@ Pour sécuriser les sessions, il faut se défendre contre :
 [NOTE]
 .Rappel sur les architectures d'authentification
 ====
-Voici un tableau récapitulatif des différentes méthodes que nous allons aborder. Comprendre leurs différences fondamentales (avec ou sans état) est crucial.
+Voici un tableau récapitulatif des différentes méthodes que nous allons aborder.
+Comprendre leurs différences fondamentales (avec ou sans état) est crucial.
 ====
 
 [cols="1,2,1,2,a", options="header"]
@@ -557,4 +560,4 @@ Voici un tableau récapitulatif des différentes méthodes que nous allons abord
 
 == Annexe : Diagramme de Séquence d'une Session
 
-image:img.png[Diagramme de séquence d'une session, width=700]
+image::img.png[Diagramme de séquence d'une session, width=700]

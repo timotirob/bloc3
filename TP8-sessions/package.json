@@ -1,0 +1,21 @@
+{
+  "name": "bloc3-tp8-sessions",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "TP Gestion des Sessions",
+  "scripts": {
+    "start": "node server-sessions.js",
+    "dev": "nodemon server-sessions.js"
+  },
+  "dependencies": {
+    "argon2": "^0.31.2",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-mysql-session": "^3.0.3",
+    "express-session": "^1.17.3",
+    "mysql2": "^3.6.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
