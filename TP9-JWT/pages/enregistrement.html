@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inscription</title>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; padding-top: 50px; }
+        form { border: 1px solid #ccc; padding: 20px; border-radius: 5px; max-width: 400px; }
+        div { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input { width: 100%; padding: 8px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background-color: #28a745; color: white; border: none; cursor: pointer; }
+        button:hover { background-color: #218838; }
+        .error { color: red; font-size: 0.9em; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<form id="registerForm">
+    <h2>Créer un compte</h2>
+    <div id="message" class="error"></div>
+
+    <div>
+        <label for="identifiant">Identifiant :</label>
+        <input type="text" id="identifiant" name="identifiant" required>
+    </div>
+
+    <div>
+        <label for="email">Email :</label>
+        <input type="email" id="email" name="email" required>
+    </div>
+
+    <div>
+        <label for="motDePasse">Mot de passe :</label>
+        <input type="password" id="motDePasse" name="motDePasse" required>
+    </div>
+
+    <div>
+        <label for="confirmMotDePasse">Confirmer le mot de passe :</label>
+        <input type="password" id="confirmMotDePasse" name="confirmMotDePasse" required>
+    </div>
+
+    <button type="submit">S'inscrire</button>
+
+    <p style="margin-top: 15px; text-align: center;">
+        <a href="/login">Déjà un compte ? Se connecter</a>
+    </p>
+</form>
+
+<script>
+    // Fonction de validation (Issue de votre TP original)
+    function verifieMdp(motDePasse) {
+        if (motDePasse.length < 8) return "Trop court (8 min)";
+        if (motDePasse.length > 30) return "Trop long (30 max)";
+        if (motDePasse.search(/\d/) == -1) return "Il manque un chiffre";
+        if (motDePasse.search(/[a-z]/) == -1) return "Il manque une minuscule";
+        if (motDePasse.search(/[A-Z]/) == -1) return "Il manque une majuscule";
+        if (motDePasse.search(/[^a-zA-Z0-9]/) == -1) return "Il manque un caractère spécial";
+        return "ok";
+    }
+
+    document.getElementById('registerForm').addEventListener('submit', async function(e) {
+        e.preventDefault(); // Empêche le rechargement de la page
+
+        const messageDiv = document.getElementById('message');
+        const identifiant = document.getElementById('identifiant').value;
+        const email = document.getElementById('email').value;
+        const motDePasse = document.getElementById('motDePasse').value;
+        const confirmMotDePasse = document.getElementById('confirmMotDePasse').value;
+
+        // 1. Validation Client
+        if (motDePasse !== confirmMotDePasse) {
+            messageDiv.textContent = "Les mots de passe ne correspondent pas.";
+            return;
+        }
+
+        const validMdp = verifieMdp(motDePasse);
+        if (validMdp !== "ok") {
+            messageDiv.textContent = "Mot de passe invalide : " + validMdp;
+            return;
+        }
+
+        // 2. Envoi au serveur via Fetch
+        try {
+            const response = await fetch('/enregistrement', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ identifiant, email, motDePasse })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                alert("Inscription réussie ! Vous pouvez vous connecter.");
+                window.location.href = '/login';
+            } else {
+                messageDiv.textContent = result.message || "Erreur lors de l'inscription.";
+            }
+        } catch (error) {
+            console.error(error);
+            messageDiv.textContent = "Erreur de communication avec le serveur.";
+        }
+    });
+</script>
+</body>
+</html>
