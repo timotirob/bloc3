@@ -1,0 +1,253 @@
+= TP - Authentification avec PassportJS
+:author: Timothée Robert
+:revdate: 2025-11-20
+:version-label: Version Étudiant
+:toc: left
+:toclevels: 3
+:sectnums:
+:source-highlighter: highlight.js
+:imagesdir: images
+:icons: font
+
+image::node1.svg[NodeJS Logo, 100]
+
+== Introduction
+
+=== Rappel du contexte
+Lors des séances précédentes, nous avons vu :
+
+* Comment authentifier un utilisateur via un login et un mot de passe haché (**Argon2id**).
+* Comment utiliser une **session** pour maintenir l'état de l'utilisateur (stateful).
+* Comment persister cette session (Fichier, Base de données, ORM Sequelize).
+
+=== Objectif du TP
+Nous allons maintenant aborder **PassportJS**, un middleware d'authentification pour Node.js extrêmement populaire et flexible. Il permet de gérer :
+
+.   L'authentification locale (Login/Mot de passe).
+.   D'autres stratégies futures (OAuth2 avec Google/Facebook, JWT, etc.).
+
+== Concepts Fondamentaux
+
+=== 1. Middleware Passport
+Passport est un middleware Express. Pour chaque requête HTTP, il utilise une **Stratégie** pour déterminer si le demandeur a la permission d'accéder à la ressource.
+
+=== 2. Les Stratégies
+Passport est modulaire. Le cœur gère la session, mais la logique d'authentification est déléguée à des "Stratégies".
+Aujourd'hui, nous utiliserons la **Stratégie Locale** (`passport-local`), qui se base sur des identifiants (username/password) stockés dans notre base de données.
+
+=== 3. Sérialisation et Désérialisation
+Pour ne pas stocker tout l'objet utilisateur dans le cookie de session (trop lourd), Passport utilise deux méthodes :
+
+* **Serialize** : Décide quelle donnée stocker dans la session (généralement juste l'`id`).
+* **Deserialize** : À partir de l'`id` stocké en session, retrouve l'objet utilisateur complet en base de données pour le mettre dans `req.user`.
+
+== Travail à réaliser (Le Puzzle)
+
+Le code vous est fourni en **Annexes** sous forme de morceaux. Votre objectif est d'assembler ces pièces pour obtenir une application fonctionnelle.
+
+Avec le code fourni, l'application sera *_en apparence_* fonctionnelle mais en fait un bug subtil se cache et qu'il vous restera à *identifier* et *corriger*.
+
+=== Étape 1 : Installation et Configuration
+.   Prenez votre projet existant et , dans un sous répertoire
+.   Installez les dépendances nécessaires :
+* `express`, `express-session`, `express-session-sequelize` (pour le store).
+* `sequelize`, `mysql2` (pour la BDD).
+* `passport`, `passport-local` (pour l'auth).
+* `argon2` (pour le hachage).
+.   Configurez la base de données et le modèle `User` (voir Annexes).
+
+=== Étape 2 : Configuration de la Stratégie Locale
+.   Dans votre fichier principal (ou un fichier de config dédié), configurez la stratégie `LocalStrategy`.
+.   Vous devrez définir la fonction de rappel `verifyCallback` qui :
+* Cherche l'utilisateur en BDD.
+* Vérifie son mot de passe.
+* Renvoie l'utilisateur ou une erreur via la fonction `done`.
+
+=== Étape 3 : Sérialisation
+.   Implémentez `passport.serializeUser` pour stocker l'ID.
+.   Implémentez `passport.deserializeUser` pour récupérer l'utilisateur via son ID (avec Sequelize).
+
+=== Étape 4 : Routes et Middleware
+.   Initialisez Passport dans Express (`app.use(passport.initialize())` et `app.use(passport.session())`).
+.   Créez la route de Login (`POST`) qui utilise `passport.authenticate`.
+.   Créez une route protégée qui utilise un middleware personnalisé (`isAuthenticated`) pour vérifier l'accès.
+.   Créez la route de Logout.
+
+== Annexes : Les Pièces du Puzzle
+
+Voici les extraits de code à utiliser. **Attention**, il peut être nécessaire d'adapter les imports selon votre structure de fichiers.
+
+=== Annexe A : Modèle Sequelize (User)
+
+[source,javascript]
+----
+import { Sequelize, DataTypes } from 'sequelize';
+
+// Connexion BDD
+const sequelize = new Sequelize('nodemysql', 'root', '', {
+    host: 'localhost',
+    dialect: 'mysql',
+});
+
+// Définition du Modèle
+const User = sequelize.define("Comptes", {
+    identifiant: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    hash: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    email: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        defaultValue: 'etudiant@btssio.com'
+    },
+    admin: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+    }
+});
+
+// Synchronisation
+sequelize.sync().then(() => {
+    console.log('Table utilisateurs synchronisée');
+}).catch((error) => {
+    console.error('Erreur synchro BDD:', error);
+});
+
+export { User, sequelize };
+----
+
+=== Annexe B : Configuration de la Stratégie Locale
+
+C'est ici que la logique de vérification se trouve.
+
+[source,javascript]
+----
+import Strategy from 'passport-local';
+import { User } from './models.js'; // Adapter le chemin
+import { verifieMdp } from './security.js'; // Adapter le chemin
+
+const LocalStrategy = Strategy.Strategy;
+
+const customFields = {
+    usernameField: 'utilisateur', // Le 'name' du champ input HTML
+    passwordField: 'motDePasse'   // Le 'name' du champ input HTML
+};
+
+const verifyCallback = (username, password, done) => {
+    User.findOne({ where: { identifiant: username } })
+        .then((utilisateur) => {
+            // 1. Pas d'utilisateur trouvé
+            if (!utilisateur) {
+                return done(null, false);
+            }
+
+            // 2. Vérification du mot de passe
+            // ATTENTION : Analysez bien cette ligne...
+            const isValid = verifieMdp(utilisateur.hash, password);
+
+            if (isValid) {
+                return done(null, utilisateur); // Succès
+            } else {
+                return done(null, false); // Mot de passe incorrect
+            }
+        })
+        .catch((err) => {
+            done(err);
+        });
+};
+
+const strategy = new LocalStrategy(customFields, verifyCallback);
+
+// Ne pas oublier d'exporter ou d'utiliser : passport.use(strategy);
+----
+
+=== Annexe C : Fonctions de Hachage (Argon2)
+
+[source,javascript]
+----
+import argon2 from "argon2";
+
+export async function hashMonMdp(mdp) {
+    try {
+        return await argon2.hash(mdp);
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+export async function verifieMdp(hash, mdp) {
+    try {
+        if (await argon2.verify(hash, mdp)) {
+            return true;
+        } else {
+            return false;
+        }
+    } catch (err) {
+        console.error(err);
+        return false;
+    }
+}
+----
+
+=== Annexe D : Sérialisation
+
+[source,javascript]
+----
+passport.serializeUser((user, done) => {
+    done(null, user.id);
+});
+
+passport.deserializeUser((userId, done) => {
+    User.findByPk(userId)
+        .then((user) => {
+            done(null, user);
+        })
+        .catch(err => done(err));
+});
+----
+
+=== Annexe E : Les Routes
+
+[source,javascript]
+----
+// Route de Login (Traitement)
+app.post('/login', passport.authenticate('local', {
+    failureRedirect: '/login-echec',
+    successRedirect: '/login-success'
+}));
+
+// Routes de succès/échec
+app.get('/login-success', (req, res) => {
+    res.send('<p>Vous êtes connecté.</p><a href="/route-protegee">Aller vers la zone privée</a>');
+});
+
+app.get('/login-echec', (req, res) => {
+    res.send('Echec de connexion.');
+});
+
+// Route de Logout
+app.get('/logout', (req, res, next) => {
+    req.logout((err) => {
+        if (err) { return next(err); }
+        res.redirect('/login');
+    });
+});
+
+// Middleware de protection "Maison"
+const isAuth = (req, res, next) => {
+    if (req.isAuthenticated()) {
+        next();
+    } else {
+        res.status(401).send('Vous n\'êtes pas autorisé à accéder ici.');
+    }
+};
+
+// Route Protégée
+app.get('/route-protegee', isAuth, (req, res) => {
+    res.send(`<h1>Zone Secrète</h1><p>Bonjour ${req.user.identifiant}</p>`);
+});
+----
