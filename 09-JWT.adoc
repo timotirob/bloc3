@@ -35,12 +35,14 @@ Un token est une chaîne de caractères générée par la librairie `jsonwebtoke
 
 .Création des tokens (au Login)
 Les tokens sont créés au **login**, et non à l'enregistrement.
+
 * **Enregistrement :** L'objectif est de *créer* un compte. Les données (login, mot de passe haché) sont stockées en BDD.
 * **Login :** L'objectif est d'*authentifier* un utilisateur existant. Le serveur vérifie les identifiants et, s'ils sont corrects, génère un **Access Token** (jeton d'accès) et un **Refresh Token** (jeton de rafraîchissement).
 
 .Rafraîchissement des tokens
 Pour la sécurité, les **Access Tokens** ont une durée de vie très courte (ex: 15 minutes). S'il est volé, il expire rapidement.
 Le **Refresh Token** est un second token, avec une durée de vie beaucoup plus longue (ex: 7 jours).
+
 * Il est stocké de manière plus sécurisée (ex: dans un cookie `HttpOnly`).
 * Son seul but est de permettre au client de demander un *nouvel* Access Token lorsque l'ancien a expiré, sans que l'utilisateur ait à se reconnecter.
 
