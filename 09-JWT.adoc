@@ -60,7 +60,7 @@ Le **Refresh Token** est un second token, avec une durée de vie beaucoup plus l
 +
 [source,bash]
 ----
-npm install express jsonwebtoken argon2 mysql2 sequelize dotenv cookie-parser
+npm install express jsonwebtoken @node-rs/argon2 mysql2 sequelize dotenv cookie-parser
 npm install --save-dev nodemon
 ----
 
