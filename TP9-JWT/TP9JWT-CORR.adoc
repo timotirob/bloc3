@@ -1,0 +1,404 @@
+= Corrigé Détaillé - TP 9 : Authentification JWT
+:author: Timothée Robert
+:revdate: 2025-11-18
+:version-label: Solution Complète ESM
+:toc: left
+:toclevels: 3
+:source-highlighter: highlight.js
+:imagesdir: images
+
+== Introduction
+
+Ce document contient la solution complète du TP sur les JSON Web Tokens (JWT).
+L'application implémente :
+1.  Une authentification **Stateless** (sans session serveur).
+2.  Un système de **Refresh Token** sécurisé (Cookie HttpOnly + Stockage BDD).
+3.  Un client JavaScript capable de rafraîchir le token automatiquement ("Silent Refresh").
+
+== 1. Configuration du Projet
+
+=== Fichier `package.json`
+
+Installation des dépendances nécessaires (ESM activé).
+
+[source,json]
+----
+{
+  "name": "correction-tp-jwt",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon jwt-server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "argon2": "^0.40.1",
+    "sequelize": "^6.37.3",
+    "mysql2": "^3.9.7",
+    "dotenv": "^16.4.5",
+    "cookie-parser": "^1.4.6"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}
+----
+
+=== Fichier `.env`
+
+[source,ini]
+----
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=
+DB_NAME=tp_jwt
+
+# Clés secrètes (Générées aléatoirement en production)
+SECRET_KEY=secret_tres_long_pour_access_token_123456
+REFRESH_SECRET_KEY=secret_encore_plus_long_pour_refresh_token_789012
+----
+
+== 2. Modèles de Données (`models/jwt-models.js`)
+
+Configuration de Sequelize et définition des tables `Users`, `RefreshTokens` et `ActivityLogs`.
+
+[source,javascript]
+----
+import { Sequelize, DataTypes, Op } from 'sequelize';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const sequelize = new Sequelize(
+    process.env.DB_NAME,
+    process.env.DB_USER,
+    process.env.DB_PASSWORD,
+    {
+        host: process.env.DB_HOST,
+        dialect: 'mysql',
+        logging: false
+    }
+);
+
+// --- Utilisateur ---
+const User = sequelize.define('User', {
+    login: { type: DataTypes.STRING, allowNull: false, unique: true },
+    password: { type: DataTypes.STRING, allowNull: false }, // Hash Argon2
+    email: { type: DataTypes.STRING, allowNull: false, unique: true },
+}, { timestamps: true });
+
+// --- Refresh Token (Pour révocation) ---
+const RefreshToken = sequelize.define('RefreshToken', {
+    token: { type: DataTypes.STRING, allowNull: false },
+    userId: { type: DataTypes.INTEGER, allowNull: false },
+}, { timestamps: true });
+
+// --- Logs d'activité ---
+const ActivityLog = sequelize.define('ActivityLog', {
+    userId: { type: DataTypes.INTEGER, allowNull: false },
+    activity: { type: DataTypes.STRING, allowNull: false },
+}, { timestamps: true });
+
+// --- Synchronisation et Nettoyage ---
+sequelize.sync().then(() => {
+    console.log('Base de données synchronisée.');
+
+    // Nettoyage quotidien des vieux tokens (> 7 jours)
+    setInterval(async () => {
+        const SEVEN_DAYS_AGO = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        await RefreshToken.destroy({
+            where: { createdAt: { [Op.lt]: SEVEN_DAYS_AGO } }
+        });
+        console.log('Nettoyage des tokens expirés effectué.');
+    }, 24 * 60 * 60 * 1000);
+});
+
+export { sequelize, User, RefreshToken, ActivityLog };
+----
+
+== 3. Serveur API (`jwt-server.js`)
+
+C'est le cœur de l'application. Il expose les routes d'authentification et protège les ressources.
+
+[source,javascript]
+----
+import express from 'express';
+import jwt from 'jsonwebtoken';
+import argon2 from 'argon2';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import cookieParser from 'cookie-parser';
+import { User, RefreshToken, ActivityLog } from './models/jwt-models.js';
+
+dotenv.config();
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const app = express();
+
+// --- Middlewares ---
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser()); // Indispensable pour lire le cookie refreshToken
+app.use('/static', express.static(path.join(__dirname, 'static')));
+
+// --- Routes Vues ---
+app.get("/", (req, res) => res.sendFile(path.join(__dirname, "pages/enregistrement.html")));
+app.get("/login", (req, res) => res.sendFile(path.join(__dirname, "pages/login.html")));
+app.get("/accesProfil", (req, res) => res.sendFile(path.join(__dirname, "pages/profil.html")));
+
+// --- 1. INSCRIPTION ---
+app.post('/enregistrement', async (req, res) => {
+    const { identifiant, motDePasse, email } = req.body;
+    try {
+        const hash = await argon2.hash(motDePasse);
+        const user = await User.create({ login: identifiant, password: hash, email });
+        await ActivityLog.create({ userId: user.id, activity: 'Inscription' });
+        res.status(201).json({ message: 'Compte créé' });
+    } catch (err) {
+        res.status(500).json({ message: 'Erreur création compte' });
+    }
+});
+
+// --- 2. LOGIN (Génération Tokens) ---
+app.post('/login', async (req, res) => {
+    const { identifiantFormulaire, motDePasseFormulaire } = req.body;
+
+    try {
+        const user = await User.findOne({ where: { login: identifiantFormulaire } });
+        if (!user || !(await argon2.verify(user.password, motDePasseFormulaire))) {
+            return res.status(401).json({ message: 'Identifiants incorrects' });
+        }
+
+        // Génération des tokens
+        const accessToken = jwt.sign(
+            { id: user.id, username: user.login },
+            process.env.SECRET_KEY,
+            { expiresIn: '15m' } // Courte durée
+        );
+
+        const refreshToken = jwt.sign(
+            { id: user.id },
+            process.env.REFRESH_SECRET_KEY,
+            { expiresIn: '7d' } // Longue durée
+        );
+
+        // Persistance du Refresh Token
+        await RefreshToken.create({ token: refreshToken, userId: user.id });
+        await ActivityLog.create({ userId: user.id, activity: 'Connexion' });
+
+        // Envoi du Refresh Token en Cookie (Sécurisé)
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true, // Inaccessible au JS client
+            secure: false, // True en HTTPS
+            sameSite: 'Strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        });
+
+        // Envoi de l'Access Token en JSON
+        res.json({ accessToken });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+});
+
+// --- 3. REFRESH TOKEN (Renouvellement) ---
+app.post('/token', async (req, res) => {
+    const refreshToken = req.cookies?.refreshToken;
+    if (!refreshToken) return res.status(401).json({ message: 'Token requis' });
+
+    try {
+        // Vérification BDD (Révocation ?)
+        const storedToken = await RefreshToken.findOne({ where: { token: refreshToken } });
+        if (!storedToken) return res.status(403).json({ message: 'Token invalide' });
+
+        // Vérification Crypto
+        jwt.verify(refreshToken, process.env.REFRESH_SECRET_KEY, (err, user) => {
+            if (err) return res.status(403).json({ message: 'Token expiré' });
+
+            // Nouveau Access Token
+            const newAccessToken = jwt.sign(
+                { id: user.id, username: user.username }, // Attention: user ici est le payload décodé
+                process.env.SECRET_KEY,
+                { expiresIn: '15m' }
+            );
+
+            res.json({ accessToken: newAccessToken });
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+});
+
+// --- MIDDLEWARE AUTHENTIFICATION ---
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // "Bearer <TOKEN>"
+
+    if (!token) return res.status(401).json({ message: 'Token manquant' });
+
+    jwt.verify(token, process.env.SECRET_KEY, (err, user) => {
+        if (err) return res.status(403).json({ message: 'Token invalide' });
+        req.user = user;
+        next();
+    });
+};
+
+// --- 4. ROUTE PROTÉGÉE (Profil) ---
+app.get('/profil', authenticateToken, async (req, res) => {
+    const user = await User.findByPk(req.user.id, { attributes: { exclude: ['password'] } });
+    if (!user) return res.status(404).json({ message: 'Utilisateur introuvable' });
+
+    await ActivityLog.create({ userId: user.id, activity: 'Consultation Profil' });
+    res.json({ user });
+});
+
+// --- 5. LOGOUT ---
+app.post('/logout', async (req, res) => {
+    const refreshToken = req.cookies.refreshToken;
+    if (refreshToken) {
+        await RefreshToken.destroy({ where: { token: refreshToken } });
+    }
+    res.clearCookie('refreshToken');
+    res.json({ message: 'Déconnecté' });
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Serveur JWT lancé sur port ${PORT}`));
+----
+
+== 4. Client JavaScript (`static/jwt-client-script.js`)
+
+Ce script gère la logique complexe côté client : stockage mémoire, interception des erreurs 401 et rafraîchissement automatique.
+
+[source,javascript]
+----
+// Stockage volatil du token (Sécurité XSS)
+window.lastAccessToken = '';
+
+/**
+ * Wrapper apiFetch : gère l'ajout du token et le refresh automatique
+ */
+async function apiFetch(url, options = {}) {
+    // 1. Ajouter l'Access Token s'il existe
+    const headers = {
+        ...options.headers,
+        'Content-Type': 'application/json'
+    };
+
+    if (window.lastAccessToken) {
+        headers['Authorization'] = `Bearer ${window.lastAccessToken}`;
+    }
+
+    // 2. Tenter la requête
+    // credentials: 'include' force l'envoi des cookies (RefreshToken)
+    let response = await fetch(url, { ...options, headers, credentials: 'include' });
+
+    // 3. Si 401 (Token expiré) ou 403 (Invalide)
+    if (response.status === 401 || response.status === 403) {
+        console.log('Token expiré. Tentative de refresh...');
+
+        // 4. Demander un nouveau token via le cookie
+        const refreshRes = await fetch('/token', { method: 'POST', credentials: 'include' });
+
+        if (refreshRes.ok) {
+            const data = await refreshRes.json();
+            window.lastAccessToken = data.accessToken; // Mise à jour
+            console.log('Token rafraîchi !');
+
+            // 5. Rejouer la requête initiale avec le nouveau token
+            headers['Authorization'] = `Bearer ${window.lastAccessToken}`;
+            response = await fetch(url, { ...options, headers, credentials: 'include' });
+        } else {
+            // 6. Echec total : déconnexion forcée
+            console.error('Session expirée.');
+            window.location.href = '/login';
+            throw new Error('Session expirée');
+        }
+    }
+
+    return response;
+}
+
+// --- Logique Page Profil ---
+const btn = document.getElementById('getProfile');
+if (btn) {
+    btn.addEventListener('click', async () => {
+        try {
+            const res = await apiFetch('/profil');
+            if (res.ok) {
+                const data = await res.json();
+                document.getElementById('resultat').innerHTML = `<pre>${JSON.stringify(data.user, null, 2)}</pre>`;
+            } else {
+                document.getElementById('resultat').innerText = "Erreur accès profil";
+            }
+        } catch (e) { console.error(e); }
+    });
+}
+----
+
+== 5. Vues HTML (`pages/`)
+
+=== Login (`pages/login.html`)
+
+Simple formulaire qui envoie les données en JSON et stocke le token reçu.
+
+[source,html]
+----
+<!DOCTYPE html>
+<html lang="fr">
+<head><title>Connexion</title></head>
+<body>
+    <form id="loginForm">
+        <input type="text" id="login" placeholder="Identifiant" required>
+        <input type="password" id="mdp" placeholder="Mot de passe" required>
+        <button type="submit">Connexion</button>
+    </form>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const identifiant = document.getElementById('login').value;
+            const motDePasse = document.getElementById('mdp').value;
+
+            const res = await fetch('/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ identifiantFormulaire: identifiant, motDePasseFormulaire: motDePasse })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                // Stockage temporaire dans la fenêtre parente (pour l'exercice)
+                // Dans une vraie SPA, ce serait dans un store d'état
+                if (window.opener) window.opener.lastAccessToken = data.accessToken;
+
+                alert('Connecté !');
+                window.location.href = '/accesProfil';
+            } else {
+                alert('Erreur : ' + data.message);
+            }
+        });
+    </script>
+</body>
+</html>
+----
+
+=== Profil (`pages/profil.html`)
+
+[source,html]
+----
+<!DOCTYPE html>
+<html lang="fr">
+<head><title>Profil</title></head>
+<body>
+    <h1>Espace Privé</h1>
+    <button id="getProfile">Voir mes infos</button>
+    <div id="resultat"></div>
+
+    <script src="/static/jwt-client-script.js"></script>
+</body>
+</html>
+----
