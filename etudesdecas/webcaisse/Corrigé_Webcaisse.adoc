@@ -1,0 +1,220 @@
+= Proposition de Corrigé - TP Étude de Cas WebCaisse
+:toc: left
+:toc-title: Sommaire
+:icons: font
+
+== Mission 1 : Souscription en ligne et Sécurité
+
+=== Partie 1 – Évolution de la base de données
+**Question 1.1 : Modifications de la structure de la base de données**
+Pour permettre la souscription en ligne avec les nouveaux critères (formule par point de vente, programme de fidélisation, et langues des modules), voici le schéma relationnel mis à jour :
+
+* **Client** (#id, raisonSociale, rue, codePostal, ville, telephone, domaineActivite)
+* **PointDeVente** (#id, nom, rue, codePostal, ville, idClient, idProgrammeFidelisation)
+_Clés étrangères : idClient -> Client(id), idProgrammeFidelisation -> ProgrammeFid(id)_
+* **ProgrammeFid** (#id, libelle) _Ex: 1='Tampon', 2='Montant Achat', 3='Points'_
+* **FormuleSouscrite** (#idPointDeVente, #idFormule, dateSouscription)
+* **Langue** (#id, libelle)
+* **ModuleLangue** (#idPointDeVente, #idModule, #idLangue)
+_Clés étrangères : idPointDeVente -> PointDeVente(id), idModule -> Module(id), idLangue -> Langue(id)_
+
+=== Partie 2 – Audit de sécurité (Cybersécurité / DICP)
+**Question 1.2 : Faille de l'envoi de mot de passe**
+
+* **L'explication (DICP) :** Envoyer un mot de passe en clair par messagerie électronique viole le principe de **Confidentialité**. Les e-mails transitent souvent en clair sur les réseaux et peuvent être interceptés. De plus, au regard du RGPD, l'entreprise n'a pas à connaître le mot de passe de ses clients.
+* **La correction (Processus sécurisé) :**
+1. Le système génère un jeton (token) unique, aléatoire et temporaire (valide 1 heure par exemple).
+2. Le système envoie un e-mail au client contenant un lien intégrant ce jeton (ex: `https://webcaisse.nasdy.com/init-password?token=xyz`).
+3. Le client clique, saisit lui-même son mot de passe sur une page sécurisée (HTTPS).
+4. Le mot de passe est haché (par exemple avec Bcrypt ou Argon2) puis stocké en base de données. Le mot de passe en clair n'est jamais stocké ni transmis par l'entreprise.
+
+=== Partie 3 - Gestion du changement de formule (Triggers)
+**Question 1.3 : Problème d'historisation**
+La table `FormuleSouscrite(idPointDeVente, idFormule)` a pour clé primaire le couple `(idPointDeVente, idFormule)`.
+
+1. Il est impossible pour un même point de vente de souscrire deux fois à la même formule à des dates différentes (violation d'unicité de la clé primaire).
+2. Il n'y a aucun champ de type `Date` permettant de savoir quand la formule a été activée ou désactivée, rendant le calcul de la facturation mensuelle impossible.
+
+**Question 1.4 : Correction de la table**
+Il faut ajouter la notion de temporalité dans la clé primaire :
+
+* `FormuleSouscrite(#idPointDeVente, #idFormule, #dateDebut, dateFin)`
+
+**Question 1.5 : Trigger d'audit SQL**
+[source,sql]
+----
+CREATE TRIGGER tg_audit_changement_formule
+AFTER UPDATE ON FormuleSouscrite
+FOR EACH ROW
+BEGIN
+    INSERT INTO Audit_Formule (idPointDeVente, ancienneFormule, nouvelleFormule, dateModification, utilisateur)
+    VALUES (NEW.idPointDeVente, OLD.idFormule, NEW.idFormule, NOW(), USER());
+END;
+----
+
+== Mission 2 : Fidélisation des consommateurs et Robustesse
+
+=== Partie 1 – Amélioration du module GRC et Injection SQL
+**Question 2.1 : Requêtes SQL**
+a) Liste des consommateurs avec au moins une vente en 2017 :
+[source,sql]
+----
+SELECT DISTINCT c.nom, c.prenom, c.mail
+FROM Conso c
+JOIN Vente v ON c.id = v.idConso
+WHERE YEAR(v.dateVente) = 2017;
+----
+b) Nombre de consommateurs fidélisés (18-30 ans) :
+[source,sql]
+----
+SELECT COUNT(*)
+FROM ConsoFidele
+WHERE TIMESTAMPDIFF(YEAR, dateNaiss, CURDATE()) BETWEEN 18 AND 30;
+----
+c) Liste des consommateurs avec le montant total des ventes :
+[source,sql]
+----
+SELECT c.nom, c.prenom, c.mail, SUM(v.montantVente) AS TotalAchats
+FROM Conso c
+JOIN Vente v ON c.id = v.idConso
+GROUP BY c.id, c.nom, c.prenom, c.mail;
+----
+
+**Question 2.2 : Analyse de vulnérabilité (OWASP)**
+
+En concaténant directement la variable `seuilVentes` (qui provient de la saisie utilisateur) dans la chaîne SQL, le développeur expose l'application à une **Injection SQL**. Un utilisateur malveillant pourrait saisir une valeur du type `1 OR 1=1; DROP TABLE Conso;` et altérer ou détruire la base de données.
+
+**Question 2.3 : Correction avec PreparedStatement**
+[source,java]
+----
+public static ArrayList<Conso> listeConsoAFideliser(int seuilVentes, Date dateDeb, Date dateFin) throws SQLException {
+    ArrayList<Conso> lesConsos = new ArrayList<>();
+
+    String requete = "SELECT c.nom, c.prenom, c.tel, c.mail "
+                   + "FROM Conso c "
+                   + "JOIN Vente v ON c.id = v.idConso "
+                   + "WHERE c.id NOT IN (SELECT id FROM ConsoFidele) "
+                   + "AND v.dateVente BETWEEN ? AND ? "
+                   + "GROUP BY c.id, c.nom, c.prenom, c.tel, c.mail "
+                   + "HAVING count(v.id) > ?";
+
+    // Utilisation du PreparedStatement pour sécuriser l'injection
+    PreparedStatement pstmt = dbConnect.prepareStatement(requete);
+    pstmt.setDate(1, dateDeb);
+    pstmt.setDate(2, dateFin);
+    pstmt.setInt(3, seuilVentes);
+
+    ResultSet res = pstmt.executeQuery();
+    while (res.next()) {
+        lesConsos.add(new Conso(res.getString("nom"), res.getString("prenom"), res.getString("tel"), res.getString("mail")));
+    }
+    return lesConsos;
+}
+----
+
+=== Partie 2 – Réalisation de tests unitaires (TDD)
+**Question 2.4 : Test d'initialisation**
+[source,java]
+----
+public void testInitConso() {
+    ConsoFidele consoTest = new ConsoFidele("Lifo", "Paul", "lifo.paul@gmail.com", "0600000000", new Date(), new Date());
+    // Vérification que les points sont à zéro à la création
+    assertEquals("Erreur : Les points initiaux ne sont pas à 0", 0, consoTest.getPointsFidelite());
+}
+----
+
+**Question 2.5 : Test du programme par tranches (Type 3)**
+[source,java]
+----
+public void testAddMontant() {
+    ConsoFidele consoTest = new ConsoFidele("Lifo", "Paul", "lifo.paul@gmail.com", "0600000000", new Date(), new Date());
+
+    consoTest.addFidelite(3, 150);
+    assertEquals("Erreur tranche 1 (100-200)", 10, consoTest.getPointsFidelite());
+
+    consoTest.addFidelite(3, 300);
+    assertEquals("Erreur tranche 2 (201-500)", 30, consoTest.getPointsFidelite()); // 10 + 20
+
+    consoTest.addFidelite(3, 600);
+    assertEquals("Erreur tranche 3 (>500)", 80, consoTest.getPointsFidelite()); // 30 + 50
+}
+----
+
+== Mission 3 : Statistiques de ventes (POO)
+
+**Question 3.1 : Commentaire Javadoc de la méthode `statVente`**
+[source,java]
+----
+/**
+ * Calcule et retourne le pourcentage de ventes réalisées par des clients fidèles
+ * par rapport au nombre total de ventes de la journée passée en paramètre.
+ * @param lesVentesDuJour La liste contenant toutes les ventes de la journée.
+ * @return Le pourcentage (double) de ventes associées à des clients fidèles.
+ */
+----
+
+**Question 3.2 : Méthode `getNbVentes` de la classe `Conso`**
+[source,java]
+----
+public int getNbVentes() {
+    return this.lesVentes.size();
+}
+----
+
+**Question 3.3 : Constructeur de `VenteEcommerce` (Héritage)**
+[source,java]
+----
+public VenteEcommerce(Date uneDateVente, Conso unConso, double unMontant, String adresseLivraison, String optionLivraison) {
+    // Appel au constructeur de la classe mère (Vente)
+    super(uneDateVente, unConso, unMontant);
+    this.adresseLivraison = adresseLivraison;
+    this.optionLivraison = optionLivraison;
+}
+----
+
+**Question 3.4 : Méthode `compareLieuVente` (Polymorphisme)**
+[source,java]
+----
+public static double compareLieuVente(ArrayList<ConsoFidele> lesConsos) {
+    double totalEcom = 0;
+    double totalMag = 0;
+
+    for (ConsoFidele cf : lesConsos) {
+        // Parcours de toutes les ventes du consommateur
+        for (Vente v : cf.getVentes()) {
+            if (v instanceof VenteEcommerce) {
+                totalEcom += v.getMontantVente();
+            } else if (v instanceof VenteMagasin) {
+                totalMag += v.getMontantVente();
+            }
+        }
+    }
+
+    if (totalEcom == 0) {
+        return 0; // Prévention de la division par zéro (Question 3.5)
+    }
+    return totalMag / totalEcom;
+}
+----
+
+**Question 3.5 : Faille de robustesse**
+
+L'instruction `return totalMag/totalEcom;` est dangereuse car si `totalEcom` vaut 0 (le client n'a fait aucun achat sur le site e-commerce, ce qui est très probable), l'application va planter avec une erreur de type `ArithmeticException` (Division par zéro).
+
+_Correction apportée dans le code de la question 3.4 (vérification préalable)._
+
+**Question 3.6 : Méthode pour lister les ventes supérieures à un montant**
+[source,java]
+----
+// Dans la classe Conso
+public ArrayList<Vente> getVentesSup(double montantMin) {
+    ArrayList<Vente> lesVentesFiltrees = new ArrayList<>();
+
+    for (Vente uneVente : this.lesVentes) {
+        if (uneVente.getMontantVente() > montantMin) {
+            lesVentesFiltrees.add(uneVente);
+        }
+    }
+    return lesVentesFiltrees;
+}
+----
