@@ -1,0 +1,1090 @@
+= TP Étude de Cas : WebCaisse (Version Modernisée Java/JavaFX)
+:author: Reprise du sujet WebCaisse par T Robert
+:revnumber: 1.0
+:toc: left
+:toc-title: Sommaire
+:icons: font
+:description: Préparation à l'E5 - BTS SIO SLAM 2ème année
+:imagesdir: ./images
+
+== Contexte du projet
+La société **Nasdy**, entreprise de services du numérique implantée aux Antilles, édite un logiciel de caisse enregistreuse en ligne nommé **WebCaisse** (en mode SaaS).
+Pour rendre impossible la fraude, la réglementation impose d’enregistrer les paiements au moyen d'un logiciel sécurisé et certifié NF525.
+WebCaisse met à la disposition des points de vente des solutions d’encaissement sur divers supports.
+
+L'application interne **AchatWebCaisse** permet au service commercial d'enregistrer la formule souscrite par chaque client.
+Dans le cadre de votre retour de stage, vous participez à l'évolution de cette solution vers une architecture **Java / JavaFX**.
+Vous devrez intégrer de nouvelles fonctionnalités tout en garantissant la **Cybersécurité (DICP, OWASP)** et l'intégrité des données en base.
+
+---
+
+== Mission 1 - Souscription en ligne et Sécurité
+
+Nasdy souhaite que chaque client puisse gérer la souscription au logiciel WebCaisse de manière autonome sur Internet.
+
+=== Partie 1 – Évolution de la base de données
+_Documents à utiliser : 1 et 2_
+
+Pour commander le logiciel WebCaisse, le client fournit ses informations (raison sociale, adresse, etc.).
+Une fois connecté, il renseigne ses points de vente et sélectionne une formule (Silver, Gold, Platine) pour chacun d'eux.
+Le logiciel propose trois programmes de fidélisation pour les consommateurs : "Tampon", "Montant Achat" ou "Points".
+Le client doit aussi choisir les langues d'activation des modules.
+
+[IMPORTANT]
+====
+**Question 1.1 :** Modifier la structure de la base de données utilisée par l'application AchatWebCaisse afin de permettre la souscription en ligne (formule par point de vente, programme de fidélisation, et choix des langues des modules).
+_Vous adopterez le formalisme de votre choix (Diagramme de classes ou schéma relationnel)._
+====
+
+=== Partie 2 – Audit de sécurité (Cybersécurité / DICP)
+Le cahier des charges initial de la mission mentionne : _« L'identifiant et le mot de passe qui permettront au client de se connecter seront transmis par messagerie électronique. »_
+
+[IMPORTANT]
+====
+**Question 1.2 :** En vous appuyant sur les critères de sécurité de l'information (DICP) et le RGPD, expliquez pourquoi cette procédure d'envoi de mot de passe est une faille critique.
+Proposez un processus d'inscription sécurisé (algorithme ou description) pour corriger cette vulnérabilité.
+====
+
+=== Partie 3 - Gestion du changement de formule (Triggers)
+Un client doit pouvoir changer la formule d'un de ses points de vente.
+Il est nécessaire de garder **l'historique des formules souscrites**, dont un changement ne peut être effectué qu'une seule fois par jour.
+Le calcul du montant à régler dépendra de la durée d'activation des formules.
+
+Pour gérer cet historique, un collègue propose la table suivante :
+`FormuleSouscrite(idPointDeVente, idFormule)`
+_Clé primaire : idPointDeVente, idFormule_
+
+[IMPORTANT]
+====
+**Question 1.3 :** Expliquer en quoi la structure de cette table ne permet pas de gérer l'historique nécessaire à la facturation mensuelle.
+**Question 1.4 :** Proposer une correction de la structure de cette table.
+**Question 1.5 (Base de données avancée) :** Rédigez un déclencheur (Trigger) SQL nommé `tg_audit_changement_formule` qui se déclenche lors de la modification d'une formule pour un point de vente, afin de garantir la traçabilité dans une table d'audit dédiée.
+====
+
+---
+
+== Mission 2 : Fidélisation des consommateurs et Robustesse
+_Documents à utiliser : 3, 4, 5, 6, 7, 8 et 11_
+
+=== Partie 1 – Amélioration du module GRC et Injection SQL
+Le tableau de bord du module de Gestion de la Relation Client (GRC) doit permettre une analyse rapide des ventes.
+
+[IMPORTANT]
+====
+**Question 2.1 :** Écrire les requêtes SQL permettant d’extraire les informations suivantes :
+a) La liste des consommateurs (nom, prénom, courriel) pour lesquels au moins une vente a été réalisée en 2017.
+b) Le nombre de consommateurs fidélisés appartenant à la tranche d’âge 18-30 ans.
+c) La liste des consommateurs avec le montant total des ventes réalisées pour chacun.
+====
+
+La méthode Java `listeConsoAFideliser` (Document 6) établit la liste des consommateurs réguliers.
+Un développeur a proposé le début de solution suivant (Document 6) en concaténant des chaînes de caractères :
+`"... having count(*) > " + seuilVentes ;`
+
+[IMPORTANT]
+====
+**Question 2.2 (Analyse de vulnérabilité) :** Sachant que la variable `seuilVentes` proviendra directement de la saisie de l'utilisateur dans l'interface JavaFX, expliquez quelle faille de sécurité majeure (OWASP) menace cette méthode.
+**Question 2.3 :** Réécrivez la requête SQL et le code Java associé en utilisant l'interface `PreparedStatement` de JDBC pour sécuriser l'accès à la base de données (Aidez-vous du Document 11).
+Vous adapterez la requête pour qu'elle liste les consommateurs **qui n'ont pas adhéré** au programme de fidélité et qui dépassent le seuil donné sur une période donnée (paramètres `dateDeb` et `dateFin`).
+====
+
+=== Partie 2 – Réalisation de tests unitaires (TDD)
+La méthode `addFidelite()` de la classe `ConsoFidele` est appelée à l’issue de chaque achat.
+La classe `TestPointsFidelite` (Document 8) valide cette méthode avec JUnit, mais elle est incomplète.
+
+[IMPORTANT]
+====
+**Question 2.4 :** Compléter la méthode de test unitaire `testInitConso` pour vérifier que la valeur initiale des points de fidélité est bien fixée à zéro lors de la création d'un consommateur fidèle.
+**Question 2.5 :** Compléter la méthode `testAddMontant` pour valider les points de fidélité obtenus dans le cas du programme de type 3 (par points).
+_Rappel : 10 points entre 100€ et 200€, 20 points entre 201€ et 500€, 50 points au-delà._
+====
+
+---
+
+== Mission 3 : Statistiques de ventes (POO)
+_Documents à utiliser : 7, 9 et 10_
+
+Le module de statistiques utilise une classe `Statistique`.
+
+[IMPORTANT]
+====
+**Question 3.1 :** Rédiger le commentaire (Javadoc) de la méthode `statVente` expliquant précisément ce qu'elle calcule et retourne.
+**Question 3.2 :** Écrire la méthode Java `getNbVentes` de la classe `Conso` qui retourne le nombre de ventes enregistrées dans la collection du consommateur.
+**Question 3.3 :** Écrire le constructeur de la classe fille `VenteEcommerce` qui permet d’initialiser tous les attributs en faisant appel au constructeur de la classe mère (`super(...)`).
+====
+
+On souhaite comparer les ventes en magasin et les ventes en ligne.
+
+[IMPORTANT]
+====
+**Question 3.4 :** Compléter le code de la méthode `compareLieuVente` (Document 10) en utilisant le polymorphisme et le mot-clé `instanceof`.
+**Question 3.5 :** Expliquer en quoi la dernière instruction `return totalMag/totalEcom;` est dangereuse sur le plan de la robustesse logicielle et proposez une correction.
+**Question 3.6 :** Ajouter à la classe `Conso` une méthode Java qui retourne la liste (`ArrayList`) des ventes d’un montant strictement supérieur à un paramètre donné.
+====
+
+---
+
+== Dossier Documentaire
+
+=== Document 1 : Architecture de la base (Modèles)
+image::DiagClasse.png[Diagramme de classes - Client et Formule]
+
+**Schéma relationnel :**
+* `Formule` (id, libelle, prix, nbVendeursSimultanes)
+* `Client` (id, raisonSociale, rue, codePostal, ville, telephone, #idFormule)
+
+=== Document 2 : Formulaire de Souscription
+_(Maquette de sélection : Silver à 50€, Gold à 90€, Platine à 120€)_
+
+image::FormSouscription.png[Formulaire de souscription]
+
+=== Document 3 : maquette du formulaire "Recherche des consommateurs réguliers"
+
+image::ConsoReguliers.png[Maquette consommateurs réguliers]
+
+=== Document 4 : Extrait du schéma relationnel pour la gestion des consommateurs fidèles
+
+[cols="2,4,2,4", options="header"]
+|===
+| Table | Attributs | Clé(s) Primaire(s) | Clé(s) Étrangère(s)
+
+| **Conso**
+| id, nom, prenom, mail, tel, ...
+| id
+| _Aucune_
+
+| **ConsoFidele**
+| id, dateNaiss, nbPoints, dateInscription
+| id
+| id (réf. Conso.id)
+
+| **Vente**
+| id, dateVente, montantVente, idConso, ...
+| id
+| idConso (réf. Conso.id)
+|===
+
+[NOTE]
+====
+**Remarques SQL :**
+
+* La table `ConsoFidele` ne contient que les consommateurs ayant adhéré au programme de fidélité.
+* La fonction `TIMESTAMPDIFF(year, uneDate1, uneDate2)` retourne la différence en valeur absolue et en nombre d'années entre `uneDate1` et `uneDate2`.
+* La fonction `CURDATE()` retourne la date du jour.
+* La fonction `YEAR(uneDate)` retourne l'année de la date passée en paramètre.
+====
+
+=== Document 5 : Diagramme GRC et Extrait Code Java
+
+[plantuml, target="diag_grc", format="png"]
+----
+@startuml
+class Conso {
+  - nom : String
+  - prenom : String
+  - mail : String
+  - tel : String
+  + estFidele() : boolean
+}
+
+class ConsoFidele {
+  - dateNaiss : Date
+  - pointsFidelite : double
+  - dateInscription : Date
+  + estFidele() : boolean
+  + getPointsFidelite() : double
+  + addFidelite(typeFidelite : int, montant : double) : void
+}
+
+Conso <|-- ConsoFidele
+@enduml
+----
+
+[source,java]
+----
+class Conso {
+    private String nom;
+    private String prenom;
+    private String mail;
+    private String tel;
+
+    public Conso (String nom, String prenom, String mail, String tel) {...}
+
+    public boolean estFidele() {
+        return false;
+    }
+}
+
+class ConsoFidele extends Conso {
+    private Date dateNaiss;
+    private double pointsFidelite; // contient un nombre de points ou un montant
+    private Date dateInscription;
+
+    public ConsoFidele(String nom, String prenom, String mail, String tel, Date dateNaiss, Date dateInsc) {...}
+
+    @Override
+    public boolean estFidele() {
+        return true;
+    }
+
+    public void addFidelite(int typeFidelite, double montant)  {
+        // typeFidelite contient le type de programme de fidélisation choisi (1, 2 ou 3)
+        // montant contient la valeur du montant d’achat réalisé
+        switch (typeFidelite) {
+            case 1 : this.pointsFidelite ++;
+                     break;
+            case 2 : this.pointsFidelite += montant;
+                     break;
+            case 3 : if (montant >=100 && montant <=200)
+                         this.pointsFidelite += 10;
+                     else if (montant >200 && montant <=500)
+                         this.pointsFidelite += 20;
+                     else if (montant > 500)
+                         this.pointsFidelite += 50;
+                     break;
+        }
+    }
+
+    public double getPointsFidelite() {...}
+}
+----
+
+=== Document 6 : extrait de la classe GRC contenant la méthode listeConsoAFideliser
+
+[source,java]
+----
+class GRC {
+    public static ArrayList<Conso> listeConsoAFideliser() {
+        ArrayList <Conso> lesConsos = new ArrayList <Conso>() ;
+
+        //Connexion à la base de données
+        Connection dbConnect = DriverManager.getConnection("jdbc:mysql:" + dbURL, adminUser, adminPwd);
+        Statement dbStatement = this.dbConnect.createStatement();
+
+        //Création de la requête
+        String requete= "select distinct nom, prenom, tel, mail"
+                      + " from Conso "
+                      + "join Vente on idConso = Conso.id"
+                      + " where Conso.id not in (select id from ConsoFidele)"
+                      + " and datediff(now(), dateVente)<30" ;
+
+        //Exécution de la requête
+        ResultSet res = this.dbStatement.executeQuery(requete);
+
+        //Pour chaque enregistrement résultat de la requête
+        while (res.next()) {
+            //Création d’un objet de la classe Conso avec les données
+            Conso leConso = new Conso(res.getString(1), res.getString(2) , res.getString(3) , res.getString(4)) ;
+            //ajout du Consommateur à la liste des Consommateurs
+            lesConsos.add(leConso) ;
+        }
+
+        // fermeture de la connexion à la BD
+        res.close();
+        dbStatement.close() ;
+        dbConnect.close() ;
+
+        return lesConsos ;
+    }
+}
+----
+
+=== Document 7 : exemple d'utilisation d'une collection de type ArrayList
+
+[source,java]
+----
+ArrayList<Vente> lesVentes ;        // Déclaration d'une collection d'instances de la classe Vente
+lesVentes = new ArrayList<Vente>(); // Instanciation d'une collection
+Vente nouvVente = new Vente (...);
+lesVentes.add(nouvVente) ;          // Ajout d'un élément dans la collection
+lesVentes.get( 0 ) ;                // accès au premier élément
+lesVentes.size() ;                  // accès au nombre d'éléments enregistrés dans la collection
+
+for( Vente uneVente : lesVentes) {
+    // Parcours de la collection
+}
+----
+
+=== Document 8 : classe de test de la méthode addFidelite
+
+[source,java]
+----
+class TestPointsFidelite extends TestCase {
+    public void testAddFideliteTampon()  {
+        ConsoFidele consoTest = new ConsoFidele("Lifo", "Paul",
+            " lifo.paul@gmail.com ", "0600000000",
+            new SimpleDateFormat("yyyy-MM-dd").parse("1961-01-03"),
+            new SimpleDateFormat("yyyy-MM-dd").parse("2017-01-05"));
+
+        consoTest.addFidelite(1, 50);
+        assertEquals("erreur calcul 1er tampon",1,consoTest.getPointsFidelite());
+
+        consoTest.addFidelite(1, 20);
+        assertEquals("erreur calcul 2ème tampon ",2,consoTest.getPointsFidelite());
+    }
+
+    public void testAddFideliteMontant()  {
+        ConsoFidele consoTest = new ConsoFidele("Lifo", "Paul",
+            " lifo.paul@gmail.com ", "0600000000",
+            new SimpleDateFormat("yyyy-MM-dd").parse("1961-01-03"),
+            new SimpleDateFormat("yyyy-MM-dd").parse("2017-01-05"));
+
+        consoTest.addFidelite(2, 150);
+        assertEquals("erreur calcul 1er achat",150, consoTest.getPointsFidelite());
+
+        consoTest.addFidelite(2, 250);
+        assertEquals("erreur calcul 2ème  achat",400, consoTest.getPointsFidelite());
+    }
+
+    public void testInitConso()  {
+        ConsoFidele consoTest = new ConsoFidele("Lifo", "Paul",
+            " lifo.paul@gmail.com ", "0600000000",
+            new SimpleDateFormat("yyyy-MM-dd").parse("1961-01-03"),
+            new SimpleDateFormat("yyyy-MM-dd").parse("2017-01-05"));
+
+        // À compléter sur votre copie
+    }
+
+    public void testAddMontant()  {
+        ConsoFidele consoTest = new ConsoFidele("Lifo", "Paul",
+            " lifo.paul@gmail.com ", "0600000000",
+            new SimpleDateFormat("yyyy-MM-dd").parse("1961-01-03"),
+            new SimpleDateFormat("yyyy-MM-dd").parse("2017-01-05"));
+
+        // À compléter sur votre copie
+    }
+}
+----
+
+=== Document 9 : extrait du diagramme de classes utilisé par le module de statistiques
+
+[source,java]
+----
+class Conso {
+    private String nom;
+    private String prenom;
+    private String mail;
+    private String tel;
+    private ArrayList<Vente> lesVentes ;
+
+    public Conso(String nom, String prenom, String mail, String tel){...}
+    public boolean estFidele() { return false; }
+    public void addUneVente(Vente uneVente) {…}
+
+    // retourne le nombre de ventes enregistrées dans la collection des ventes du consommateur
+    public int getNbVentes() { … À compléter sur votre copie …}
+
+    // retourne la collection lesVentes qui contient des instances des
+    // classeVenteEcommerce et VenteMagasin
+    public ArrayList<Vente> getVentes() {… }
+}
+
+class ConsoFidele extends Conso {   // extends met en oeuvre le mécanisme d'héritage en Java
+    private Date dateNaiss;
+    private double pointsFidelite;
+    private Date dateInscription;
+
+    public ConsoFidele(String nom, String prenom, String mail, String tel, Date dateNaiss, Date dateInsc){…}
+
+    @Override
+    public boolean estFidele() { return true;}
+    public void addFidelite(int typeFidelite, double montant)  {…}
+    public double getPointsFidelite() {…}
+}
+
+class Vente {
+    private Date dateVente ;
+    private Conso leConso ;
+    private double montant ;
+
+    // constructeur qui valorise les attributs d'un objet de la classe Vente
+    public Vente (Date uneDateVente, Conso unConso, double unMontant) {…}
+    public double getMontantVente(){...}
+    public Conso getLeConso(){...}
+}
+
+// extends met en oeuvre le mécanisme d'héritage en Java
+class VenteEcommerce extends Vente {
+    private String adresseLivraison ;
+    private String optionLivraison ;
+
+    public VenteEcommerce(…À compléter sur votre copie …) {
+        … À compléter sur votre copie …
+    }
+}
+
+// extends met en oeuvre le mécanisme d'héritage en Java
+class VenteMagasin extends Vente {
+    private String matriculeVendeur;
+    ….
+}
+----
+
+=== Document 10 : extrait de la classe Statistique utilisée par le module de statistiques
+
+[source,java]
+----
+public class Statistique {
+
+    // méthode statVente à commenter
+    public static double statVente(ArrayList<Vente> lesVentesDuJour)  {
+        int nbVenteFidele=0;
+        for(Vente uneVente : lesVentesDuJour) {
+            Conso c = uneVente.getLeConso();
+            if (c.estFidele())
+                nbVenteFidele++;
+        }
+        return nbVenteFidele*100/lesVentesDuJour.size();
+    }
+
+    // méthode compareLieuVente
+    public static double compareLieuVente(ArrayList<ConsoFidele> lesConsos)  {
+        double totalEcom=0;  // cumul des montants des ventes ecommerce
+        double totalMag=0;   // cumul des montants des ventes en magasin
+
+        // parcours de la liste des consommateurs fidèles
+        for(ConsoFidele cf : lesConsos) {
+            … À compléter sur votre copie …
+        }
+        return totalMag/totalEcom ;  // calcul de l’indice et retour du résultat
+    }
+    …
+}
+----
+
+[NOTE]
+====
+**Remarque :**
+`instanceof` permet de connaître le type d'instance d'un objet.
+[source,java]
+----
+if (uneVente instanceof Vente) {
+    // traitement effectué si uneVente est instance de la classe Vente
+}
+----
+====
+
+=== Document 11 : Bonnes pratiques OWASP et JDBC (Nouveau)
+
+L'utilisation de la concaténation de chaînes pour construire des requêtes SQL expose l'application à des attaques par **Injection SQL**.
+L'OWASP recommande l'utilisation de requêtes paramétrées (PreparedStatement en Java) pour séparer le code SQL des données fournies par l'utilisateur.
+
+**Exemple d'utilisation sécurisée avec PreparedStatement :**
+[source,java]
+----
+// Requête avec des marqueurs "?"
+String requete = "SELECT nom, prix FROM Produit WHERE categorie = ? AND prix > ?";
+
+// Préparation de la requête
+PreparedStatement pstmt = dbConnect.prepareStatement(requete);
+
+// Remplacement sécurisé des marqueurs par les valeurs (échappement automatique)
+pstmt.setString(1, "Alimentation"); // 1er point d'interrogation
+pstmt.setDouble(2, 50.0);           // 2ème point d'interrogation
+
+// Exécution de la requête
+ResultSet res = pstmt.executeQuery();
+----
+
+---
+
+== Mission 4 : Le "Bac à Sable" (Prototypage JavaFX et JDBC)
+
+Afin de valider concrètement vos développements et de tester les corrections de cybersécurité (OWASP), votre chef de projet vous demande de réaliser un prototype fonctionnel du formulaire de "Recherche des consommateurs réguliers".
+Vous utiliserez votre environnement de développement (Eclipse, IntelliJ ou VS Code) avec JavaFX et une base de données MySQL locale (Laragon / XAMPP).
+
+=== 4.1. Déploiement de la base de données (DDL et DML)
+
+Exécutez le script SQL suivant dans votre SGBD.
+Il crée les tables nécessaires au module GRC (`Conso`, `ConsoFidele`, `Vente`) et insère un jeu d'essai pertinent.
+
+[source,sql]
+----
+CREATE DATABASE IF NOT EXISTS webcaisse DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE webcaisse;
+
+-- Création des tables
+CREATE TABLE Conso (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nom VARCHAR(50) NOT NULL,
+    prenom VARCHAR(50) NOT NULL,
+    mail VARCHAR(150) NOT NULL,
+    tel VARCHAR(20)
+);
+
+CREATE TABLE ConsoFidele (
+    id INT PRIMARY KEY,
+    dateNaiss DATE,
+    pointsFidelite DOUBLE DEFAULT 0,
+    dateInscription DATE,
+    FOREIGN KEY (id) REFERENCES Conso(id) ON DELETE CASCADE
+);
+
+CREATE TABLE Vente (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    dateVente DATE NOT NULL,
+    montantVente DOUBLE NOT NULL,
+    idConso INT NOT NULL,
+    FOREIGN KEY (idConso) REFERENCES Conso(id) ON DELETE CASCADE
+);
+
+-- Jeu d'essai : Consommateurs
+INSERT INTO Conso (id, nom, prenom, mail, tel) VALUES
+(1, 'Martin', 'Sophie', 'sophie@mail.com', '0601020304'), -- Sera fidèle
+(2, 'Dubois', 'Marc', 'marc@mail.com', '0611223344'),    -- Non fidèle, régulier
+(3, 'Leroy', 'Emma', 'emma@mail.com', '0699887766'),     -- Non fidèle, peu régulier
+(4, 'Moreau', 'Luc', 'luc@mail.com', '0655443322');      -- Non fidèle, très régulier
+
+-- Jeu d'essai : Consommateurs fidèles
+INSERT INTO ConsoFidele (id, dateNaiss, pointsFidelite, dateInscription) VALUES
+(1, '1990-05-15', 120, '2023-01-10');
+
+-- Jeu d'essai : Ventes (Ajustez les dates pour correspondre au test "du mois dernier")
+INSERT INTO Vente (dateVente, montantVente, idConso) VALUES
+('2026-02-10', 45.50, 1),
+('2026-02-12', 20.00, 2),
+('2026-02-15', 35.00, 2), -- Marc a 2 ventes
+('2026-02-20', 15.00, 3), -- Emma a 1 vente
+('2026-02-05', 10.00, 4),
+('2026-02-08', 55.00, 4),
+('2026-02-21', 12.50, 4); -- Luc a 3 ventes
+----
+
+=== 4.2. La classe Modèle (Conso)
+
+Créez la classe `Conso` qui servira à peupler le tableau (TableView) de l'interface graphique.
+
+[source,java]
+----
+package webcaisse.modele;
+
+public class Conso {
+    private String nom;
+    private String prenom;
+    private String mail;
+    private String tel;
+    private int nbVentes; // Ajout pour l'affichage dans le tableau
+
+    public Conso(String nom, String prenom, String mail, String tel, int nbVentes) {
+        this.nom = nom;
+        this.prenom = prenom;
+        this.mail = mail;
+        this.tel = tel;
+        this.nbVentes = nbVentes;
+    }
+
+    // Getters nécessaires pour le PropertyValueFactory de JavaFX
+    public String getNom() { return nom; }
+    public String getPrenom() { return prenom; }
+    public String getMail() { return mail; }
+    public String getTel() { return tel; }
+    public int getNbVentes() { return nbVentes; }
+}
+----
+
+=== 4.3. Accès aux données sécurisé (DAO)
+
+Voici la correction pratique de la question 2.3 (Injection SQL).
+Ce code utilise un `PreparedStatement` pour sécuriser les paramètres envoyés par l'utilisateur.
+
+[source,java]
+----
+package webcaisse.dao;
+
+import webcaisse.modele.Conso;
+import java.sql.*;
+import java.time.LocalDate;
+import java.util.ArrayList;
+
+public class GrcDAO {
+
+    // Méthode de connexion simplifiée pour le TP
+    private static Connection getConnexion() throws SQLException {
+        return DriverManager.getConnection("jdbc:mysql://localhost:3306/webcaisse", "root", "");
+    }
+
+    // Réécriture sécurisée de listeConsoAFideliser (Correction Q2.3)
+    public static ArrayList<Conso> listeConsoAFideliser(int seuilVentes, LocalDate dateDeb, LocalDate dateFin) {
+        ArrayList<Conso> lesConsos = new ArrayList<>();
+
+        // La requête paramétrée avec des "?" évite les injections SQL
+        String requete = "SELECT c.nom, c.prenom, c.tel, c.mail, COUNT(v.id) as nbVentes "
+                       + "FROM Conso c "
+                       + "JOIN Vente v ON c.id = v.idConso "
+                       + "WHERE c.id NOT IN (SELECT id FROM ConsoFidele) "
+                       + "AND v.dateVente BETWEEN ? AND ? "
+                       + "GROUP BY c.id, c.nom, c.prenom, c.tel, c.mail "
+                       + "HAVING COUNT(v.id) > ?";
+
+        // Utilisation du try-with-resources pour fermer automatiquement les connexions
+        try (Connection dbConnect = getConnexion();
+             PreparedStatement pstmt = dbConnect.prepareStatement(requete)) {
+
+            // Remplacement sécurisé des marqueurs
+            pstmt.setDate(1, java.sql.Date.valueOf(dateDeb));
+            pstmt.setDate(2, java.sql.Date.valueOf(dateFin));
+            pstmt.setInt(3, seuilVentes);
+
+            try (ResultSet res = pstmt.executeQuery()) {
+                while (res.next()) {
+                    Conso leConso = new Conso(
+                        res.getString("nom"),
+                        res.getString("prenom"),
+                        res.getString("mail"),
+                        res.getString("tel"),
+                        res.getInt("nbVentes")
+                    );
+                    lesConsos.add(leConso);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Erreur SQL : " + e.getMessage());
+        }
+        return lesConsos;
+    }
+}
+----
+
+=== 4.4. La vue FXML (Interface Graphique)
+
+Créez le fichier `recherche.fxml` correspondant à la maquette du Document 3.
+
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox spacing="15" alignment="CENTER" xmlns:fx="http://javafx.com/fxml/1" fx:controller="webcaisse.controleur.RechercheController">
+    <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
+
+    <Label text="Paramétrer les critères de recherche des consommateurs réguliers" style="-fx-font-size: 16px; -fx-font-weight: bold;" />
+
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="Nombre de ventes minimum :" />
+        <TextField fx:id="txtSeuil" prefWidth="50" promptText="Ex: 1"/>
+    </HBox>
+
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="Du :" />
+        <DatePicker fx:id="dpDateDebut" />
+        <Label text="Au :" />
+        <DatePicker fx:id="dpDateFin" />
+    </HBox>
+
+    <Button text="Rechercher les consommateurs" onAction="#handleRechercher" style="-fx-background-color: #007bff; -fx-text-fill: white;"/>
+
+    <Label fx:id="lblMessage" textFill="red" />
+
+    <TableView fx:id="tableConso" prefHeight="200">
+        <columns>
+            <TableColumn fx:id="colNom" text="Nom" prefWidth="100" />
+            <TableColumn fx:id="colPrenom" text="Prénom" prefWidth="100" />
+            <TableColumn fx:id="colMail" text="Mail" prefWidth="150" />
+            <TableColumn fx:id="colTel" text="Téléphone" prefWidth="100" />
+            <TableColumn fx:id="colNbVentes" text="Nb Ventes" prefWidth="80" />
+        </columns>
+    </TableView>
+</VBox>
+----
+
+=== 4.5. Le Contrôleur JavaFX
+
+Enfin, créez la classe `RechercheController.java` pour capturer les clics et lier les données au tableau.
+
+[source,java]
+----
+package webcaisse.controleur;
+
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.fxml.FXML;
+import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
+import webcaisse.dao.GrcDAO;
+import webcaisse.modele.Conso;
+
+import java.time.LocalDate;
+import java.util.ArrayList;
+
+public class RechercheController {
+
+    @FXML private TextField txtSeuil;
+    @FXML private DatePicker dpDateDebut;
+    @FXML private DatePicker dpDateFin;
+    @FXML private Label lblMessage;
+
+    @FXML private TableView<Conso> tableConso;
+    @FXML private TableColumn<Conso, String> colNom;
+    @FXML private TableColumn<Conso, String> colPrenom;
+    @FXML private TableColumn<Conso, String> colMail;
+    @FXML private TableColumn<Conso, String> colTel;
+    @FXML private TableColumn<Conso, Integer> colNbVentes;
+
+    @FXML
+    public void initialize() {
+        // Liaison des colonnes du tableau aux attributs de la classe Conso
+        colNom.setCellValueFactory(new PropertyValueFactory<>("nom"));
+        colPrenom.setCellValueFactory(new PropertyValueFactory<>("prenom"));
+        colMail.setCellValueFactory(new PropertyValueFactory<>("mail"));
+        colTel.setCellValueFactory(new PropertyValueFactory<>("tel"));
+        colNbVentes.setCellValueFactory(new PropertyValueFactory<>("nbVentes"));
+
+        // Valeurs par défaut pour faciliter le test
+        dpDateDebut.setValue(LocalDate.now().minusDays(30));
+        dpDateFin.setValue(LocalDate.now());
+        txtSeuil.setText("1");
+    }
+
+    @FXML
+    public void handleRechercher() {
+        lblMessage.setText("");
+
+        try {
+            int seuil = Integer.parseInt(txtSeuil.getText());
+            LocalDate dateDeb = dpDateDebut.getValue();
+            LocalDate dateFin = dpDateFin.getValue();
+
+            if (dateDeb == null || dateFin == null) {
+                lblMessage.setText("Veuillez sélectionner les deux dates.");
+                return;
+            }
+
+            // Appel au DAO sécurisé
+            ArrayList<Conso> resultats = GrcDAO.listeConsoAFideliser(seuil, dateDeb, dateFin);
+
+            // Mise à jour de l'interface
+            ObservableList<Conso> obsList = FXCollections.observableArrayList(resultats);
+            tableConso.setItems(obsList);
+
+            if (resultats.isEmpty()) {
+                lblMessage.setText("Aucun consommateur trouvé pour ces critères.");
+            }
+
+        } catch (NumberFormatException e) {
+            lblMessage.setText("Le seuil de ventes doit être un nombre entier.");
+        }
+    }
+}
+----
+
+=== 4.6. Configuration et Démarrage du Projet (Maven)
+
+Pour que ce "bac à sable" soit facile à exécuter sans avoir à configurer manuellement les bibliothèques JavaFX ou le pilote MySQL, nous utilisons l'outil de gestion de projet **Maven**.
+
+==== Arborescence du projet
+
+Veillez à respecter scrupuleusement l'arborescence standard Maven suivante pour que le projet compile et trouve les vues FXML :
+
+[source,text]
+----
+WebCaisseFX/
+├── pom.xml
+└── src/
+    └── main/
+        ├── java/
+        │   └── webcaisse/
+        │       ├── Main.java
+        │       ├── Launcher.java
+        │       ├── controleur/
+        │       │   └── RechercheController.java
+        │       ├── dao/
+        │       │   └── GrcDAO.java
+        │       └── modele/
+        │           └── Conso.java
+        └── resources/
+            └── webcaisse/
+                └── vue/
+                    └── recherche.fxml
+----
+
+==== Fichier de configuration : pom.xml
+
+Ce fichier télécharge automatiquement JavaFX et le pilote JDBC pour MySQL. Placez-le à la racine du projet (`WebCaisseFX/pom.xml`).
+
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.nasdy</groupId>
+    <artifactId>WebCaisseFX</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <name>WebCaisseFX</name>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-controls</artifactId>
+            <version>21.0.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-fxml</artifactId>
+            <version>21.0.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <version>8.0.33</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>17</source>
+                    <target>17</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-maven-plugin</artifactId>
+                <version>0.0.8</version>
+                <executions>
+                    <execution>
+                        <id>default-cli</id>
+                        <configuration>
+                            <mainClass>webcaisse.Launcher</mainClass>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+----
+
+==== Les points d'entrée : Main.java et Launcher.java
+
+La classe `Main` initialise l'application JavaFX. La classe `Launcher` sert de point d'entrée pour éviter les erreurs de modules avec les JDK récents.
+
+**Fichier `Main.java` :**
+[source,java]
+----
+package webcaisse;
+
+import javafx.application.Application;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
+
+import java.io.IOException;
+
+public class Main extends Application {
+
+    @Override
+    public void start(Stage stage) throws IOException {
+        // Chargement du fichier FXML depuis le dossier resources
+        FXMLLoader fxmlLoader = new FXMLLoader(Main.class.getResource("/webcaisse/vue/recherche.fxml"));
+
+        // Création de la scène avec des dimensions par défaut
+        Scene scene = new Scene(fxmlLoader.load(), 800, 600);
+
+        // Paramétrage de la fenêtre principale
+        stage.setTitle("WebCaisse - Module GRC");
+        stage.setScene(scene);
+        stage.show();
+    }
+
+    public static void main(String[] args) {
+        launch();
+    }
+}
+----
+
+**Fichier `Launcher.java` :**
+[source,java]
+----
+package webcaisse;
+
+public class Launcher {
+    public static void main(String[] args) {
+        // Appelle la méthode main de votre vraie classe JavaFX
+        Main.main(args);
+    }
+}
+----
+
+[NOTE]
+====
+**Instructions pour l'exécution :**
+
+1. Assurez-vous que votre serveur MySQL local (Laragon, XAMPP, etc.) est démarré et que le script SQL de la Mission 4.1 a bien été exécuté.
+2. Ouvrez le dossier `WebCaisseFX` dans votre IDE (IntelliJ IDEA, Eclipse ou VS Code). Les dépendances Maven se téléchargeront automatiquement.
+3. Exécutez la classe **`Launcher.java`** (et non Main.java) pour lancer l'interface graphique sans erreur de module.
+4. Testez la fonctionnalité de recherche pour valider la communication sécurisée entre JavaFX et la base de données.
+====
+
+=== 4.7. Mise en pratique des Tests Unitaires (JUnit 5)
+
+Afin de valider la logique métier de la fidélisation (Mission 2.2), nous allons exécuter les tests unitaires directement dans notre projet Maven.
+
+==== 1. Ajout de la dépendance JUnit dans le `pom.xml`
+Ouvrez votre fichier `pom.xml` et ajoutez cette dépendance dans la balise `<dependencies>` (juste en dessous de celle de MySQL) pour importer le moteur de test moderne JUnit 5 :
+
+[source,xml]
+----
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <version>5.10.2</version>
+            <scope>test</scope>
+        </dependency>
+----
+
+==== 2. La classe métier à tester (`ConsoFidele.java`)
+Dans le dossier `src/main/java/webcaisse/modele/`, créez la classe `ConsoFidele` héritant de la classe `Conso` (créée à l'étape 4.2). C'est cette classe qui contient la méthode de calcul des points.
+
+[source,java]
+----
+package webcaisse.modele;
+
+import java.util.Date;
+
+public class ConsoFidele extends Conso {
+    private Date dateNaiss;
+    private double pointsFidelite;
+    private Date dateInscription;
+
+    public ConsoFidele(String nom, String prenom, String mail, String tel, Date dateNaiss, Date dateInscription) {
+        // Appel au constructeur de la classe mère (Conso)
+        super(nom, prenom, mail, tel, 0);
+        this.dateNaiss = dateNaiss;
+        this.dateInscription = dateInscription;
+        this.pointsFidelite = 0; // Initialisation explicite à 0
+    }
+
+    public double getPointsFidelite() {
+        return this.pointsFidelite;
+    }
+
+    // Méthode issue du Document 5
+    public void addFidelite(int typeFidelite, double montant) {
+        switch (typeFidelite) {
+            case 1:
+                this.pointsFidelite++;
+                break;
+            case 2:
+                this.pointsFidelite += montant;
+                break;
+            case 3:
+                if (montant >= 100 && montant <= 200) {
+                    this.pointsFidelite += 10;
+                } else if (montant > 200 && montant <= 500) {
+                    this.pointsFidelite += 20;
+                } else if (montant > 500) {
+                    this.pointsFidelite += 50;
+                }
+                break;
+        }
+    }
+}
+----
+
+==== 3. La classe de Test complète (Corrigé des questions 2.4 et 2.5)
+Dans un projet Maven, les tests ont leur propre dossier. Créez l'arborescence `src/test/java/webcaisse/modele/` et ajoutez-y le fichier `TestPointsFidelite.java`.
+
+Voici le code complet, modernisé pour JUnit 5, incluant les réponses aux questions de la mission :
+
+[source,java]
+----
+package webcaisse.modele;
+
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+
+class TestPointsFidelite {
+
+    // Test fourni dans le sujet d'origine
+    @Test
+    void testAddFideliteTampon() throws ParseException {
+        ConsoFidele consoTest = new ConsoFidele("Lifo", "Paul", "lifo.paul@gmail.com", "0600000000",
+                new SimpleDateFormat("yyyy-MM-dd").parse("1961-01-03"),
+                new SimpleDateFormat("yyyy-MM-dd").parse("2017-01-05"));
+
+        consoTest.addFidelite(1, 50);
+        assertEquals(1, consoTest.getPointsFidelite(), "Erreur calcul 1er tampon");
+
+        consoTest.addFidelite(1, 20);
+        assertEquals(2, consoTest.getPointsFidelite(), "Erreur calcul 2ème tampon");
+    }
+
+    // Test fourni dans le sujet d'origine
+    @Test
+    void testAddFideliteMontant() throws ParseException {
+        ConsoFidele consoTest = new ConsoFidele("Lifo", "Paul", "lifo.paul@gmail.com", "0600000000",
+                new SimpleDateFormat("yyyy-MM-dd").parse("1961-01-03"),
+                new SimpleDateFormat("yyyy-MM-dd").parse("2017-01-05"));
+
+        consoTest.addFidelite(2, 150);
+        assertEquals(150, consoTest.getPointsFidelite(), "Erreur calcul 1er achat");
+
+        consoTest.addFidelite(2, 250);
+        assertEquals(400, consoTest.getPointsFidelite(), "Erreur calcul 2ème achat");
+    }
+
+    // REPONSE QUESTION 2.4 : Vérification de l'initialisation
+    @Test
+    void testInitConso() throws ParseException {
+        ConsoFidele consoTest = new ConsoFidele("Lifo", "Paul", "lifo.paul@gmail.com", "0600000000",
+                new SimpleDateFormat("yyyy-MM-dd").parse("1961-01-03"),
+                new SimpleDateFormat("yyyy-MM-dd").parse("2017-01-05"));
+
+        // On vérifie qu'à la création, les points sont bien à zéro
+        assertEquals(0, consoTest.getPointsFidelite(), "Erreur : Les points de fidélité initiaux doivent être à 0");
+    }
+
+    // REPONSE QUESTION 2.5 : Validation du programme de type 3 (par tranches)
+    @Test
+    void testAddMontant() throws ParseException {
+        ConsoFidele consoTest = new ConsoFidele("Lifo", "Paul", "lifo.paul@gmail.com", "0600000000",
+                new SimpleDateFormat("yyyy-MM-dd").parse("1961-01-03"),
+                new SimpleDateFormat("yyyy-MM-dd").parse("2017-01-05"));
+
+        // Tranche 1 : Entre 100 et 200 euros -> +10 points
+        consoTest.addFidelite(3, 150);
+        assertEquals(10, consoTest.getPointsFidelite(), "Erreur tranche 1 (100-200€)");
+
+        // Tranche 2 : Entre 201 et 500 euros -> +20 points (Total attendu : 10 + 20 = 30)
+        consoTest.addFidelite(3, 300);
+        assertEquals(30, consoTest.getPointsFidelite(), "Erreur tranche 2 (201-500€)");
+
+        // Tranche 3 : Supérieur à 500 euros -> +50 points (Total attendu : 30 + 50 = 80)
+        consoTest.addFidelite(3, 600);
+        assertEquals(80, consoTest.getPointsFidelite(), "Erreur tranche 3 (>500€)");
+
+        // Hors tranche : Inférieur à 100 euros -> Aucun point ajouté (Total attendu : toujours 80)
+        consoTest.addFidelite(3, 50);
+        assertEquals(80, consoTest.getPointsFidelite(), "Erreur hors tranche (<100€)");
+    }
+}
+----
+
+[NOTE]
+====
+**Pour exécuter les tests dans l'IDE :**
+
+1. Actualisez Maven pour qu'il télécharge JUnit (Bouton "Reload All Maven Projects").
+2. Ouvrez le fichier `TestPointsFidelite.java`.
+3. Cliquez sur la double flèche verte (`Run TestPointsFidelite`) située à gauche du mot-clé `class` dans la marge.
+4. L'outil de test va s'ouvrir en bas de l'écran et afficher un bandeau vert validant que les 4 méthodes de test ont réussi.
+====
