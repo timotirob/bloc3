@@ -1,7 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module type="WEB_MODULE" version="4">
   <component name="NewModuleRootManager">
-    <content url="file://$MODULE_DIR$" />
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/tests" isTestSource="true" />
+      <excludeFolder url="file://$MODULE_DIR$/etudesdecas/hackatinnov/vendor/composer" />
+      <excludeFolder url="file://$MODULE_DIR$/etudesdecas/hackatinnov/vendor/doctrine/instantiator" />
+      <excludeFolder url="file://$MODULE_DIR$/etudesdecas/hackatinnov/vendor/myclabs/deep-copy" />
+      <excludeFolder url="file://$MODULE_DIR$/etudesdecas/hackatinnov/vendor/nikic/php-parser" />
+      <excludeFolder url="file://$MODULE_DIR$/etudesdecas/hackatinnov/vendor/phar-io/manifest" />
+      <excludeFolder url="file://$MODULE_DIR$/etudesdecas/hackatinnov/vendor/phar-io/version" />
+      <excludeFolder url="file://$MODULE_DIR$/etudesdecas/hackatinnov/vendor/phpunit/php-code-coverage" />
+      <excludeFolder url="file://$MODULE_DIR$/etudesdecas/hackatinnov/vendor/phpunit/php-file-iterator" />
+      <excludeFolder url="file://$MODULE_DIR$/etudesdecas/hackatinnov/vendor/phpunit/php-invoker" />
+      <excludeFolder url="file://$MODULE_DIR$/etudesdecas/hackatinnov/vendor/phpunit/php-text-template" />
+      <excludeFolder url="file://$MODULE_DIR$/etudesdecas/hackatinnov/vendor/phpunit/php-timer" />
+      <excludeFolder url="file://$MODULE_DIR$/etudesdecas/hackatinnov/vendor/phpunit/phpunit" />
+      <excludeFolder url="file://$MODULE_DIR$/etudesdecas/hackatinnov/vendor/sebastian/cli-parser" />
+      <excludeFolder url="file://$MODULE_DIR$/etudesdecas/hackatinnov/vendor/sebastian/code-unit" />
+      <excludeFolder url="file://$MODULE_DIR$/etudesdecas/hackatinnov/vendor/sebastian/code-unit-reverse-lookup" />
+      <excludeFolder url="file://$MODULE_DIR$/etudesdecas/hackatinnov/vendor/sebastian/comparator" />
+      <excludeFolder url="file://$MODULE_DIR$/etudesdecas/hackatinnov/vendor/sebastian/complexity" />
+      <excludeFolder url="file://$MODULE_DIR$/etudesdecas/hackatinnov/vendor/sebastian/diff" />
+      <excludeFolder url="file://$MODULE_DIR$/etudesdecas/hackatinnov/vendor/sebastian/environment" />
+      <excludeFolder url="file://$MODULE_DIR$/etudesdecas/hackatinnov/vendor/sebastian/exporter" />
+      <excludeFolder url="file://$MODULE_DIR$/etudesdecas/hackatinnov/vendor/sebastian/global-state" />
+      <excludeFolder url="file://$MODULE_DIR$/etudesdecas/hackatinnov/vendor/sebastian/lines-of-code" />
+      <excludeFolder url="file://$MODULE_DIR$/etudesdecas/hackatinnov/vendor/sebastian/object-enumerator" />
+      <excludeFolder url="file://$MODULE_DIR$/etudesdecas/hackatinnov/vendor/sebastian/object-reflector" />
+      <excludeFolder url="file://$MODULE_DIR$/etudesdecas/hackatinnov/vendor/sebastian/recursion-context" />
+      <excludeFolder url="file://$MODULE_DIR$/etudesdecas/hackatinnov/vendor/sebastian/resource-operations" />
+      <excludeFolder url="file://$MODULE_DIR$/etudesdecas/hackatinnov/vendor/sebastian/type" />
+      <excludeFolder url="file://$MODULE_DIR$/etudesdecas/hackatinnov/vendor/sebastian/version" />
+      <excludeFolder url="file://$MODULE_DIR$/etudesdecas/hackatinnov/vendor/theseer/tokenizer" />
+    </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>

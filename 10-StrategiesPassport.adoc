@@ -47,6 +47,8 @@ Le code vous est fourni en **Annexes** sous forme de morceaux. Votre objectif es
 
 Avec le code fourni, l'application sera *_en apparence_* fonctionnelle mais en fait un bug subtil se cache et qu'il vous restera à *identifier* et *corriger*.
 
+Il faut également tester avec un utilisateur normal, enregistrement et login. Comment rendre cet utilisateur admin ? Donnez le droit admin à un utilisateur lambda et tester.
+
 === Étape 1 : Installation et Configuration
 .   Prenez votre projet existant et , dans un sous répertoire
 .   Installez les dépendances nécessaires :

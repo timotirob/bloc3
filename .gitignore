@@ -4,7 +4,7 @@ node_modules
 package-lock.json
 # Ignorer les modules node dans tous les sous-dossiers
 **/node_modules
-
+.phpunit.result.cache
 # Ignorer les fichiers de configuration système
 .DS_Store
 Thumbs.db

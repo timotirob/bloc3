@@ -1,0 +1,1098 @@
+= TP Étude de Cas : Hackat'Innov (Version Modernisée)
+:author: Professeur Agrégé d'Informatique
+:revnumber: 1.0
+:toc: left
+:toc-title: Sommaire
+:icons: font
+:description: Préparation à l'E5 - BTS SIO SLAM 2ème année
+:imagesdir: ./images
+
+== Contexte du projet
+La structure *Hackat'Innov* organise des événements de type Hackathon. Pour gérer ces événements, elle dispose d'une application interne nommée **Hackat'Orga**.
+
+Dans le cadre de votre retour de stage, vous devez faire évoluer cette solution pour répondre à de nouveaux besoins métiers tout en garantissant un niveau de sécurité conforme aux exigences actuelles (RGPD, OWASP).
+
+[IMPORTANT]
+====
+L'accent est mis sur la **Cybersécurité (DICP)** et l'automatisation des règles métiers via la base de données (**Triggers**).
+====
+
+=== Structure des dossiers
+Pour que le projet soit opérationnel, respectez l'arborescence suivante :
+[source,text]
+----
+/HackatInnov
+├── src/                # Classes métiers (Namespace HackatInnov)
+│   ├── Membre.php
+│   ├── Evenement.php
+│   ├── Conference.php
+│   └── Initiation.php
+├── tests/              # Tests Unitaires (PHPUnit)
+│   └── InitiationTest.php
+├── api/                # Point d'entrée Web pour le mobile
+│   └── api-rechercher.php
+├── images/             # Répertoire des ressources graphiques
+├── sql/                # Scripts de base de données
+└── composer.json       # Configuration de l'Autoloader PSR-4
+----
+
+---
+
+== Dossier A – Gestion des participants
+L'objectif est d'étendre la base de données actuelle pour gérer le système de vote final et l'inscription des participants.
+
+=== Mission A.1 – Évolution de la base de données pour la gestion des hackathons
+
+==== Contexte de la mission
+L’application Web Hackat’Orga permet actuellement de gérer uniquement l’étape d’initialisation d’un hackathon. Il s'agit de la faire évoluer pour y intégrer les étapes de publication et d’inscription des participants.
+
+Le schéma de la base de données actuelle est fourni dans le **Document 1**. Il doit évoluer pour intégrer les données utiles à l’inscription en ligne des participants et à l’édition du planning détaillé des hackathons.
+
+==== Cahier des charges des évolutions
+
+* **Inscription des participants :**
+- Pour chaque hackathon : nombre de places limité et date limite d'inscription.
+- Profil membre : nom, prénom, mél, téléphone, date de naissance et lien vers un portfolio.
+- Processus : sélection du hackathon, saisie d'un texte libre (compétences/outils).
+- Stockage : mémorisation de la date de saisie et attribution d'un numéro unique d'inscription séquentiel au sein de chaque hackathon.
+
+* **Constitution des équipes :**
+- Un inscrit ne peut être affecté qu'à une seule équipe.
+- Une équipe travaille sur un seul projet et possède un nom d'équipe.
+- Identification : les équipes sont identifiées relativement au projet choisi.
+- Responsabilité : un chef de projet est défini dans chaque équipe parmi ses participants.
+
+* **Vote des membres du jury :**
+- Fourniture d'un lien vers le prototype par chaque équipe.
+- Chaque membre du jury attribue une note de 0 à 5 pour chaque équipe.
+- Un membre du jury peut être participant, mais uniquement pour d'autres hackathons.
+
+[NOTE]
+Une équipe appartient à un seul Hackathon. Un participant appartient à une seule équipe.
+
+[IMPORTANT]
+====
+**Question A.1 :** Proposer une modification de la base de données utilisée par l’application existante Hackat’Orga prenant en compte les inscriptions, la gestion des équipes et le vote final.
+
+_Note : Vous présenterez les évolutions de la structure de la base de données en adoptant le formalisme de votre choix (schéma entité-association, diagramme de classes, ou schéma relationnel)._
+====
+
+
+=== Mission A.2 – Édition du planning des phases d'un hackathon
+
+==== Contexte et enjeux
+L’ordre de déroulement des phases (accueil des participants, phases de travail, repas, présentation des projets, délibération du jury et proclamation des résultats) est identique pour tous les hackathons. Pour chaque hackathon, les organisateurs doivent pouvoir éditer le planning détaillé afin que les participants puissent en prendre connaissance dès leur inscription.
+
+==== Exemple de planning (Hackathon IA & Santé)
+[cols="1,1", options="header"]
+|===
+|Vendredi 11 juin |Dimanche 13 juin
+|17h-19h : Accueil des participants |00h-12h : Travail en autonomie
+|19h-24h : Travail en autonomie |12h-14h : Repas festif
+| |14h-16h : Présentation des projets
+| |16h-17h : Délibération et résultats
+|===
+
+==== Structure de la base de données pour le planning
+
+* **PHASE** (id, libelle)
+** Clé primaire : id (numéro séquentiel)
+* **PLANNING** (idHackathon, dateHeureDebut, idPhase, duree)
+** Clé primaire : idHackathon, dateHeureDebut
+** Clé étrangère : idHackathon en référence à id de HACKATHON
+** Clé étrangère : idPhase en référence à id de PHASE
+** _Note : duree est exprimée en minutes._
+
+[IMPORTANT]
+====
+**Règle de gestion :** Pour un hackathon donné, il ne peut y avoir qu’une seule phase qui débute à une heure donnée.
+====
+
+==== Questions A.2
+
+[IMPORTANT]
+====
+**Question A.2.1 :** Justifier que la structure de la base de données présentée ci-dessus permet de respecter la règle de gestion : « il ne peut y avoir qu’une seule phase qui débute à une heure donnée pour un hackathon précis ».
+
+**Question A.2.2 :** Écrire la requête de création de la table `PLANNING` en respectant les types de données et les contraintes d’intégrité référentielle (utiliser l'extrait de syntaxe SQL du **Document 2**).
+====
+
+
+=== Mission A.3 – Consultation du planning par participant
+
+==== Contexte métier
+Mme Mabille souhaite offrir aux participants la possibilité de consulter leur planning personnalisé. Ce planning doit lister, pour un membre participant donné et pour un hackathon précis, l'ensemble des phases prévues ainsi que les éventuelles séances d'initiation auxquelles il s'est inscrit.
+
+Pour répondre à ce besoin, les développeurs envisagent d'utiliser une structure de données de type "dictionnaire" (tableau associatif) nommée `planningParParticipant`.
+
+==== Structure de données envisagée
+Le dictionnaire `planningParParticipant` est structuré de la manière suivante :
+* **Clé** : Date et heure de début de l'activité (Phase ou Initiation).
+* **Valeur** : Libellé de l'activité.
+
+==== Questions A.3
+
+[IMPORTANT]
+====
+**Question A.3.1 :** Expliquer pourquoi le choix de la "date et heure de début" comme **clé** du dictionnaire est pertinent pour garantir l'unicité des activités affichées dans le planning d'un participant.
+
+**Question A.3.2 :** En vous basant sur les classes fournies dans le dossier documentaire, proposer l'algorithme (ou le code PHP) permettant de remplir ce dictionnaire à partir des données de l'objet `Hackathon` et des inscriptions du `Membre`.
+====
+
+=== Mission A.4 – Mise en place de déclencheurs (Triggers)
+Pour garantir l'intégrité des données, vous devez implémenter les mécanismes suivants en SQL :
+
+[IMPORTANT]
+====
+1.  **Contrôle de capacité** : Créer un déclencheur `tg_check_capacite` qui empêche l'ajout d'un nouveau participant si le nombre maximum de places du Hackathon est déjà atteint (Réf. **Document 1**).
+2.  **Audit de sécurité** : Créer un déclencheur qui enregistre dans une table `LOG_VOTES` toute modification ou suppression d'une note de vote, afin de garantir la **Preuve (Non-répudiation)**.
+
+Un exemple de structure de déclencheur est disponible dans le **Document 3**.
+====
+
+---
+
+== Dossier B – Gestion d’évènements organisés autour des hackathons
+_Documents à utiliser : 4, 6, 7, 8, 9, 10_
+
+=== Contexte et enjeux du module Hackat'Event
+Afin d'apporter de l'attractivité auprès d'un plus large public, Hackat'Innov a décidé d'organiser des évènements satellites lors des hackathons. Ce nouveau module, nommé **Hackat'Event**, gère deux types d'activités animées par des intervenants :
+* Des **conférences**.
+* Des **initiations** aux outils numériques.
+
+Mme Mabille souhaite que vous implémentiez les classes métier de ce module. Contrairement aux conférences, les initiations sont soumises à une limite de places et nécessitent que les participants apportent une liste de matériels et de logiciels prédéfinis.
+
+=== Développement piloté par les tests (TDD)
+Le projet utilise la méthode TDD : les tests unitaires ont été écrits préalablement. Actuellement, la classe `Initiation` échoue aux tests. Voici la liste des anomalies relevées par la suite de tests :
+
+1. **Erreur Logique** : La méthode `ajouterMateriel` accepte des matériels même lorsque la quantité est égale à 0.
+2. **Méthode Manquante** : Le constructeur de la classe `Initiation` n'est pas défini.
+3. **Méthode Manquante** : La méthode `ajouterParticipant` (ainsi que sa signature) n'existe pas, empêchant la validation du test de limite de places.
+4. **Export JSON** : La méthode `lesParticipantsToJson` est manquante.
+5. **Export JSON** : La méthode `toJson` n'est pas écrite. Les spécifications exigent l'affichage de toutes les caractéristiques de l'initiation, la liste du matériel, et la liste des participants (uniquement si celle-ci n'est pas vide).
+
+=== Questions de la Mission B.1 et B.2
+
+[IMPORTANT]
+====
+**Question B.1 – Corrections des erreurs signalées :**
+
+a. Corriger la méthode `ajouterMateriel`.
+b. Écrire le constructeur de la classe `Initiation`.
+c. Écrire la méthode `ajouterParticipant`.
+d. Écrire la méthode `lesParticipantsToJson`.
+e. Écrire la méthode `toJson`.
+
+**Question B.2 – Gestion du planning :**
+Décrire la structure du dictionnaire (tableau associatif) retourné par la méthode `planningParParticipant` de la classe `Hackathon`.
+====
+
+=== Question B.3 – Analyse des vulnérabilités et Cybersécurité (DICP)
+
+Mme Mabille vous informe que les chaînes de caractères au format JSON générées par les différentes méthodes `toJson()` des classes du module `Hackat'Event` seront directement consommées par une application mobile grand public. Tout utilisateur, même non authentifié, pourra consulter la liste des événements.
+
+En analysant le code fourni dans le **Document 8**, vous relevez plusieurs failles de sécurité potentielles.
+
+[IMPORTANT]
+====
+**Question B.3.1 (Confidentialité / RGPD) :**
+La méthode `toJson` de la classe `Initiation` (telle que demandée à la question B.1.e) doit intégrer la liste des participants inscrits via la méthode `lesParticipantsToJson()`.
+En observant les attributs de la classe `Membre`, expliquez en quoi l'export de ces données vers une application publique constitue une faille de confidentialité et une violation du RGPD. Proposez une solution algorithmique simple pour y remédier dans la méthode `lesParticipantsToJson()`.
+
+**Question B.3.2 (Intégrité / Robustesse) :**
+Dans la classe abstraite `Evenement`, la méthode `toJson()` construit la chaîne JSON manuellement par concaténation :
+`" { \"libelle\" : \"" . $this->libelle . "\", \n ..."`
+Expliquez ce qu'il se produirait (côté application mobile) si un organisateur saisissait le libellé suivant pour une conférence : `L'avenir de la "Blockchain"`.
+
+**Question B.3.3 (Bonne pratique de développement) :**
+Quelle fonction native de PHP (utilisée d'ailleurs dans la classe `Membre`) permet de se prémunir contre la faille identifiée à la question précédente en garantissant un encodage JSON toujours valide et sécurisé ?
+====
+
+---
+
+== Dossier C – Gestion des recherches pour le mobile
+_Documents à utiliser : 2, 7, 11, 12, 13, 14_
+
+==== Contexte de l'application mobile
+De nombreux organisateurs, lors des phases de contact, interrogent Mme Mabille pour obtenir des informations concernant les hackathons que gère déjà Hackat'Innov.
+
+Elle a demandé au service informatique de produire une application mobile pour obtenir en temps réel sur un téléphone connecté à l’internet ces informations. Cette application utilise l’outil de développement (framework) JavaScript **Vue.js** pour la production des interfaces graphiques sur mobile multifonction (smartphone) et la base de données issue de l'application Hackat'Event.
+
+Le **Document 12** reprend une copie d’écran de l’interface générée qui permet de rechercher la liste des hackathons par ville (champ texte libre). La recherche est traitée par une interface de programmation (API) détaillée dans le **Document 14**.
+
+==== Question C.1
+[IMPORTANT]
+====
+Expliquer par une phrase l'objectif du code encadré qui vient d’être rajouté dans le fichier `liste.vue` (**Document 13**).
+====
+
+==== Évolution de la recherche
+On désire compléter l’affichage en ajoutant une colonne « thème » à droite de la colonne « ville ». Le champ « recherche » porte sur l’une ou l’autre de ces deux colonnes.
+
+==== Question C.2
+[IMPORTANT]
+====
+Compléter le code du fichier `liste.vue` (**Document 13**) et l’interface de programmation (API) correspondante en indiquant les lignes concernées.
+====
+
+==== Gestion avancée des événements (SQL)
+Afin de gérer au mieux les évènements, Mme Mabille envisage de compléter cette application mobile par d'autres fonctionnalités comme la recherche de membre de jury, pour un remplacement de dernière minute. Pour cela, vous êtes en charge de la programmation dans l’interface de programmation (API) des requêtes et/ou procédures nécessaires.
+
+La requête SQL renvoyant le libellé, le nombre de places des évènements de type « initiation » et le thème des conférences a déjà été écrite :
+
+[source,sql]
+----
+SELECT libelle, nbplaces, theme
+FROM EVENEMENT E
+LEFT OUTER JOIN INITIATION I ON E.id = I.idEvenementInit
+LEFT OUTER JOIN CONFERENCE C ON E.id = C.idEvenementConf;
+----
+
+==== Question C.3
+[IMPORTANT]
+====
+**a.** Proposer un commentaire expliquant l'utilité des jointures de type `LEFT OUTER JOIN` dans cette requête.
+
+**b.** Compléter cette requête SQL en ajoutant la date, l’heure et la salle de l’évènement avec le nom et le prénom de l’animateur. Les évènements seront triés chronologiquement.
+====
+
+==== Suivi du succès des événements
+Afin d'améliorer le choix des évènements, on désire savoir s'ils connaissent du succès ou peu ou pas du tout (aucun inscrit).
+
+==== Question C.4
+[IMPORTANT]
+====
+Créer une vue en langage SQL permettant de retourner les identifiants de tous les évènements de type « initiation » avec, pour chacun, le nombre de membres inscrits.
+====
+
+=== Question C.5 – Sécurisation de l'API Web (Cybersécurité / DICP)
+
+L'application mobile interroge l'API PHP (`api-rechercher.php`) pour récupérer la liste des hackathons. Lors d'un audit de code, vous constatez que le script initial, développé par un précédent stagiaire, contient le bloc suivant pour traiter la recherche envoyée par l'application Vue.js :
+
+[source,php]
+----
+$critere = $_GET['recherche'];
+$sql = "SELECT id, dateHeureDebut, ville, theme FROM HACKATHON WHERE ville = '" . $critere . "' OR theme = '" . $critere . "'";
+$resultat = $pdo->query($sql);
+----
+
+[IMPORTANT]
+====
+**Question C.5.1 (Analyse de vulnérabilité) :** En observant la construction de la variable `$sql`, identifiez la faille de sécurité majeure qui menace la base de données. Quel(s) critère(s) de sécurité (parmi Disponibilité, Intégrité, Confidentialité, Preuve) est/sont directement compromis si un attaquant exploite cette vulnérabilité ? Justifiez votre réponse.
+
+**Question C.5.2 (Correction et robustesse) :** Réécrivez entièrement ce bloc de code PHP en utilisant le mécanisme des **requêtes préparées** (avec des marqueurs nommés ou positionnels) offert par l'extension PDO.
+====
+
+---
+
+== Dossier D – Gestion des votes et de l'infrastructure
+
+==== Contexte et enjeux de sécurité
+À terme, Hackat'Innov souhaite proposer en téléchargement une application mobile type Android :
+* permettant aux participants de se positionner sur les projets proposés pour un hackathon ;
+* permettant aux membres du jury de voter, lors d’un hackathon, pour les trois meilleurs prototypes tous projets confondus (sachant qu’un membre de jury peut être membre participant pour d’autres hackathons que ceux pour lesquels il est membre du jury).
+
+L’application de gestion des votes a été identifiée comme particulièrement sensible.
+
+==== Question D.1
+[IMPORTANT]
+====
+Décrire une conséquence d’utilisation malveillante de l’application de gestion des votes.
+====
+
+==== Architecture réseau et DMZ
+Mme Mabille a commencé une étude de l’architecture applicative et a réalisé le schéma (**Document 5**).
+
+==== Question D.2
+[IMPORTANT]
+====
+Préciser les intérêts de mettre le serveur de bases de données en dehors de la zone démilitarisée (DMZ) pour aider Mme Mabille à compléter son étude.
+====
+
+==== Audit Cybersécurité (OWASP)
+Suite à un audit sur le thème de la cybersécurité, audit appuyé sur l'OWASP (Open Web Application Security Project), des points de vigilance ont été relevés :
+
+1. Sécuriser le service HTTP (utiliser HTTPS).
+2. Utiliser des requêtes préparées.
+3. Se prémunir des attaques par injection SQL.
+4. Se connecter via un réseau Wi-Fi sécurisé (pour éviter des attaques de type Man in the Middle).
+5. Préserver l'intégrité des données (configurations et mise en place des droits d’accès).
+6. S'assurer de la mise à jour des bibliothèques logicielles et des composants logiciels.
+
+==== Question D.3
+[IMPORTANT]
+====
+Présenter sous forme d’un tableau le ou les éléments de l’architecture applicative concerné(s) par chacun des points de vigilance relevés.
+====
+
+---
+
+== Mission 5 – Déploiement et Prototypage de l'Application
+
+Afin de valider vos développements, Mme Mabille vous demande de déployer un prototype fonctionnel de la base de données et de l'API de recherche.
+
+Vous utiliserez votre environnement de développement local (Laragon / XAMPP) pour exécuter les scripts SQL et tester l'interface de programmation avec un outil comme Postman ou simplement via votre navigateur.
+
+=== 5.1. Création de la base de données (DDL)
+
+Exécutez le script suivant pour générer la structure complète de la base `hackatinnov`. Ce script intègre l'ensemble des entités vues dans les missions précédentes.
+
+[source,sql]
+----
+CREATE DATABASE IF NOT EXISTS hackatinnov DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE hackatinnov;
+
+CREATE TABLE ORGANISATEUR (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    statut VARCHAR(50),
+    nom VARCHAR(100) NOT NULL,
+    siteWeb VARCHAR(255),
+    mel VARCHAR(150) NOT NULL
+);
+
+CREATE TABLE MEMBRE (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nom VARCHAR(50) NOT NULL,
+    prenom VARCHAR(50) NOT NULL,
+    mel VARCHAR(150) NOT NULL UNIQUE,
+    telephone VARCHAR(20)
+);
+
+CREATE TABLE HACKATHON (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    dateHeureDebut DATETIME NOT NULL,
+    dateHeureFin DATETIME NOT NULL,
+    lieu VARCHAR(100),
+    ville VARCHAR(50) NOT NULL,
+    theme VARCHAR(150) NOT NULL,
+    affiche VARCHAR(255),
+    objectifs TEXT
+);
+
+CREATE TABLE ORGANISER (
+    idHackathon INT,
+    idOrganisateur INT,
+    PRIMARY KEY (idHackathon, idOrganisateur),
+    FOREIGN KEY (idHackathon) REFERENCES HACKATHON(id) ON DELETE CASCADE,
+    FOREIGN KEY (idOrganisateur) REFERENCES ORGANISATEUR(id) ON DELETE CASCADE
+);
+
+CREATE TABLE EVENEMENT (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    idHackathon INT NOT NULL,
+    idAnimateur INT NOT NULL,
+    libelle VARCHAR(150) NOT NULL,
+    dateHeure DATETIME NOT NULL,
+    duree INT NOT NULL,
+    salle VARCHAR(50),
+    typePublic VARCHAR(100),
+    FOREIGN KEY (idHackathon) REFERENCES HACKATHON(id) ON DELETE CASCADE,
+    FOREIGN KEY (idAnimateur) REFERENCES MEMBRE(id)
+);
+
+CREATE TABLE CONFERENCE (
+    idEvenementConf INT PRIMARY KEY,
+    theme VARCHAR(150) NOT NULL,
+    FOREIGN KEY (idEvenementConf) REFERENCES EVENEMENT(id) ON DELETE CASCADE
+);
+
+CREATE TABLE INITIATION (
+    idEvenementInit INT PRIMARY KEY,
+    nbPlaces INT NOT NULL,
+    FOREIGN KEY (idEvenementInit) REFERENCES EVENEMENT(id) ON DELETE CASCADE
+);
+
+CREATE TABLE INSCRIRE (
+    idEvenementInit INT,
+    idMembre INT,
+    PRIMARY KEY (idEvenementInit, idMembre),
+    FOREIGN KEY (idEvenementInit) REFERENCES INITIATION(idEvenementInit) ON DELETE CASCADE,
+    FOREIGN KEY (idMembre) REFERENCES MEMBRE(id) ON DELETE CASCADE
+);
+
+CREATE TABLE PHASE (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    libelle VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE PLANNING (
+    idHackathon INT,
+    dateHeureDebut DATETIME,
+    idPhase INT NOT NULL,
+    duree INT NOT NULL,
+    PRIMARY KEY (idHackathon, dateHeureDebut),
+    FOREIGN KEY (idHackathon) REFERENCES HACKATHON(id) ON DELETE CASCADE,
+    FOREIGN KEY (idPhase) REFERENCES PHASE(id)
+);
+----
+
+=== 5.2. Jeu d'essai (DML)
+
+Insérez ces données fictives pour simuler un environnement de production et pouvoir tester l'API de recherche mobile.
+
+[source,sql]
+----
+USE hackatinnov;
+
+-- Insertion d'un Hackathon
+INSERT INTO HACKATHON (dateHeureDebut, dateHeureFin, lieu, ville, theme, affiche, objectifs)
+VALUES ('2026-06-11 17:00:00', '2026-06-13 18:00:00', 'Campus Tech', 'Paris', 'IA & Santé', 'affiche_ia.png', 'Créer des solutions IA pour le diagnostic médical');
+
+-- Insertion de Membres
+INSERT INTO MEMBRE (nom, prenom, mel, telephone) VALUES
+('Friche', 'Morgan', 'mfriche@mail.com', '0601020304'),
+('Gelin', 'Louison', 'lgelin@mail.com', '0611223344'),
+('Mallien', 'Yannick', 'myannick@mail.com', '0699887766');
+
+-- Insertion d'Événements satellites (1 Initiation, 1 Conférence)
+INSERT INTO EVENEMENT (idHackathon, idAnimateur, libelle, dateHeure, duree, salle, typePublic) VALUES
+(1, 1, 'Introduction à la cybersécurité', '2026-06-12 10:00:00', 120, 'Alan Turing', 'Débutants'),
+(1, 2, 'Les méthodes agiles', '2026-06-12 14:00:00', 120, 'Hedy Lamarr', 'Chefs de projets novices');
+
+INSERT INTO INITIATION (idEvenementInit, nbPlaces) VALUES (1, 40);
+INSERT INTO CONFERENCE (idEvenementConf, theme) VALUES (2, 'Gestion de projet');
+
+-- Inscription d'un participant à l'initiation
+INSERT INTO INSCRIRE (idEvenementInit, idMembre) VALUES (1, 3);
+----
+
+
+
+=== 5.3. Déploiement de l'API sécurisée (PHP)
+
+Créez les deux fichiers suivants dans votre projet pour exposer l'API sécurisée au format JSON, attendue par l'application mobile (Vue.js).
+
+**Fichier : `util/bdd.php`**
+[source,php]
+----
+<?php
+declare(strict_types=1);
+
+function connexionBdd(): PDO {
+    $host = '127.0.0.1';
+    $db   = 'hackatinnov';
+    $user = 'root'; // À adapter selon votre configuration (ex: Laragon = root / sans mot de passe)
+    $pass = '';
+    $charset = 'utf8mb4';
+
+    $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
+    $options = [
+        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES   => false,
+    ];
+
+    try {
+        return new PDO($dsn, $user, $pass, $options);
+    } catch (\PDOException $e) {
+        throw new \PDOException($e->getMessage(), (int)$e->getCode());
+    }
+}
+?>
+----
+
+**Fichier : `api/api-rechercher.php`**
+Ce script correspond à la correction sécurisée (requêtes préparées) de la question C.5.2.
+
+[source,php]
+----
+<?php
+declare(strict_types=1);
+
+include_once __DIR__ . "/../util/bdd.php";
+
+header("Content-Type: application/json; charset=UTF-8");
+header("Access-Control-Allow-Origin: *"); // Permet à Vue.js d'interroger l'API depuis un autre port local
+
+try {
+    $pdo = connexionBdd();
+
+    // Récupération sécurisée du paramètre de recherche
+    $critere = filter_input(INPUT_GET, 'recherche', FILTER_SANITIZE_FULL_SPECIAL_CHARS) ?? '';
+
+    // Requête préparée pour éviter l'injection SQL
+    $sql = 'SELECT DATE_FORMAT(dateHeureDebut, "%d/%m/%Y") AS dateDebut, ville, theme
+            FROM HACKATHON
+            WHERE ville LIKE :critere OR theme LIKE :critere
+            ORDER BY dateHeureDebut, ville';
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->bindValue(':critere', '%' . $critere . '%', PDO::PARAM_STR);
+    $stmt->execute();
+
+    $rows = $stmt->fetchAll();
+
+    echo json_encode($rows, JSON_THROW_ON_ERROR);
+
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(['erreur' => 'Erreur serveur lors de la récupération des données.']);
+}
+?>
+----
+
+=== Test du prototype
+Ouvrez votre navigateur ou Postman, et testez l'URL suivante pour valider le fonctionnement de votre API :
+`http://localhost/HackatInnov/api/api-rechercher.php?recherche=Paris`
+
+== Dossier Documentaire
+
+=== Document 1 : Schéma relationnel de la base de données actuelle
+
+* **ORGANISATEUR** (id, statut, nom, siteWeb, mel)
+** Clé primaire : id
+** _Note : statut peut prendre comme valeurs : entreprise, collectivité, association, organisme de formation, etc._
+* **MEMBRE** (id, nom, prenom, mel, telephone)
+** Clé primaire : id
+* **HACKATHON** (id, dateHeureDebut, dateHeureFin, lieu, ville, theme, affiche, objectifs)
+** Clé primaire : id
+* **ORGANISER** (idHackathon, idOrganisateur)
+** Clé primaire : idHackathon, idOrganisateur
+** Clé étrangère : idHackathon en référence à id de HACKATHON
+** Clé étrangère : idOrganisateur en référence à id de ORGANISATEUR
+* **COMPOSER** (idHackathon, idMembreJury)
+** Clé primaire : idHackathon, idMembreJury
+** Clé étrangère : idHackathon en référence à id de HACKATHON
+** Clé étrangère : idMembreJury en référence à id de MEMBRE
+* **PROJET** (id, description, retenu, idHackathon)
+** Clé primaire : id
+** Clé étrangère : idHackathon en référence à id de HACKATHON
+** _Note : retenu indique si le projet proposé a été retenu ou pas._
+
+=== Document 2 : Extrait de la syntaxe SQL
+
+[source,sql]
+----
+CREATE TABLE nomTable
+(
+    champ1 type [NOT NULL/NULL] [,champ2 type ...]
+    [CONSTRAINT nom_contrainte PRIMARY KEY (champ[, ...]) |
+     CONSTRAINT nom_contrainte FOREIGN KEY (champ [, ...]) REFERENCES nomTable (champ [, ...])
+        [ON DELETE {CASCADE | RESTRICT | SET NULL}]
+        [ON UPDATE {CASCADE | RESTRICT | SET NULL}]   ]
+);
+
+CREATE VIEW nomVue (champ[, ...]) AS requêteSQL ;
+----
+
+=== Document 3 : Scripts SQL (Triggers)
+[source,sql]
+----
+-- Trigger de contrôle de capacité
+DELIMITER //
+CREATE TRIGGER tg_check_capacite
+BEFORE INSERT ON INSCRIRE
+FOR EACH ROW
+BEGIN
+    -- Logique de vérification du nombre de places
+END //
+DELIMITER ;
+----
+
+=== Document 4 : Modélisation du Domaine (UML)
+
+Le diagramme suivant représente le cœur du module `Hackat'Event`.
+[plantuml, target="diagramme_classes", format="png"]
+----
+@startuml
+skinparam classAttributeIconSize 0
+
+abstract class Evenement {
+  # id : int
+  # libelle : string
+  # date : DateTime
+  # duree : int
+  # nbPlaces : int
+  + {abstract} getType() : string
+  + restePlaces(nbInscrits : int) : int
+}
+
+class Conference extends Evenement {
+  - theme : string
+  + getType() : string
+}
+
+class Initiation extends Evenement {
+  - niveau : string
+  + getType() : string
+}
+
+class Participant {
+  - id : int
+  - nom : string
+  - prenom : string
+  - mail : string
+}
+
+Evenement "0..*" -- "0..*" Participant : s'inscrit à >
+@enduml
+----
+
+=== Document 5 : Architecture de l'infrastructure (DMZ)
+image::DMZ.png[Architecture Réseau DMZ]
+
+L'architecture est segmentée comme suit :
+1. **Zone Publique** : Smartphones des participants (Internet).
+2. **DMZ** : Serveur Web Apache et services API PHP.
+3. **Zone Privée** : Serveur MySQL contenant les données sensibles.
+
+=== Document 6 : Exemple d’événements au format JSON
+
+**Exemple d’évènements de type initiation :**
+[source,json]
+----
+[
+  {
+    "libelle" : "Introduction au PHP",
+    "dateHeure" : "19/06/2021 13:00",
+    "duree" : "2h",
+    "salle" : "Alan Turing",
+    "typePublic" : "étudiants ou jeunes développeurs débutants",
+    "animateur" : {
+      "prenom" : "Morgan",
+      "nom" : "Friche",
+      "mel" : "mfriche@mail.com",
+      "telephone" : "06 39 98 65 14"
+    },
+    "nbPlaces" : 40,
+    "materiels" : [
+      {
+        "libelle" : "ordinateur portable",
+        "quantite" : 1
+      },
+      {
+        "libelle" : "IDE PHPStorm en mode évaluation gratuit",
+        "quantite" : 1
+      }
+    ]
+  },
+  {
+    "libelle" : "Introduction à la cybersécurité",
+    "dateHeure" : "19/06/2021 16:00",
+    "duree" : "2h",
+    "salle" : "Alan Turing",
+    "typePublic" : "étudiants ou jeunes développeurs débutants",
+    "animateur" : {
+      "prenom" : "Morgan",
+      "nom" : "Friche",
+      "mel" : "mfriche@mail.com",
+      "telephone" : "06 39 98 65 14"
+    },
+    "nbPlaces" : 40,
+    "materiels" : [
+      {
+        "libelle" : "bloc-notes papier",
+        "quantite" : 1
+      }
+    ]
+  }
+]
+----
+
+**Exemple d'un événement de type conférence :**
+[source,json]
+----
+{
+  "libelle" : "Les méthodes agiles ?",
+  "dateHeure" : "19/06/2021 09:00",
+  "duree" : "2h",
+  "salle" : "Hedy Lamarr",
+  "typePublic" : "chefs de projets novices",
+  "animateur" : {
+    "prenom" : "Louison",
+    "nom" : "Gelin",
+    "mel" : "lgelin@mail.com",
+    "telephone" : "06 39 98 23 01"
+  },
+  "theme" : "gestion de projet"
+}
+----
+
+=== Document 7 : Diagramme de classes du module Hackat'Event
+
+image::DiagClasse.png[Diagramme de classe du module Hackat Event]
+
+La classe `Evenement` est une classe abstraite donc elle ne pourra pas être instanciée. Seules ses deux classes filles, `Conference` et `Initiation` pourront être instanciées.
+
+=== Document 8 : Code PHP partiel des classes du module Hackat'Event
+
+[source,php]
+----
+<?php
+class Materiel {
+    private $libelle;
+    public function __construct($libM){
+        $this->libelle = $libM;
+    }
+    public function getLibelle() { return $this->libelle; }
+}
+
+class Hackathon {
+    private $dateHeureDebut;
+    private $dateHeureFin;
+    private $lieu;
+    private $ville;
+    private $theme;
+    private $affiche;
+    private $objectifs;
+    private $lesEvenements; // type : collection d'objets Evenement
+
+    public function __construct($dhd, $dhf, $lieu, $ville, $theme, $aff, $obj){
+        $this->dateHeureDebut = $dhd;
+        $this->dateHeureFin = $dhf;
+        $this->lieu = $lieu;
+        $this->ville = $ville;
+        $this->theme = $theme;
+        $this->affiche = $aff;
+        $this->objectifs = $obj;
+        $this->lesEvenements = array();
+    }
+    public function ajouterEvenement($evt){
+        array_push($this->lesEvenements, $evt);
+    }
+    public function evtsInitiationToJson() { // retourne une chaine de caractères
+        $chaineJson = '"EvenementsInitiations" : [';
+        foreach ($this->lesEvenements as $evt){
+            if ($evt instanceof Initiation){
+                $chaineJson = $chaineJson . $evt->toJson(); // concaténation
+            }
+        }
+        return $chaineJson . " ]\n" ;
+    }
+    public function planningParParticipant($unMelPart) {
+        $dicoEvtPart = array();
+        foreach ($this->lesEvenements as $evt){
+            if ($evt instanceof Initiation){
+                foreach ($evt->getLesMembresParticipants() as $unMembre){
+                    if ($unMembre->getMel() == $unMelPart){
+                        $dicoEvtPart[$evt->getdateHeure()] = $evt;
+                    }
+                }
+            }
+        }
+        return $dicoEvtPart;
+    }
+}
+
+class Membre {
+    private $nom;
+    private $prenom;
+    private $mel;
+    private $telephone;
+
+    public function __construct($nom, $prenom, $mel, $tel){...}
+    public function getMel() { return $this->mel; }
+    public function toJson() {
+        // méthode retournant tous les attributs de la classe au format JSON
+        return json_encode([
+            "nom" => $this->nom,
+            "prenom" => $this->prenom,
+            "mel" => $this->mel,
+            "telephone" => $this->telephone
+        ]);
+    }
+}
+
+abstract class Evenement {
+    protected $libelle;
+    protected $dateHeure;
+    protected $duree;
+    protected $salle;
+    protected $lAnimateur; // type: Membre
+    protected $typePublic;
+
+    public function __construct($libelle, $dateHeure, $duree, $salle, $lAnimateur, $leTypePublic) {
+        $this->libelle = $libelle;
+        $this->dateHeure = $dateHeure;
+        $this->duree = $duree;
+        $this->salle = $salle;
+        $this->lAnimateur = $lAnimateur;
+        $this->typePublic = $leTypePublic;
+    }
+    public function getDateHeure(){ return $this->dateHeure; }
+    protected function toJson(){
+        // méthode retournant tous les attributs de la classe au format JSON
+        return " { \"libelle\" : \"" . $this->libelle . "\", \n" .
+               "\"dateHeure\" : \"" . $this->dateHeure . "\", \n" .
+               "\"duree\" : \"" . $this->duree . "\", \n" .
+               "\"salle\" :  \"" . $this->salle . "\", \n" .
+               "\"typePublic\" : \"" . $this->typePublic . "\", \n" .
+               "\"animateur\" : " . $this->lAnimateur->toJson();
+    }
+}
+
+class Conference extends Evenement {
+    private $theme;
+
+    public function __construct($libelle, $dateHeure, $duree, $salle, $lAnimateur, $leTypePublic, $theme) {
+        parent::__construct($libelle, $dateHeure, $duree, $salle, $lAnimateur, $leTypePublic);
+        $this->theme = $theme;
+    }
+    public function toJson(){
+        // méthode retournant tous les attributs de la classe au format JSON
+        return parent::toJson() . ",\n \"theme\" : \"" . $this->theme . "\"\n }\n";
+    }
+}
+
+class Initiation extends Evenement {
+    private $nbPlaces;
+    private $lesMateriels;  /* Ce dictionnaire de (string, int) implémente la classe-association Prévoir.
+                               La clé correspond au libelle du matériel et la valeur à la quantité.*/
+    private $lesMembresParticipants; // type : collection de Membre
+
+    public function __construct($libelle, $dateHeure, $duree, $salle, $lAnimateur, $leTypePublic, $nb) {
+        // Question B.1 b) :  à compléter et à reporter sur votre copie
+    }
+    public function setNbPlaces($nb){
+        if ($nb >= 0) {
+            $this->nbPlaces = $nb;
+        }
+    }
+    public function getNbPlaces(){ return $this->nbPlaces; }
+    public function getLesMateriels(){ return $this->lesMateriels; }
+    public function getLesMembresParticipants(){
+        return $this->lesMembresParticipants;
+    }
+    public function ajouterMateriel($unLibelleMateriel, $uneQuantite) {
+        // Question B.1 a) :  à corriger et à reporter sur votre copie
+        if ($unLibelleMateriel != null ) {
+            if (array_key_exists($unLibelleMateriel, $this->lesMateriels) == false) {
+                // on vérifie que la clé n'existe pas déjà dans le dictionnaire
+                $this->lesMateriels[$unLibelleMateriel] = $uneQuantite;
+                /* ajoute dans le dictionnaire la clé de type String correspondant au libelleMateriel et la
+                   valeur de type entier correspondant à la quantité demandée*/
+            }
+        }
+    }
+    private function lesMaterielsToJson(){
+        // retourne une chaine de caractères
+        $chaineJson = "\"materiels\" : [  \n";
+        $debutChaine = true;
+        foreach ($this->lesMateriels as $lib => $qte) {
+            if ($debutChaine == false) {
+                // on va ajouter un élément supplémentaire, on le sépare par une virgule
+                $chaineJson = $chaineJson . ",\n"; //concaténation
+            } else {
+                $debutChaine = false;
+            }
+            // on ajoute l’élément (concaténation)
+            $chaineJson = $chaineJson . "{ \n \"libelle\" : \"".$lib . "\",\n \"quantite\" : \"" . $qte . "\" }";
+        }
+        $chaineJson = $chaineJson . "]  \n"; //concaténation
+        return $chaineJson;
+    }
+    private function lesParticipantsToJson() {
+        // retourne une chaine de caractères
+        // Question B.1 d) :  à compléter et à reporter sur votre copie
+    }
+    public function toJson()  {
+        // retourne une chaine de caractères
+        // Question B.1 e) :  à compléter et à reporter sur votre copie
+    }
+}
+?>
+----
+
+=== Document 9 : Extrait de la classe de test TestInitiation
+
+[source,php]
+----
+<?php
+class TestInitiation {
+    private $evtInitPHP ;
+
+    public function testCreationInitiation() {
+        $lAnim = new Membre("Friche", "Morgan", "mfriche@mail.com", "06 39 98 23 01");
+        $this->evtInitPHP = new Initiation(
+            "Introduction au PHP", "19/06/2021 13:00", "2h",
+            "Alan Turing", $lAnim, "étudiants et jeunes développeurs", 40
+        );
+    }
+
+    public function testAjouterMaterielQuantiteZero(){
+        $this->testCreationInitiation(); // appel de la méthode qui instancie l’évènement initiation
+        $leMateriel = new Materiel("ordinateur portable");
+        $this->evtInitPHP->ajouterMateriel($leMateriel->getLibelle(), 0);
+        $this->assertEquals(0, count($this->evtInitPHP->getLesMateriels()),
+            "Matériel ajouté alors que la quantité est égale à 0"
+        );
+    }
+
+    public function testAjouterParticipantLimiteNombrePlaces() {
+        $this->testCreationInitiation(); // on force le nombre de places de l’initiation à 2 places
+        $this->evtInitPHP->setNbPlaces(2);
+
+        $leParticipant1 = new Membre("Mallien", "Yannick", "myannick@mail.com", "06 39 98 15 12");
+        $this->evtInitPHP->ajouterParticipant($leParticipant1) ;
+
+        $leParticipant2 = new Membre("Dus", "Dominique", "ddus@mail.com", "06 39 98 00 56 ");
+        $this->evtInitPHP->ajouterParticipant($leParticipant2) ;
+
+        $leParticipant3 = new Membre("Smith", "Jean", "jsmith@mail.com", "06 39 98 85 17");
+        $this->assertFalse($this->evtInitPHP->ajouterParticipant($leParticipant3),
+            "mauvaise gestion des places disponibles"
+        );
+        $this->assertSame(2, count($this->evtInitPHP->getLesMembresParticipants()),
+            "erreur dans l'ajout du 3ème participant"
+        );
+    }
+}
+?>
+----
+
+=== Document 10 : Extrait de documentation PHP
+
+**Exemple d'utilisation de la collection (tableau indicé en PHP)**
+[source,php]
+----
+<?php
+private $lesParticipants; // déclaration d'une variable d'instance qui pourra être une collection
+$this->lesParticipants = array(); // création d’un tableau indicé de 0 à la taille du tableau (collection)
+
+$unPart = new Participant(); // création d'une variable instance de la classe Participant
+$nb = count($this->lesParticipants); // la variable nb récupère la taille du tableau $lesParticipants
+array_push($this->lesParticipants, $unPart); // ajoute un participant à la fin du tableau $lesParticipants
+
+foreach ($this->lesParticipants as $unParticipant) { // parcours de la collection
+     echo $unParticipant->getMel(); // affiche le mél du participant courant
+}
+?>
+----
+
+**Exemple d'utilisation du dictionnaire (tableau associatif en PHP)**
+[source,php]
+----
+<?php
+private $lesMateriels ; // déclaration d'une variable d'instance qui pourra être un dictionnaire (tableau associatif)
+$this->lesMateriels = array() ; // création d’un tableau associatif
+$this->lesMateriels[$unLibelleMateriel] = $uneQuantite ;
+/* ajoute dans le dictionnaire la clé de type chaîne de caractères correspondant au libelleMatériel
+   et la valeur de type entier correspondant à la quantité demandée*/
+
+if ( array_key_exists($uneCle, $this->lesMateriels) == true) {
+   // on vérifie que la clé existe déjà dans le dictionnaire
+}
+
+foreach ($this->lesMateriels as $cle => $valeur) {
+    echo $cle; // affiche ici le libelleMateriel
+    echo $valeur; // affiche ici la quantité nécessaire pour ce libellé de matériel
+}
+?>
+----
+
+**Héritage et Typage**
+[source,php]
+----
+<?php
+parent::méthode() // permet d'appeler la méthode présente dans la classe mère.
+
+// instanceof permet de connaître le type d'instance d'un objet.
+$unPart = new Participant(...) ;
+if ($unPart instanceof Participant) {
+    // traitement effectué si unPart est une instance de la classe Participant
+}
+?>
+----
+
+=== Document 11 : Schéma relationnel du module Hackat'Event
+
+[cols="2,4,2,4", options="header"]
+|===
+| Table | Attributs | Clé(s) Primaire(s) | Clé(s) Étrangère(s)
+
+| **HACKATHON**
+| id, dateHeureDebut, dateHeureFin, lieu, ville, theme, affiche, objectifs
+| id
+| _Aucune_
+
+| **MEMBRE**
+| id, nom, prenom, mel, telephone
+| id
+| _Aucune_
+
+| **EVENEMENT**
+| id, idHackathon, idAnimateur, libelle, dateHeure, duree, salle, typePublic
+| id
+| idHackathon (réf. HACKATHON.id) +
+idAnimateur (réf. MEMBRE.id)
+
+| **CONFERENCE**
+| idEvenementConf, theme
+| idEvenementConf
+| idEvenementConf (réf. EVENEMENT.id)
+
+| **INITIATION**
+| idEvenementInit, nbPlaces
+| idEvenementInit
+| idEvenementInit (réf. EVENEMENT.id)
+
+| **INSCRIRE**
+| idEvenementInit, idMembre
+| idEvenementInit, idMembre
+| idEvenementInit (réf. INITIATION.idEvenementInit) +
+idMembre (réf. MEMBRE.id)
+|===
+
+=== Document 12 : Copie d'écran de l'interface mobile pour la recherche
+image::copie_ecran_interface_mobile.png[Copie d'écran de l'application Vue.js montrant la recherche par ville]
+
+
+=== Document 13 : Code source du composant liste.vue (Vue.js)
+
+[source,html]
+----
+1.	<template>
+2.	  <div>
+3.	    <div class="row" id="filtre">
+4.	      <div class="col">
+5.	        <input type="text" name="critere" placeholder="Votre critère de recherche…" v-model="recherche">
+6.	      </div>
+7.	      <div class="col">
+8.	        <input type="button" v-on:click="rechercher()">
+9.	      </div>
+10.	    </div>
+11.	      <div class="row">
+12.	        <div class="col text-center bigTitle">
+13.	             14.	             {{lesHackathons.length}}
+15.	        </div>
+16.	      </div>
+17.	    18.	    <div v-if="lesHackathons.length > 0">
+19.	      20.	      <table>
+21.	        <tr>
+22.	          <th>Date</th>
+23.	          <th>Ville</th>
+24.	        </tr>
+25.	        <tr v-for="hackathon in lesHackathons" :key="hackathon.id">
+26.	          <td>{{hackathon.dateDebut}}</td>
+27.	          <td>{{hackathon.ville}}</td>
+28.	        </tr>
+29.	      </table>
+30.	    </div>
+31.	    <div v-else>
+32.	      Aucun résultat.
+33.	    </div>
+34.	  </div>
+35.	</template>
+----
+
+
+=== Document 14 : Code source de l'API de recherche (PHP)
+
+[source,php]
+----
+<?php
+2.	  include("util/bdd.php");
+3.	  header("Content-Type: application/json");
+4.	  $pdo = connexionBdd();        // Connexion à la base de données
+5.	  // Récupération avec filtrage du critère de recherche passé par la méthode POST
+6.	  $critere = filter_input (INPUT_POST, 'critere', FILTER_SANITIZE_STRING) ;
+7.	  // Requête de recherche.
+8.	  $sql = 'SELECT DATE_FORMAT(dateHeureDebut, "%d/%m/%Y") AS dateDebut, ville   FROM HACKATHON WHERE ville LIKE :critere ORDER BY dateDebut, ville';
+9.	  $stmt = $pdo->prepare($sql);
+10.	  $stmt->bindValue(':critere', "%$critere%", PDO::PARAM_STR);
+11.	  $stmt->execute();
+12.	  // Récupération de l'ensemble des résultats
+13.	  $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+14.	  echo json_encode($rows); // Affichage de la liste des hackathons
+15.	?>
+----

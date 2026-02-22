@@ -10,8 +10,47 @@
     <option name="highlightLevel" value="WARNING" />
     <option name="transferred" value="true" />
   </component>
+  <component name="PhpIncludePathManager">
+    <include_path>
+      <path value="$PROJECT_DIR$/etudesdecas/hackatinnov/vendor/composer" />
+      <path value="$PROJECT_DIR$/etudesdecas/hackatinnov/vendor/myclabs/deep-copy" />
+      <path value="$PROJECT_DIR$/etudesdecas/hackatinnov/vendor/sebastian/cli-parser" />
+      <path value="$PROJECT_DIR$/etudesdecas/hackatinnov/vendor/sebastian/code-unit" />
+      <path value="$PROJECT_DIR$/etudesdecas/hackatinnov/vendor/sebastian/code-unit-reverse-lookup" />
+      <path value="$PROJECT_DIR$/etudesdecas/hackatinnov/vendor/sebastian/comparator" />
+      <path value="$PROJECT_DIR$/etudesdecas/hackatinnov/vendor/sebastian/complexity" />
+      <path value="$PROJECT_DIR$/etudesdecas/hackatinnov/vendor/sebastian/diff" />
+      <path value="$PROJECT_DIR$/etudesdecas/hackatinnov/vendor/sebastian/environment" />
+      <path value="$PROJECT_DIR$/etudesdecas/hackatinnov/vendor/sebastian/exporter" />
+      <path value="$PROJECT_DIR$/etudesdecas/hackatinnov/vendor/sebastian/global-state" />
+      <path value="$PROJECT_DIR$/etudesdecas/hackatinnov/vendor/sebastian/lines-of-code" />
+      <path value="$PROJECT_DIR$/etudesdecas/hackatinnov/vendor/sebastian/object-enumerator" />
+      <path value="$PROJECT_DIR$/etudesdecas/hackatinnov/vendor/sebastian/object-reflector" />
+      <path value="$PROJECT_DIR$/etudesdecas/hackatinnov/vendor/sebastian/recursion-context" />
+      <path value="$PROJECT_DIR$/etudesdecas/hackatinnov/vendor/sebastian/resource-operations" />
+      <path value="$PROJECT_DIR$/etudesdecas/hackatinnov/vendor/sebastian/type" />
+      <path value="$PROJECT_DIR$/etudesdecas/hackatinnov/vendor/sebastian/version" />
+      <path value="$PROJECT_DIR$/etudesdecas/hackatinnov/vendor/doctrine/instantiator" />
+      <path value="$PROJECT_DIR$/etudesdecas/hackatinnov/vendor/theseer/tokenizer" />
+      <path value="$PROJECT_DIR$/etudesdecas/hackatinnov/vendor/phpunit/php-code-coverage" />
+      <path value="$PROJECT_DIR$/etudesdecas/hackatinnov/vendor/phpunit/php-file-iterator" />
+      <path value="$PROJECT_DIR$/etudesdecas/hackatinnov/vendor/phpunit/php-invoker" />
+      <path value="$PROJECT_DIR$/etudesdecas/hackatinnov/vendor/phpunit/php-text-template" />
+      <path value="$PROJECT_DIR$/etudesdecas/hackatinnov/vendor/phpunit/php-timer" />
+      <path value="$PROJECT_DIR$/etudesdecas/hackatinnov/vendor/phpunit/phpunit" />
+      <path value="$PROJECT_DIR$/etudesdecas/hackatinnov/vendor/nikic/php-parser" />
+      <path value="$PROJECT_DIR$/etudesdecas/hackatinnov/vendor/phar-io/manifest" />
+      <path value="$PROJECT_DIR$/etudesdecas/hackatinnov/vendor/phar-io/version" />
+    </include_path>
+  </component>
+  <component name="PhpProjectSharedConfiguration" php_language_level="8.0" />
   <component name="PhpStanOptionsConfiguration">
     <option name="transferred" value="true" />
+  </component>
+  <component name="PhpUnit">
+    <phpunit_settings>
+      <PhpUnitSettings custom_loader_path="$PROJECT_DIR$/etudesdecas/hackatinnov/vendor/autoload.php" phpunit_phar_path="" />
+    </phpunit_settings>
   </component>
   <component name="PsalmOptionsConfiguration">
     <option name="transferred" value="true" />
