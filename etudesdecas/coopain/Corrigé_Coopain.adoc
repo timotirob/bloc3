@@ -1,0 +1,200 @@
+= Proposition de Corrigé - TP Étude de Cas Coopain
+:toc: left
+:toc-title: Sommaire
+:icons: font
+
+== Mission 1 : Gestion des demandes d'insémination
+
+**Question 1.1 : Règle de gestion (Requête SQL)**
+
+La sous-requête avec `MIN(date)` et la condition `stockRestant >= 1` permettent de déduire la règle suivante : "Lors d'une demande d'insémination, le système sélectionne automatiquement le lot de paillettes **le plus ancien** (règle du Premier Entré, Premier Sort - FIFO) pour le taureau et le type de paillette choisis, à condition qu'il reste **au moins une paillette en stock** dans ce lot."
+
+**Question 1.2 : Provenance des informations imprimées**
+[cols="2,3", options="header"]
+|===
+| Information sur la paillette | Provenance / Transformation
+| Date de collecte | `Collecte.date` (à transformer au format AAJJJ)
+| N° d'agrément du CCS | Valeur constante (Paramètre de l'application Coopain)
+| N° national du taureau | `Taureau.idNational`
+| Code à barres | Concaténation de `Taureau.numeroIE`, Quantième (calculé à partir de `Collecte.date`) et `Lot.numero`
+| N° IE du taureau | `Taureau.numeroIE`
+| Quantième date de collecte | Calculé : Différence en jours entre le 01/01/2002 et `Collecte.date`
+| Numéro de lot | `Lot.numero`
+| Code de la race | `Race.code`
+| Nom du taureau | `Taureau.nom`
+|===
+
+**Question 1.3 : Requête des tarifs**
+[source,sql]
+----
+SELECT TP.libelle, T.prixPaillette
+FROM Tarif T
+JOIN TypePaillette TP ON T.idTypePaillette = TP.id
+WHERE T.idNationalTaureau = 'FR0103015562';
+----
+
+**Question 1.4 : Requête des stocks par taureau**
+[source,sql]
+----
+SELECT T.idNational, T.nom, SUM(L.stockRestant) AS stockTotal
+FROM Taureau T
+JOIN Lot L ON T.idNational = L.idNationalTaureau
+GROUP BY T.idNational, T.nom
+ORDER BY stockTotal ASC;
+----
+
+**Question 1.5 : Évolution du schéma de données (Schéma relationnel)**
+
+* **Secteur** (#id, nom, description)
+* **Adherent** (#id, nom, prenom, adresse, tel, #idSecteur)
+* **Inseminateur** (#id, nom, prenom, numLicence, telPortable, #idSecteur)
+* **Vehicule** (#immatriculation, marque, modele, dateAchat)
+* **UtiliserVehicule** (#idInseminateur, #immatriculation)
+* **Vache** (#idNational, nom, #idAdherent)
+* **Demande** (#id, dateDemande, dateInsemination, heureInsemination, tempAmbiante, compteRendu, #idAdherent, #idVache, #idNationalTaureau, #idTypePaillette, #numeroLot)
+
+_Note : Les clés étrangères (#) lient la Demande à l'Adhérent, la Vache, et au Lot précis utilisé._
+
+
+== Mission 2 : Nouvelles fonctionnalités (MobiSemin)
+
+=== Partie 1 : Implémentation
+**Question 2.1 : Scénarios d'erreur (Saisie tournée)**
+
+* **4.b** Le kilométrage de fin de tournée saisi est inférieur au kilométrage de début de tournée. Le système affiche un message d'erreur d'incohérence et demande de ressaisir la valeur.
+* **4.c** Le format de la saisie est incorrect (caractères alphabétiques au lieu de chiffres). Le système bloque la saisie et notifie l'utilisateur.
+
+**Question 2.2 : Méthode `onCreate` de SQLite**
+[source,java]
+----
+    @Override
+    public void onCreate(SQLiteDatabase db) {
+        String strReq = "CREATE TABLE inseminateur(id INTEGER PRIMARY KEY AUTOINCREMENT, nom TEXT, prenom TEXT)";
+        db.execSQL(strReq);
+
+        strReq = "CREATE TABLE vehicule(id INTEGER PRIMARY KEY AUTOINCREMENT, immat TEXT, marque TEXT, modele TEXT, dateAchat TEXT)";
+        db.execSQL(strReq);
+
+        // CORRECTION : Création de la table histoKm avec clés étrangères
+        strReq = "CREATE TABLE histoKm("
+               + "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+               + "date TEXT, "
+               + "kmDebut INTEGER, "
+               + "kmFin INTEGER, "
+               + "idInsemin INTEGER, "
+               + "idVehicule INTEGER, "
+               + "FOREIGN KEY(idInsemin) REFERENCES inseminateur(id), "
+               + "FOREIGN KEY(idVehicule) REFERENCES vehicule(id))";
+        db.execSQL(strReq);
+    }
+----
+
+=== Partie 2 : Audit de sécurité (DICP et Mobilité)
+**Question 2.3 : Perte du mobile (Risques et Solutions)**
+
+* **Confidentialité** : L'attaquant peut lire les données SQLite en clair (informations sur les adhérents, les tournées, les véhicules).
+* **Intégrité** : L'attaquant peut modifier la base locale (`kmFin`) avant la prochaine synchronisation, faussant ainsi les frais de déplacement.
+* **Solutions** : Mise en place d'un **MDM** (Mobile Device Management) pour effacer l'appareil à distance (Remote Wipe), obligation d'un code de déverrouillage fort, et utilisation de **SQLCipher** pour chiffrer le fichier de base de données local avec une clé matérielle.
+
+**Question 2.4 : Vulnérabilité OWASP (Mot de passe)**
+Stocker ou manipuler un mot de passe en clair dans un attribut d'objet (`private String password;`) expose l'application à des fuites lors d'un dump mémoire, ou à l'interception si cet objet est sérialisé et transmis sur le réseau.
+
+**Recommandation** : Ne jamais stocker le mot de passe en clair. L'application doit utiliser des mots de passe hachés (ex: `Bcrypt`), ou mieux, utiliser un système de jetons d'authentification éphémères de type **JWT (JSON Web Token)**.
+
+
+== Mission 3 : Gestion des tournées (POO)
+
+**Question 3.1.1 : Mécanisme de différenciation (Surcharge)**
+Il s'agit du mécanisme de **surcharge (overloading)** en Programmation Orientée Objet. Bien que les méthodes aient le même nom (`CATournee`), le compilateur Java les différencie par leur signature, c'est-à-dire le nombre et le type de leurs paramètres (l'une n'a pas de paramètre, l'autre prend un objet `TypePrestation`).
+
+**Question 3.1.2 : Méthode `getCoordGPS()`**
+[source,java]
+----
+public String getCoordGPS() {
+    return this.latitude + " " + this.longitude;
+}
+----
+
+**Question 3.1.3 : Méthode `getAdherents()`**
+[source,java]
+----
+public ArrayList<Adherent> getAdherents() {
+    ArrayList<Adherent> listeAdherents = new ArrayList<>();
+
+    for (Visite v : this.laTournee.getLesVisites()) {
+        Adherent a = v.getLeAdherent();
+        // Vérification pour ne pas ajouter le même adhérent en doublon
+        if (!listeAdherents.contains(a)) {
+            listeAdherents.add(a);
+        }
+    }
+    return listeAdherents;
+}
+----
+
+**Question 3.1.4 : Méthode `montantAFacturer()`**
+[source,java]
+----
+public float montantAFacturer() {
+    float montantTotal = 0;
+    for (PrestationVisite pv : this.lesPrestationsVisite) {
+        montantTotal += pv.getNombreActes() * pv.getLeTypePrestation().getPrixForfaitaire();
+    }
+    return montantTotal;
+}
+----
+
+**Question 3.2 : Tests unitaires (JUnit)**
+[source,java]
+----
+@Test
+public void testCATournee() {
+    // 1. Initial : 0 visite
+    assertEquals("Le CA initial n'est pas nul", 0.0f, gt.CATournee());
+
+    // 2. Après la 1ère visite : (3 * 100) + (1 * 10) = 310
+    Visite v1 = new Visite(adh1, "09:00");
+    v1.ajouterPrestationVisite(tp1, 3);
+    v1.ajouterPrestationVisite(tp2, 1);
+    gt.ajouterVisite(v1);
+    assertEquals("Erreur calcul visite 1", 310.0f, gt.CATournee());
+
+    // 3. Après la 2ème visite : 310 + (1 * 100) = 410
+    Visite v2 = new Visite(adh2, "10:30");
+    v2.ajouterPrestationVisite(tp1, 1);
+    gt.ajouterVisite(v2);
+    assertEquals("Erreur CA final de la tournée", 410.0f, gt.CATournee());
+}
+----
+
+**Question 3.3 : Cybersécurité des API (L'attaque MitM)**
+
+Une attaque **Man-in-the-Middle (MitM)** consiste pour un pirate à s'intercaler entre le smartphone de l'inséminateur et le serveur Web de l'API (par exemple en créant un faux point d'accès Wi-Fi public). Il peut alors lire les données de synchronisation en clair.
+Pour contrer cela, le serveur doit impérativement utiliser le protocole **HTTPS** (couche de chiffrement **TLS/SSL**) afin de chiffrer le tunnel de communication de bout en bout.
+
+
+== Missions 4 et 5 : Validations Pratiques (Sandbox)
+
+Les missions 4 et 5 évaluent la capacité des étudiants à mettre en œuvre un prototype complet (Full-Stack).
+Voici les éléments clés permettant au correcteur de valider l'exercice :
+
+**Validation TDD (Mission 5.1)**
+Le test unitaire `testAjoutZeroActe()` doit obligatoirement inclure l'instanciation d'une visite, un appel avec `0` en argument, et une assertion vérifiant que `gt.CATournee()` retourne bien `0.0f`.
+
+**Validation JavaFX (Mission 5.2)**
+Le contrôleur JavaFX mis à jour doit comporter la trace de l'historique :
+[source,java]
+----
+// ... dans TourneeController.java ...
+@FXML private TextArea txtHistorique;
+
+// ... dans handleAjouterActe() ...
+if (typeSelectionne != null && nbActes > 0) {
+    visiteCourante.ajouterPrestationVisite(typeSelectionne, nbActes);
+    lblTotal.setText("CA Total de la tournée : " + gestionTournee.CATournee() + " €");
+
+    // VALIDATION DE L'AJOUT GRAPHIQUE
+    txtHistorique.appendText("- " + nbActes + "x " + typeSelectionne.getLibelle() + "\n");
+}
+----
+_L'étudiant démontre ainsi sa maîtrise de la liaison entre la vue (`@FXML`) et le code métier (Contrôleur)._
