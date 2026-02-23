@@ -1,0 +1,1145 @@
+= TP Étude de Cas : Coopain
+:author: Professeur Agrégé d'Informatique
+:revnumber: 1.0
+:toc: left
+:toc-title: Sommaire
+:icons: font
+:description: Préparation à l'E5 - BTS SIO SLAM 2ème année
+:imagesdir: ./images
+
+== Présentation du contexte Coopain
+
+=== L’organisation cliente : Coopain
+**Coopain** (Coopérative Agricole Pour l’Insémination en Normandie) est une coopérative agricole spécialisée dans la reproduction des bovins, à la fois dans la sélection bovine des races Prim’Holstein et Normande, et dans l'insémination artificielle.
+
+**Chiffres clés**
+La coopérative compte 5 000 adhérents éleveurs de bovins. Son chiffre d’affaires annuel est de 20 millions d’euros. Elle est administrée par 24 administrateurs élus (12 femmes et 12 hommes) et compte 180 salariés. Elle est présente sur trois sites en Normandie. Le siège social administratif et technique est situé à Caen.
+
+**L'insémination artificielle bovine**
+Coopain emploie 160 inséminateurs qui pratiquent l’insémination artificielle bovine chez les adhérents, permettant ainsi une amélioration génétique de leur cheptel.
+Dans un premier temps, les inséminateurs collectent la semence de taureaux sélectionnés pour leurs qualités génétiques. La semence récoltée est alors conditionnée en lots de doses pour la commercialisation. Chaque dose est appelée **paillette**.
+Dans un second temps, sur demande d’un adhérent, un inséminateur utilise une paillette pour féconder une vache, qui donnera ainsi naissance à un ou plusieurs veaux. Cette technique de reproduction assistée est appelée insémination artificielle.
+L'activité d'insémination animale est de fait le cœur de métier de Coopain avec 450 000 actes par an.
+
+=== Système d’information de la coopérative
+Coopain utilise un logiciel métier nommé **LogiSemin**, développé par un prestataire, **AgriDev**, spécialisé dans le développement de logiciels pour l’agriculture et l’élevage.
+
+Les fonctionnalités principales du logiciel métier LogiSemin sont :
+
+* gestion des adhérents ;
+* gestion du stock de paillettes ;
+* gestion de la tarification ;
+* suivi des inséminations ;
+* bilan de fécondité ;
+* suivi de reproduction ;
+* gestion de la facturation aux adhérents.
+
+Le service informatique de Coopain, basé au siège à Caen, compte un technicien support, une technicienne en charge de l’administration des bases de données (BDD) et du paramétrage du logiciel métier, un apprenti qui aide à l’administration et la maintenance de l’architecture réseau, et enfin le responsable du service.
+
+L’infrastructure réseau de Coopain, sur les 3 sites, est composée de :
+
+* 90 postes clients ;
+* 3 serveurs supportant le logiciel métier LogiSemin et sa base de données ;
+* 2 sites Web hébergés en interne ;
+* 1 serveur pour le logiciel de comptabilité et de paie ;
+* 1 réseau VPN (virtual private network) pour la communication inter sites.
+
+Chaque inséminateur dispose :
+
+* d’un PC avec accès au logiciel LogiSemin, via internet ;
+* d’un ordiphone (smartphone) Android muni d’un logiciel **MobiSemin** pour le suivi de la reproduction, le suivi des adhérents et le suivi du stock de paillettes.
+
+=== L’organisation prestataire : AgriDev
+AgriDev est un éditeur de solutions numériques innovantes pour les PME du monde agricole. Cette société compte une trentaine de salariés, dont 25 travaillent sur des projets de génie logiciel ou d'infrastructure réseau.
+
+De nombreuses coopératives d'insémination animale, françaises ou étrangères, dont Coopain, utilisent l'application LogiSemin proposée par AgriDev.
+
+AgriDev a, par ailleurs, développé le site Web de Coopain ainsi que l’application mobile MobiSemin qui s’appuie sur les mêmes données que LogiSemin, l'outil installé au siège.
+
+=== Nouveaux besoins pour le contrôle des tournées des inséminateurs
+Les administrateurs de Coopain ont décidé de mettre en place un suivi régulier des déplacements des inséminateurs. En effet, chaque inséminateur dispose d’un véhicule pour faire ses tournées d’insémination.
+
+Il peut être amené à réaliser d’autres catégories d’actes vétérinaires, appelées prestations, comme des constats de gestation, des transplantations, du suivi de reproduction, des actes de formation, ou des actes commerciaux, dans le secteur auquel il est affecté.
+
+Les véhicules sont des véhicules dédiés ; ils sont équipés d’une cuve d’azote liquide, non amovible, dans laquelle sont stockées les paillettes. Au total, c’est un parc de 150 véhicules que doit gérer Coopain.
+L’enjeu principal est de réduire les coûts de déplacement, notamment en optimisant les tournées journalières des inséminateurs. Ce suivi passe par le développement de fonctionnalités nouvelles dans l’application LogiSemin d’une part, et sur l’application MobiSemin, d’autre part.
+
+Les nouvelles fonctionnalités de l’application métier **LogiSemin** à développer sont :
+
+* la gestion des tournées d'insémination ;
+* le bilan inséminateur (contrôle des ratios : nombre d’inséminations, ou autres actes par kilomètre parcouru).
+
+Les nouvelles fonctionnalités de l’application **MobiSemin** à développer sont :
+* la saisie à partir de l’ordiphone (smartphone) des tournées des inséminateurs ;
+* la remontée journalière de ces informations par synchronisation via un serveur Web, vers la BDD.
+
+Au sein de la société AgriDev, après un premier temps de travail pour comprendre l’existant, vous prenez part aux développements des nouvelles fonctionnalités des applications LogiSemin et MobiSemin.
+
+== Mission 1 – Gestion des demandes d'insémination
+_Documents à utiliser : 1, 2 et 3_
+
+Votre chef de projet vous a fourni des éléments du système d’information de gestion des collectes de semence sur les taureaux. Il vous demande de compléter la documentation de l’application existante.
+
+[IMPORTANT]
+====
+**Question 1.1 :** Déduire de la requête SQL fournie dans le dossier documentaire (**Document 2**), la règle de gestion utilisée par Coopain pour choisir une paillette lors d'une demande d'insémination.
+
+**Question 1.2 :** Indiquer pour chaque information à imprimer sur une paillette (**Document 3**), la ou les données nécessaires en précisant pour chacune d'où elle provient dans le schéma existant et si elle nécessite une transformation.
+====
+
+Le chef de projet vous demande ensuite d’écrire deux requêtes, relatives à la gestion des demandes d’insémination, qui doivent pouvoir être réalisées avec la base de données existante.
+
+[IMPORTANT]
+====
+**Question 1.3 :** Écrire la requête permettant d'obtenir pour le taureau FR0103015562 les tarifs des types de paillette (libellé du type de paillette, prix de la paillette).
+
+**Question 1.4 :** Écrire la requête permettant d'obtenir la liste des taureaux (identifiant national, nom, stock total restant de paillettes), le tout trié de façon croissante par stock total restant.
+====
+
+Enfin, il vous demande de modifier le schéma de données en prenant en compte l’ensemble des nouvelles règles de gestion exprimées ci-dessous.
+
+**Le choix du taureau et du type de paillette**
+
+Les adhérents peuvent consulter le catalogue de Coopain qui présente les taureaux pour lesquels Coopain commercialise des paillettes. Lorsqu'une de ses vaches est prête à être fécondée, l’adhérent contacte Coopain pour demander une insémination. La société Coopain doit être très réactive pour effectuer l’insémination au plus tard le lendemain.
+
+Une demande est alors créée pour laquelle on enregistre la date de la demande ainsi que les informations fournies par l'adhérent : l'identifiant de l'adhérent, l'identifiant du taureau choisi, le type de paillette souhaité et l'identifiant de la vache à inséminer.
+
+Chaque vache porte un nom et est identifiée par un numéro d'identification national inscrit sur une boucle agréée fixée à l'oreille.
+
+**Les inséminateurs**
+Chaque inséminateur :
+
+* possède un numéro de licence obligatoire pour pratiquer les inséminations ;
+* est affecté sur un secteur géographique, chaque secteur possédant un nom, une description et regroupant un certain nombre d'adhérents ;
+* est doté d’un véhicule équipé d'une cuve d'azote liquide à -196°, toujours le même, mais qu’il peut partager avec plusieurs inséminateurs ;
+* est doté d'un ordiphone (smartphone) avec abonnement téléphonique.
+Chaque véhicule est identifié par son numéro d'immatriculation. Il est nécessaire de connaître sa marque, son modèle et sa date d'achat.
+
+**L'insémination**
+
+L’inséminateur prend connaissance des demandes qui lui ont été affectées et s'organise à partir des adresses des adhérents. Il choisit et transfère dans la cuve d'azote de son véhicule, les paillettes nécessaires aux différentes inséminations prévues.
+Lorsqu'il arrive chez un adhérent, il procède aux inséminations et complète chaque demande en précisant le lot de la paillette utilisée, la date et l’heure d'insémination, la température ambiante et un compte rendu détaillé. Ces informations serviront ultérieurement pour le suivi de la reproduction, suivi qui sort du cadre de cette mission.
+
+[IMPORTANT]
+====
+**Question 1.5 :** Présenter le schéma de données nécessaire à la gestion des demandes d'insémination en reprenant les éléments nécessaires du modèle existant.
+
+_Note : Vous présenterez les évolutions de la structure de la base de données en adoptant le formalisme de votre choix (schéma entité association, diagramme de classes, ou encore schéma relationnel)._
+====
+
+---
+
+== Mission 2 – Nouvelles fonctionnalités de l’application Android MobiSemin
+_Documents à utiliser : 4, 5, 6, 7 et 8_
+
+Lors de la réunion de travail entre AgriDev et Coopain concernant les adaptations de l’application mobile MobiSemin, il a été évoqué de faire saisir quotidiennement aux inséminateurs les kilomètres qu'ils ont parcourus. Cette nouvelle activité nécessitera une synchronisation des données saisies et enregistrées dans une base de données **SQLite** locale, avec la base de données distante.
+
+Pour cela il est prévu d’ajouter une option « Gestion des tournées » à l’application mobile MobiSemin. Cette nouvelle option nécessitera un menu à trois items : « Saisie tournée », « Synchronisation » et « Quitter ».
+
+L’item « Saisie tournée » permet la saisie des kilomètres des tournées. L’inséminateur s’authentifie puis il obtient un formulaire permettant de renseigner la date de tournée ainsi que le véhicule utilisé lors de la tournée. Par défaut, ces deux informations contiennent respectivement la date du jour et le véhicule affecté à l'inséminateur. Ce dernier valide les valeurs par défaut fournies ou peut les changer.
+
+Par défaut, le kilométrage de début de tournée sera le même que celui de fin de la dernière tournée saisie pour le véhicule. Les informations saisies seront stockées en local sur l’ordiphone (smartphone).
+
+Le dossier documentaire comprend une partie du rapport présentant le diagramme des cas d’utilisation et une partie du scénario de la nouvelle fonctionnalité « Saisir une tournée ».
+
+
+[IMPORTANT]
+====
+**Question 2.1 :** Compléter les scénarios d’erreur du cas d’utilisation « Saisir une tournée » (**Document 4**) concernant la saisie des kilomètres d’une tournée.
+====
+
+On s’intéresse à la partie de l’application mobile permettant l’enregistrement des kilomètres saisis par l’inséminateur dans une table nommée `histoKm` de la base locale MobiDb du mobile Android.
+
+Cette base est gérée par le système de gestion de bases de données SQLite intégré dans chaque appareil Android. SQLite propose les fonctionnalités standards des SGBD relationnels. Le schéma relationnel de cette base est donné dans la documentation.
+
+Le dossier documentaire vous propose une partie du code de la classe `MobiDb`, dérivée de la classe `SQLiteOpenHelper`. La classe `SQLiteOpenHelper` est une classe utilitaire qui permet de créer une base de données et les tables qu'elle contient, notamment en donnant accès à un objet `SQLiteDatabase`.
+
+[IMPORTANT]
+====
+**Question 2.2 :** Compléter la méthode `onCreate()` de la classe `MobiDb` (**Document 7**).
+====
+
+=== Partie 2 : Audit de sécurité (DICP et Mobilité)
+
+L'utilisation d'une flotte de 160 ordiphones (smartphones) Android sur le terrain soulève de nouveaux défis de cybersécurité pour Coopain, particulièrement lors de la synchronisation des données vers le système central.
+
+[IMPORTANT]
+====
+**Question 2.3 (Analyse des risques et DICP) :**
+En cas de perte ou de vol de l'ordiphone d'un inséminateur, évaluez les risques pesant sur la base de données locale `SQLite` au regard des critères de **Confidentialité** et d'**Intégrité** (matrice DICP). Proposez au moins une solution technique ou organisationnelle (ex: MDM, chiffrement) de protection des données sur cet appareil mobile.
+
+**Question 2.4 (Vulnérabilité OWASP) :**
+L'analyse du code métier (Document 10) indique la présence de l'attribut `private String password;` au sein de la classe `Inseminateur`. Expliquez en quoi le stockage ou la transmission de cette donnée en clair représente une faille critique. Que recommandez-vous de mettre en place pour sécuriser la phase d'authentification ?
+====
+
+---
+
+== Mission 3 – Gestion des tournées des inséminateurs
+_Documents à utiliser : 9, 10, 11, 12, 13 et 14_
+
+Au cours de leurs tournées, les inséminateurs sont amenés à effectuer diverses prestations vétérinaires. La majeure partie des classes développées pour la gestion des tournées sera utilisée indifféremment dans MobiSemin et/ou LogiSemin.
+
+Pour des raisons d’efficacité dans le développement, et pour permettre une plus grande évolutivité du code, la persistance des données est gérée par l’outil **Hibernate**, qui gère la persistance des objets dans une base de données relationnelle (ORM : object-relational mapping).
+
+Son utilisation permet d’établir la correspondance entre une table de la base de données et une classe du modèle objet métier. Les classes métier (visibles sur le diagramme de classes) seront ainsi générées automatiquement à partir de cet outil de mise en correspondance. Elles sont qualifiées de POJO (Plain Old Java Object) et se limitent chacune à définir :
+
+* un constructeur sans paramètre (parfois implicite) ;
+* des membres de données privés ;
+* des accesseurs à ces membres en lecture et en écriture (get, set).
+
+La génération automatisée de ces classes peut être à nouveau invoquée dans le cadre du développement, en cas de modification de la structure de la base de données. Pour permettre cette génération automatique sans prendre le risque de perdre du code déjà implémenté, les fonctionnalités à coder pour gérer les tournées le seront dans des "classes de gestion" encapsulant des objets métier. Ainsi la classe `GestionTournee` sera utilisée pour gérer les tournées.
+
+[IMPORTANT]
+====
+**Question 3.1 : Programmation Orientée Objet**
+
+**3.1.1** Expliquer le mécanisme qui permet de différencier les deux méthodes de même nom (`CATournee`) de la classe `GestionTournee`.
+
+**3.1.2** Écrire la méthode `getCoordGPS()` de la classe `Adherent` qui renvoie les coordonnées GPS (latitude et longitude) sous la forme d’une chaîne de caractères.
+
+**3.1.3** Écrire le code de la méthode `getAdherents()` de la classe `GestionTournee`.
+
+**3.1.4** Écrire le code de la méthode `montantAFacturer()` de la classe `Visite`.
+====
+
+Le chef de projet vous demande ensuite de travailler sur les tests unitaires de la classe `GestionTournee` selon le scénario qu’il vous a fourni et avec le framework de test **JUnit**.
+
+[IMPORTANT]
+====
+**Question 3.2 :** Compléter les tests unitaires correspondants à la méthode `CATournee()` de la classe `GestionTourneeTest` (**Document 11**) en respectant le scénario fourni par le chef de projet (**Document 13**) et en respectant la syntaxe utilisée.
+
+**Question 3.3 (Cybersécurité des API) :** La synchronisation des tournées entre l'application `MobiSemin` et le serveur `LogiSemin` se fait via le réseau Internet. Décrivez une attaque possible visant à intercepter ou altérer ces données en transit (Man-in-the-Middle) et indiquez le protocole standard à exiger côté serveur pour chiffrer ces échanges.
+====
+
+
+== Dossier Documentaire
+
+=== Document 1 : Schéma de données partiel de la base actuelle
+
+image::doc1_mcd.png[Schéma entité-association et Diagramme de classes de la base actuelle]
+
+
+**Description textuelle du schéma relationnel :**
+
+* **Race** (code, nom)
+** Clé primaire : code
+* **Taureau** (idNational, nom, numeroIE, codeRace)
+** Clé primaire : idNational
+** Clé étrangère : codeRace en référence à code de Race
+* **Collecte** (idNationalTaureau, date, compteRendu)
+** Clé primaire : idNationalTaureau, date
+** Clé étrangère : idNationalTaureau en référence à idNational de Taureau
+* **TypePaillette** (id, libelle)
+** Clé primaire : id
+* **Lot** (idNationalTaureau, date, numero, nombrePaillettes, stockRestant, idTypePaillette)
+** Clé primaire : idNationalTaureau, date, numero
+** Clé étrangère : (idNationalTaureau, date) en référence à (idNationalTaureau, date) de Collecte
+** Clé étrangère : idTypePaillette en référence à id de TypePaillette
+* **Tarif** (idNationalTaureau, idTypePaillette, prixPaillette)
+** Clé primaire : idNationalTaureau, idTypePaillette
+** Clé étrangère : idNationalTaureau en référence à idNational de Taureau
+** Clé étrangère : idTypePaillette en référence à id de TypePaillette
+
+**Informations complémentaires :**
+Le contenu de la table `TypePaillette` est fixe :
+[cols="1,3", options="header"]
+|===
+| id | libelle
+| 1 | paillette conventionnelle
+| 2 | paillette sexée femelle
+| 3 | paillette enrichie
+| 4 | paillette sexée mâle
+|===
+Le prix d'une paillette dépend du type de paillette et du taureau dont est issue la semence. Lors d'une collecte de semence de taureau, il est possible de créer plusieurs lots de paillettes. Toutes les paillettes d'un lot seront du même type de paillette.
+
+=== Document 2 : Requête SQL
+
+Cette requête permet d’obtenir les informations nécessaires pour choisir une paillette enrichie du taureau FR0103015562 :
+[source,sql]
+----
+SELECT date, numero
+FROM Lot
+WHERE idNationalTaureau = 'FR0103015562'
+AND idTypePaillette = 3
+AND date = (
+    SELECT MIN(date)
+    FROM Lot
+    WHERE idNationalTaureau = 'FR0103015562'
+    AND idTypePaillette = 3
+    AND stockRestant >= 1
+);
+----
+
+=== Document 3 : Informations imprimées sur une paillette
+
+Une des activités de Coopain est de procéder à la collecte de semence de taureaux. Un taureau peut être collecté deux à trois fois par semaine à des jours différents. Chaque collecte va permettre de remplir environ 200 paillettes qui seront ensuite réparties en lots et stockées dans de l'azote liquide. Pour répondre à une obligation de traçabilité, chaque paillette est dotée d'informations claires sous une forme normalisée à l'échelle internationale qui permettent de tracer le lot.
+
+image::doc3_paillette.png[Informations imprimées sur une paillette]
+
+* **Date de collecte** (sous la forme AAJJJ). Dans l'exemple, 11335 signifie 335ème jour de l'année 2011 (1er décembre) ;
+* **N° d'agrément du CCS** : identification du centre de collecte de semence (le numéro attribué à Coopain) ;
+* **N° national d'identification du taureau**. Dans l'exemple FR0103015562 : FR représente le pays de naissance (France), 0103015562 est le numéro national (sur 10 positions) ;
+* **Code à barres** (de type 128 CRT numérique sur 10 positions) est composé du n° d'IE, de la date de collecte (quantième), du numéro de lot ;
+* **N° IE du taureau** : identifiant du taureau inscrit dans la base de données nationale de l'institut de l'élevage (sur 5 positions) ;
+* **Quantième date de collecte** : nombre de jours écoulés entre le 01/01/2002 et la date de collecte ;
+* **Numéro de lot de prélèvement** ;
+* **Code de la race** : par exemple MO est le code de la race Montbéliard ;
+* **Nom du taureau** (imprimé en gras).
+
+=== Document 4 : Description des cas d’utilisation (MobiSemin)
+
+image::doc4_usecase.png[Diagramme des cas d'utilisation de l'application MobiSemin]
+
+**Fiche descriptive du cas d’utilisation « Saisir une tournée »**
+
+* **Pré-condition** : L’utilisateur devra être authentifié.
+* **Scénario nominal** :
+1. Le système présente un formulaire avec un calendrier initialisé avec la date du jour, la liste des véhicules disponibles et son véhicule affecté par défaut.
+2. L’utilisateur met éventuellement à jour les données et clique sur le bouton valider.
+3. Le système vérifie les données saisies et présente un formulaire de saisie des kilomètres.
+4. L’utilisateur renseigne le kilométrage au compteur de fin de tournée et clique sur le bouton valider du formulaire.
+5. Le système vérifie les données saisies, enregistre toutes les données, informe l'utilisateur et renvoie sur la page d’accueil.
+* **Scénarios alternatifs** :
+
+2.a L'utilisateur abandonne la saisie. Fin.
+4.a L'utilisateur abandonne la saisie. Fin.
+
+* **Scénarios d'erreur** :
+
+3.a La date saisie est supérieure à la date du jour, le système en informe l’utilisateur et retourne à l’étape 1.
+`... // À compléter sur votre copie`
+
+* **Post-condition** : Les données d’une tournée sont enregistrées en local sur le mobile.
+
+=== Document 5 : Maquette des écrans pour la gestion des tournées
+
+image::doc5_maquette.png[Maquette des 3 écrans Android : Menu, Choix véhicule, Saisie kilomètres]
+
+=== Document 6 : Schéma de la base de données locale SQLite
+
+[cols="2,4,2,4", options="header"]
+|===
+| Table | Attributs | Clé(s) Primaire(s) | Clé(s) Étrangère(s)
+
+| **inseminateur**
+| id, nom, prenom
+| id
+| _Aucune_
+
+| **vehicule**
+| id, immat, marque, modele, dateAchat
+| id
+| _Aucune_
+
+| **histoKm**
+| id, date, kmDebut, kmFin, idInsemin, idVehicule
+| id
+| idInsemin (réf. inseminateur.id) +
+idVehicule (réf. vehicule.id)
+|===
+
+[NOTE]
+====
+**Remarque :** +
+`date` est la date de la tournée, `kmDebut` et `kmFin` représentent les relevés du kilométrage au compteur.
+====
+
+=== Document 7 : Classe MobiDb (Création SQLite sous Android)
+
+[source,java]
+----
+package com.mobisemin.projet.sqliteMobiDb;
+import android.content.ContentValues;
+// ... imports ...
+
+public class MobiDb extends SQLiteOpenHelper {
+    private static final android.content.Context context = null;
+
+    // Constructeur
+    public MobiDb(Context context, String name, SQLiteDatabase.CursorFactory factory, int version){
+        super(context, name, factory, version);
+    }
+
+    // Méthode pour créer les tables inseminateur, vehicule et histoKm
+    @Override
+    public void onCreate(SQLiteDatabase db) {
+        String strReq = "CREATE TABLE inseminateur(id INTEGER PRIMARY KEY AUTOINCREMENT, nom TEXT, prenom TEXT)";
+        db.execSQL(strReq);
+
+        strReq = "CREATE TABLE vehicule(id INTEGER PRIMARY KEY AUTOINCREMENT, immat TEXT, marque TEXT, modele TEXT, dateAchat TEXT)";
+        db.execSQL(strReq);
+
+        // À compléter sur votre copie
+    }
+}
+----
+
+=== Document 8 : Types de données en SQLite
+[cols="1,3", options="header"]
+|===
+| Type de donnée | Signification
+| NULL | Représente la valeur NULL.
+| INTEGER | Pour les nombres entiers.
+| REAL | Pour les nombres à virgule flottante.
+| TEXT | Pour les chaînes de caractères ou les dates.
+| BLOB | Pour les données brutes, octets, images… stockées au format binaire.
+|===
+
+=== Document 9 : Diagramme de classes métier de la gestion des tournées
+
+image::doc9_classes.png[Diagramme de classes métier (Personne, Adherent, Inseminateur, Tournee, Visite, Prestation)]
+
+=== Document 10 : Description textuelle des classes métier (vue partielle)
+
+[source,java]
+----
+public class Personne {
+    private String nom;
+    private String prenom;
+    private String telPortable;
+    public Personne(String unNom, String unPrenom, String unTelPortable){…}
+    public String getNom() {...}
+    public String getPrenom() {...}
+    …
+}
+
+public class Adherent extends Personne {
+    private String latitude;
+    private String longitude;
+    public Adherent(String unNom, String unPrenom, String unTelPortable, String uneLatitude, String uneLongitude){…}
+
+    public String getCoordGPS() {
+        // renvoie une chaîne de caractères composée de la latitude et de la longitude séparées par un espace
+        // À compléter sur votre copie
+    }
+}
+
+public class Inseminateur extends Personne {
+    private String login;
+    private String password;
+    public Inseminateur(String unNom, String unPrenom, String unTelPortable){…}
+}
+
+public class Tournee {
+    private Date date;
+    private int kmRealises;
+    private Inseminateur leInseminateur;
+    private ArrayList<Visite> lesVisites;
+
+    public Tournee(Date uneDate, Inseminateur unInseminateur) {...}
+    public Date getDate() {...}
+    public void setDate(Date date) {...}
+    public int getKmRealises() {...}
+    public void setKmRealises(int kmRealises) {...}
+    public Inseminateur getLeInseminateur() {...}
+    public ArrayList<Visite> getLesVisites() {...}
+    public void ajouterVisite(Visite uneVisite) {…}
+}
+
+public class Visite {
+    private Adherent leAdherent;
+    private String heure;
+    private ArrayList<PrestationVisite> lesPrestationsVisite;
+
+    public Visite(Adherent unAdherent, String uneHeure) {...}
+    public Adherent getLeAdherent() {...}
+    public String getHeure() {...}
+    public ArrayList<PrestationVisite> getLesPrestationsVisite() {...}
+    public void ajouterPrestationVisite(TypePrestation unTypePrestation, int unNombreActes) {…}
+
+    // Retourne le montant total à facturer pour la visite (nb d'actes * prix forfaitaire)
+    public float montantAFacturer() {
+        // À compléter sur votre copie
+    }
+}
+
+public class PrestationVisite {
+    private TypePrestation leTypePrestation;
+    private int nombreActes;
+    public TypePrestation getLeTypePrestation() {...}
+    public int getNombreActes() {...}
+}
+
+public class TypePrestation {
+    private String libelle;
+    private float prixForfaitaire;
+    public TypePrestation(String libelle, float prixForfaitaire) {…}
+    public float getPrixForfaitaire() {...}
+}
+----
+
+=== Document 11 : Implémentation partielle de la classe GestionTournee et ses tests
+
+[source,java]
+----
+public class GestionTournee {
+    private Tournee laTournee;
+
+    public GestionTournee(Tournee uneTournee) {
+        this.laTournee = uneTournee;
+    }
+
+    public void ajouterVisite(Visite uneVisite) {
+        laTournee.ajouterVisite(uneVisite);
+    }
+
+    // Retourne la liste des adhérents visités sur la tournée
+    // Un adhérent n'est visité qu'une seule fois au cours de la tournée
+    public ArrayList<Adherent> getAdherents() {
+        // À compléter sur votre copie
+    }
+
+    // Retourne le montant total à facturer pour l’ensemble des visites de la tournée
+    public float CATournee() {
+        // Cette méthode fera l’objet d’un test unitaire
+    }
+
+    // Retourne le montant total à facturer pour l’ensemble des visites de la tournée
+    // correspondant au type de prestation passé en paramètre
+    public float CATournee(TypePrestation unTypePrestation) {…}
+}
+
+public class GestionTourneeTest {
+    private Inseminateur ins1;
+    private Adherent adh1, adh2;
+    private Visite v1, v2;
+    private TypePrestation tp1, tp2;
+    private Tournee t1;
+    private GestionTournee gt;
+
+    @Before
+    public void setUp() throws Exception {
+        tp1 = new TypePrestation("Insémination", 100);
+        tp2 = new TypePrestation("Echographie", 10);
+        ins1 = new Inseminateur("Petit", "Ferdinand", "0600000100");
+        adh1 = new Adherent("Duboeuf", "Georges" , "0600000020", "48.5331", "7.72");
+        adh2 = new Adherent("Cow", "Marguerite", "0600000003", "48.5833", "7.75");
+
+        t1 = new Tournee(new SimpleDateFormat("dd-MM-yyyy").parse("06-05-2020"), ins1);
+        gt = new GestionTournee(t1);
+
+        // Préparation des visites
+        // À compléter sur votre copie
+    }
+
+    @Test
+    public void testCATournee() {
+        // À compléter sur votre copie
+    }
+}
+----
+
+=== Document 12 : Exemple d’utilisation de la classe technique ArrayList
+[source,java]
+----
+ArrayList<Visite> lesVisites;  // Déclaration
+lesVisites = new ArrayList<Visite>(); // Instanciation
+Visite uneVisite = new Visite(…);
+lesVisites.add(uneVisite); // Ajout
+System.out.println(lesVisites.get(0)); // Affichage du 1er élément
+System.out.println(lesVisites.size()); // Affichage de la taille
+
+for(Visite v : lesVisites) { // Parcours de la collection
+    System.out.println(v.getHeure());
+}
+----
+
+=== Document 13 : Scénario pour la réalisation des tests unitaires
+Le scénario de la tournée de tests a été élaboré en concertation avec le chef de projet :
+L’inséminateur M. Ferdinand Petit effectue une tournée le 06 mai 2020. Il commence chez M. Georges Duboeuf à 9 heures chez lequel sont pratiquées 3 inséminations et 1 échographie. La tournée se poursuit à 10h30 chez Mme Marguerite Cow afin de réaliser 1 insémination.
+
+**Tests de la méthode CATournee() à effectuer :**
+
+* Vérification que le montant total à facturer initial est nul ;
+* Vérification du montant total à facturer à l’issue de la première visite ;
+* Vérification du montant total à facturer final de la tournée.
+
+=== Document 14 : Documentation de l’outil JUnit
+L’outil JUnit utilise des annotations pour définir les méthodes de test :
+
+* `@Test` : marque une méthode comme étant une méthode de test.
+* `@Before` : exécutée avant chaque test, elle est utilisée pour préparer l’environnement.
+
+**Assertions (classe Assert) :**
+
+* `assertTrue([message,] boolean condition)`
+* `assertFalse([message,] boolean condition)`
+* `assertEquals([message,] expected, actual)`
+* `assertNull([message,] object)`
+* `assertNotNull([message,] object)`
+
+== Mission 4 : Le "Bac à Sable" (Prototypage JavaFX, Hibernate et JUnit)
+
+Afin de valider l'architecture logicielle de la gestion des tournées (Mission 3), votre chef de projet vous demande de réaliser une preuve de concept (POC).
+Ce projet Maven intégrera la persistance des données avec le framework **Hibernate** (ORM), l'interface graphique **JavaFX** pour la saisie, et les tests unitaires avec **JUnit 5** pour valider la logique de calcul du chiffre d'affaires.
+
+
+
+=== 4.1. Préparation de la Base de Données (MySQL)
+
+Pour ce prototype, nous allons persister la table paramétrique `TypePrestation`. Exécutez le script suivant dans votre SGBD (Laragon, XAMPP, etc.) :
+
+[source,sql]
+----
+CREATE DATABASE IF NOT EXISTS coopain DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE coopain;
+
+CREATE TABLE TypePrestation (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    libelle VARCHAR(50) NOT NULL,
+    prixForfaitaire FLOAT NOT NULL
+);
+
+-- Jeu d'essai correspondant au scénario de test
+INSERT INTO TypePrestation (libelle, prixForfaitaire) VALUES
+('Insémination', 100.0),
+('Echographie', 10.0),
+('Constat de gestation', 25.5);
+----
+
+=== 4.2. Configuration du projet (Maven)
+
+==== L'arborescence du projet
+Respectez strictement cette arborescence standard :
+[source,text]
+----
+CoopainFX/
+├── pom.xml
+└── src/
+    ├── main/
+    │   ├── java/
+    │   │   └── coopain/
+    │   │       ├── Main.java
+    │   │       ├── Launcher.java
+    │   │       ├── controleur/
+    │   │       │   └── TourneeController.java
+    │   │       ├── modele/
+    │   │       │   ├── TypePrestation.java
+    │   │       │   ├── Visite.java
+    │   │       │   ├── PrestationVisite.java
+    │   │       │   ├── Tournee.java
+    │   │       │   └── GestionTournee.java
+    │   │       └── util/
+    │   │           └── HibernateUtil.java
+    │   └── resources/
+    │       ├── hibernate.cfg.xml
+    │       └── coopain/
+    │           └── vue/
+    │               └── tournee.fxml
+    └── test/
+        └── java/
+            └── coopain/
+                └── modele/
+                    └── GestionTourneeTest.java
+----
+
+==== Le fichier `pom.xml`
+Ce fichier télécharge automatiquement JavaFX, Hibernate, le pilote MySQL et JUnit 5.
+
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.agridev</groupId>
+    <artifactId>CoopainFX</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-controls</artifactId>
+            <version>21.0.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-fxml</artifactId>
+            <version>21.0.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.hibernate.orm</groupId>
+            <artifactId>hibernate-core</artifactId>
+            <version>6.4.4.Final</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <version>8.3.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>jakarta.persistence</groupId>
+            <artifactId>jakarta.persistence-api</artifactId>
+            <version>3.1.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <version>5.10.2</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>
+----
+
+==== Configuration d'Hibernate (`hibernate.cfg.xml`)
+Ce fichier permet à l'application de se connecter à la base de données. Placez-le dans `src/main/resources/`.
+
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-configuration PUBLIC
+        "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+        "http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd">
+<hibernate-configuration>
+    <session-factory>
+        <property name="hibernate.connection.driver_class">com.mysql.cj.jdbc.Driver</property>
+        <property name="hibernate.connection.url">jdbc:mysql://localhost:3306/coopain?serverTimezone=UTC</property>
+        <property name="hibernate.connection.username">root</property>
+        <property name="hibernate.connection.password"></property>
+
+        <property name="hibernate.dialect">org.hibernate.dialect.MySQLDialect</property>
+        <property name="hibernate.show_sql">true</property>
+
+        <mapping class="coopain.modele.TypePrestation"/>
+    </session-factory>
+</hibernate-configuration>
+----
+
+=== 4.3. Les Classes Métiers et la Logique (Corrigé de la Mission 3)
+
+Créez ces fichiers dans `src/main/java/coopain/modele/`.
+
+**1. L'Entité Hibernate `TypePrestation.java`**
+[source,java]
+----
+package coopain.modele;
+
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "TypePrestation")
+public class TypePrestation {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+    private String libelle;
+    private float prixForfaitaire;
+
+    // Constructeur vide requis par Hibernate
+    public TypePrestation() {}
+
+    public TypePrestation(String libelle, float prixForfaitaire) {
+        this.libelle = libelle;
+        this.prixForfaitaire = prixForfaitaire;
+    }
+
+    public String getLibelle() { return libelle; }
+    public float getPrixForfaitaire() { return prixForfaitaire; }
+
+    @Override
+    public String toString() {
+        return libelle + " (" + prixForfaitaire + " €)";
+    }
+}
+----
+
+**2. Les autres classes métiers (Simplifiées pour le TP)**
+Afin de faire fonctionner le test unitaire et le calcul du CA, nous modélisons les classes liées aux prestations.
+
+**`PrestationVisite.java` :**
+[source,java]
+----
+package coopain.modele;
+
+public class PrestationVisite {
+    private TypePrestation leTypePrestation;
+    private int nombreActes;
+
+    public PrestationVisite(TypePrestation type, int nbActes) {
+        this.leTypePrestation = type;
+        this.nombreActes = nbActes;
+    }
+    public TypePrestation getLeTypePrestation() { return leTypePrestation; }
+    public int getNombreActes() { return nombreActes; }
+}
+----
+
+**`Visite.java` (Corrigé de la Question 3.1.4) :**
+[source,java]
+----
+package coopain.modele;
+import java.util.ArrayList;
+
+public class Visite {
+    private ArrayList<PrestationVisite> lesPrestationsVisite = new ArrayList<>();
+
+    public void ajouterPrestationVisite(TypePrestation unTypePrestation, int unNombreActes) {
+        lesPrestationsVisite.add(new PrestationVisite(unTypePrestation, unNombreActes));
+    }
+
+    // Réponse Question 3.1.4
+    public float montantAFacturer() {
+        float total = 0;
+        for (PrestationVisite pv : lesPrestationsVisite) {
+            total += pv.getNombreActes() * pv.getLeTypePrestation().getPrixForfaitaire();
+        }
+        return total;
+    }
+}
+----
+
+**`Tournee.java` et `GestionTournee.java` :**
+[source,java]
+----
+package coopain.modele;
+import java.util.ArrayList;
+
+public class Tournee {
+    private ArrayList<Visite> lesVisites = new ArrayList<>();
+    public void ajouterVisite(Visite v) { lesVisites.add(v); }
+    public ArrayList<Visite> getLesVisites() { return lesVisites; }
+}
+----
+
+[source,java]
+----
+package coopain.modele;
+
+public class GestionTournee {
+    private Tournee laTournee;
+
+    public GestionTournee(Tournee uneTournee) {
+        this.laTournee = uneTournee;
+    }
+
+    public void ajouterVisite(Visite uneVisite) {
+        laTournee.ajouterVisite(uneVisite);
+    }
+
+    // Calcul du CA de toute la tournée
+    public float CATournee() {
+        float caTotal = 0;
+        for (Visite v : laTournee.getLesVisites()) {
+            caTotal += v.montantAFacturer();
+        }
+        return caTotal;
+    }
+}
+----
+
+=== 4.4. Test Unitaire JUnit (Corrigé de la Question 3.2)
+
+Dans le dossier `src/test/java/coopain/modele/`, créez la classe de test. Elle permet de valider mathématiquement la logique métier sans lancer l'interface graphique.
+
+[source,java]
+----
+package coopain.modele;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+class GestionTourneeTest {
+    private Visite v1, v2;
+    private TypePrestation tp1, tp2;
+    private Tournee t1;
+    private GestionTournee gt;
+
+    @BeforeEach
+    void setUp() {
+        tp1 = new TypePrestation("Insémination", 100);
+        tp2 = new TypePrestation("Echographie", 10);
+        t1 = new Tournee();
+        gt = new GestionTournee(t1);
+
+        // Visite 1 : Georges Duboeuf (3 inséminations, 1 échographie)
+        v1 = new Visite();
+        v1.ajouterPrestationVisite(tp1, 3); // 3 * 100 = 300
+        v1.ajouterPrestationVisite(tp2, 1); // 1 * 10 = 10
+
+        // Visite 2 : Marguerite Cow (1 insémination)
+        v2 = new Visite();
+        v2.ajouterPrestationVisite(tp1, 1); // 1 * 100 = 100
+    }
+
+    @Test
+    void testCATournee() {
+        // 1. Vérification que le CA initial est nul
+        assertEquals(0, gt.CATournee(), "Le CA initial doit être 0");
+
+        // 2. Vérification après la 1ère visite (300 + 10 = 310)
+        gt.ajouterVisite(v1);
+        assertEquals(310.0f, gt.CATournee(), "Erreur après la 1ère visite");
+
+        // 3. Vérification après la 2ème visite (310 + 100 = 410)
+        gt.ajouterVisite(v2);
+        assertEquals(410.0f, gt.CATournee(), "Erreur sur le CA final de la tournée");
+    }
+}
+----
+_Note : Exécutez ce test dans votre IDE (Bouton "Play" vert à côté de la classe) pour valider votre code._
+
+=== 4.5. Interface Graphique (JavaFX + Hibernate)
+
+Créons une interface pour ajouter des prestations à une tournée et voir le Chiffre d'Affaires s'actualiser en temps réel.
+
+**1. L'utilitaire Hibernate (`src/main/java/coopain/util/HibernateUtil.java`)**
+[source,java]
+----
+package coopain.util;
+
+import org.hibernate.SessionFactory;
+import org.hibernate.cfg.Configuration;
+
+public class HibernateUtil {
+    private static final SessionFactory sessionFactory;
+    static {
+        try {
+            sessionFactory = new Configuration().configure().buildSessionFactory();
+        } catch (Throwable ex) {
+            System.err.println("Échec de création de la SessionFactory: " + ex);
+            throw new ExceptionInInitializerError(ex);
+        }
+    }
+    public static SessionFactory getSessionFactory() { return sessionFactory; }
+}
+----
+
+**2. La Vue FXML (`src/main/resources/coopain/vue/tournee.fxml`)**
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox spacing="15" alignment="CENTER" xmlns:fx="http://javafx.com/fxml/1" fx:controller="coopain.controleur.TourneeController">
+    <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
+
+    <Label text="LogiSemin - Facturation de la Tournée" style="-fx-font-size: 18px; -fx-font-weight: bold;" />
+
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="Type de prestation :" />
+        <ComboBox fx:id="comboPrestations" prefWidth="200" />
+    </HBox>
+
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="Nombre d'actes :" />
+        <TextField fx:id="txtNbActes" prefWidth="60" text="1" />
+    </HBox>
+
+    <Button text="Ajouter l'acte à la tournée" onAction="#handleAjouterActe" style="-fx-background-color: #28a745; -fx-text-fill: white;"/>
+
+    <Separator />
+
+    <Label text="Résumé Financier" style="-fx-font-weight: bold;" />
+    <Label fx:id="lblTotal" text="CA Total de la tournée : 0.0 €" style="-fx-font-size: 16px; -fx-text-fill: #007bff;" />
+    <Label fx:id="lblMessage" textFill="red" />
+</VBox>
+----
+
+**3. Le Contrôleur (`src/main/java/coopain/controleur/TourneeController.java`)**
+[source,java]
+----
+package coopain.controleur;
+
+import coopain.modele.*;
+import coopain.util.HibernateUtil;
+import javafx.collections.FXCollections;
+import javafx.fxml.FXML;
+import javafx.scene.control.*;
+import org.hibernate.Session;
+import java.util.List;
+
+public class TourneeController {
+    @FXML private ComboBox<TypePrestation> comboPrestations;
+    @FXML private TextField txtNbActes;
+    @FXML private Label lblTotal;
+    @FXML private Label lblMessage;
+
+    private GestionTournee gestionTournee;
+    private Visite visiteCourante;
+
+    @FXML
+    public void initialize() {
+        // Initialisation de la logique métier
+        gestionTournee = new GestionTournee(new Tournee());
+        visiteCourante = new Visite();
+        gestionTournee.ajouterVisite(visiteCourante);
+
+        // Chargement des données depuis MySQL via HIBERNATE
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            List<TypePrestation> liste = session.createQuery("from TypePrestation", TypePrestation.class).list();
+            comboPrestations.setItems(FXCollections.observableArrayList(liste));
+            if (!liste.isEmpty()) comboPrestations.getSelectionModel().selectFirst();
+        } catch (Exception e) {
+            lblMessage.setText("Erreur BDD : Vérifiez que MySQL est lancé.");
+        }
+    }
+
+    @FXML
+    public void handleAjouterActe() {
+        lblMessage.setText("");
+        try {
+            int nbActes = Integer.parseInt(txtNbActes.getText());
+            TypePrestation typeSelectionne = comboPrestations.getValue();
+
+            if (typeSelectionne != null && nbActes > 0) {
+                // Ajout dans la logique métier
+                visiteCourante.ajouterPrestationVisite(typeSelectionne, nbActes);
+
+                // Actualisation de l'affichage
+                lblTotal.setText("CA Total de la tournée : " + gestionTournee.CATournee() + " €");
+            } else {
+                lblMessage.setText("Veuillez saisir des données valides.");
+            }
+        } catch (NumberFormatException ex) {
+            lblMessage.setText("Le nombre d'actes doit être un entier.");
+        }
+    }
+}
+----
+
+=== 4.6. Lancement de l'Application
+
+Utilisez l'astuce du `Launcher` pour éviter les erreurs de modules Java.
+
+**`Main.java` :**
+[source,java]
+----
+package coopain;
+import javafx.application.Application;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
+
+public class Main extends Application {
+    @Override
+    public void start(Stage stage) throws Exception {
+        FXMLLoader fxmlLoader = new FXMLLoader(Main.class.getResource("/coopain/vue/tournee.fxml"));
+        Scene scene = new Scene(fxmlLoader.load(), 500, 350);
+        stage.setTitle("LogiSemin - Gestion des Tournées");
+        stage.setScene(scene);
+        stage.show();
+    }
+    public static void main(String[] args) { launch(); }
+}
+----
+
+**`Launcher.java` (Classe à exécuter) :**
+[source,java]
+----
+package coopain;
+public class Launcher {
+    public static void main(String[] args) {
+        Main.main(args);
+    }
+}
+----
+
+[NOTE]
+====
+**Pour tester ce prototype :**
+
+1. Exécutez le script SQL MySQL.
+2. Lancez le fichier `Launcher.java`.
+3. Constatez que la liste déroulante est automatiquement peuplée par **Hibernate** depuis la base de données.
+4. Ajoutez des actes, le chiffre d'affaires calculé par la classe `GestionTournee` s'actualise instantanément à l'écran.
+====
+
+== Mission 5 : Évolution de l'application (TDD et Interface Graphique)
+
+L'application prototype développée dans la Mission 4 fonctionne, mais le chef de projet a relevé deux points d'amélioration suite aux premiers retours des utilisateurs testeurs :
+1. **Fiabilité** : Il faut s'assurer mathématiquement qu'une erreur de saisie (zéro acte réalisé) ne corrompt pas le chiffre d'affaires.
+2. **Ergonomie (UI/UX)** : Actuellement, lorsque l'utilisateur clique sur "Ajouter l'acte", seul le montant total change. L'utilisateur n'a pas de trace visuelle des actes qu'il vient d'ajouter.
+
+=== 5.1. Fiabilisation par Test Unitaire (JUnit 5)
+
+Dans l'approche TDD (Test Driven Development), chaque nouvelle règle de gestion ou vérification de sécurité doit faire l'objet d'un test automatisé.
+Nous voulons garantir que si un utilisateur tente d'ajouter une prestation avec `0` acte, le chiffre d'affaires total de la tournée ne bouge pas.
+
+[IMPORTANT]
+====
+**Travail à réaliser :**
+Ouvrez le fichier `GestionTourneeTest.java` (dans le dossier `src/test/...`) et ajoutez-y la méthode de test suivante.
+
+[source,java]
+----
+    @Test
+    void testAjoutZeroActe() {
+        // 1. On crée une visite factice
+        Visite visiteZero = new Visite();
+
+        // 2. On tente d'ajouter 0 échographie (qui coûte 10€ l'unité)
+        visiteZero.ajouterPrestationVisite(tp2, 0);
+
+        // 3. On ajoute la visite à la tournée
+        gt.ajouterVisite(visiteZero);
+
+        // 4. On vérifie (Assertion) que le CA reste strictement à 0
+        assertEquals(0.0f, gt.CATournee(), "L'ajout de 0 acte ne doit pas augmenter le CA");
+    }
+----
+*Exécutez ensuite la classe de test dans votre IDE pour vérifier que tous les voyants sont au vert.*
+====
+
+=== 5.2. Amélioration de l'interface JavaFX
+
+
+
+Pour améliorer l'interface graphique (IHM) en JavaFX, il faut toujours intervenir à deux endroits :
+
+* **Le fichier `.fxml`** : C'est le squelette visuel (comme le HTML pour le Web).
+* **Le Contrôleur `.java`** : C'est le cerveau qui interagit avec les éléments du FXML grâce à l'annotation `@FXML`.
+
+Nous allons ajouter une zone de texte multi-lignes (`TextArea`) qui affichera l'historique des actes ajoutés.
+
+[IMPORTANT]
+====
+**Étape 1 : Modification de la vue (Le FXML)**
+Ouvrez le fichier `tournee.fxml` situé dans `src/main/resources/.../vue/`.
+Juste **avant** la balise `<Separator />`, ajoutez le composant `TextArea` suivant :
+
+[source,xml]
+----
+    <TextArea fx:id="txtHistorique" editable="false" prefHeight="100" promptText="Aucun acte saisi pour le moment..." />
+----
+
+_Explication : L'attribut `fx:id` est fondamental. C'est le nom de variable qui permettra à notre code Java de "parler" à cette zone de texte._
+
+**Étape 2 : Déclaration du composant dans le Contrôleur**
+Ouvrez le fichier `TourneeController.java` situé dans `src/main/java/.../controleur/`.
+En haut de la classe, avec les autres déclarations `@FXML`, déclarez votre nouveau composant :
+
+[source,java]
+----
+    @FXML private TextArea txtHistorique; // Le nom doit être exactement le fx:id du fichier FXML !
+----
+
+**Étape 3 : Mise à jour de la logique du bouton**
+Toujours dans `TourneeController.java`, localisez la méthode `handleAjouterActe()`. C'est elle qui s'exécute quand on clique sur le bouton.
+Ajoutez la ligne suivante à l'intérieur du bloc `if (typeSelectionne != null && nbActes > 0) { ... }`, juste après le calcul du CA :
+
+[source,java]
+----
+                // Ajout d'une ligne d'historique dans l'interface graphique
+                txtHistorique.appendText("- " + nbActes + "x " + typeSelectionne.getLibelle() + "\n");
+----
+
+_Explication : La méthode `appendText()` ajoute du texte à la fin du `TextArea` sans effacer ce qui s'y trouve déjà. Le `\n` permet de faire un retour à la ligne automatique._
+====
+
+**Validation de la mission :**
+Relancez votre application en exécutant `Launcher.java`. Sélectionnez une prestation, saisissez un nombre d'actes et cliquez sur Ajouter. Vous devriez maintenant voir l'acte s'ajouter visuellement dans votre nouvelle zone de texte, confirmant la bonne communication entre la vue FXML et le contrôleur Java !
