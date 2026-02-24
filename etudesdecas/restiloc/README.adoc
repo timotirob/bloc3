@@ -1,0 +1,935 @@
+= BTS SERVICES INFORMATIQUES AUX ORGANISATIONS
+:session: 2019
+:epreuve: E5 : Production et fourniture de services informatiques
+:duree: 4h00
+:coefficient: 5
+:cas: Restiloc
+:imagesdir: images
+
+== Barème
+
+[cols="3,1,1", options="header"]
+|===
+| Mission | Libellé | Points
+| Mission 1 | Gestion des prestations de remise en état (PREE) | 28 points
+| Mission 2 | Gestion des rendez-vous | 30 points
+| Mission 3 | Application mobile pour les experts | 26 points
+|===
+
+== Dossier documentaire
+
+[cols="1,3,1", options="header"]
+|===
+| Document | Libellé | Page
+| Document 1 | Extrait du schéma de la base de données existante | page 7
+| Document 2 | Diagramme de classes correspondant à la gestion des rendez-vous | page 8
+| Document 3 | Description textuelle des classes métier | page 8
+| Document 4 | Exemple d’utilisation d’une collection | page 10
+| Document 5 | Extrait du schéma relationnel concerné par les services Web | page 11
+| Document 6 | Code PHP du service Web getLesMissionsByIdExpert.php | page 11
+| Document 7 | Exemple de résultat au format JSON retourné par le service | page 12
+| Document 8 | Code du fichier list_layout.xml et maquette de l'interface graphique | page 12
+| Document 9 | Codes Android Java de l'application mobile | page 13
+|===
+
+== Présentation du contexte
+
+De plus en plus, particuliers et professionnels choisissent pour leur(s) véhicule(s) de signer un contrat de location avec une société de financement sur une période qui est le plus souvent fixée entre 12 et 48 mois et peut aller jusqu’à 60 mois. Ces contrats sont signés par le biais de garages liés à une ou plusieurs marques automobiles. À la fin du contrat, si le véhicule est restitué, il doit être expertisé afin de relever tous les dommages qu’il a subis durant la période de location. Cette expertise peut conduire à des frais de remise en état qui seront facturés au client par la société de financement.
+
+=== L'organisation cliente
+La société RestiLoc, implantée dans tous les pays d’Europe, est spécialisée dans l’expertise de véhicules en fin de contrat, pour le compte des sociétés de financement. La filiale RestiLoc France compte ainsi environ 100 experts, répartis sur tout le territoire français.
+
+=== Le prestataire de services informatiques
+La direction des systèmes d'information (DSI) de RestiLoc est chargée d'assurer la mise en place et la maintenance des infrastructures réseau ainsi que de développer les logiciels métier. La DSI a développé le logiciel **Torapix** permettant notamment aux experts d’accéder :
+
+* à la planification de leurs missions d’expertise ;
+* aux informations de chaque mission : société de financement, client, détails du véhicule.
+
+Le logiciel Torapix s’appuie sur une base de données SQL Server hébergée par la DSI.
+
+== Mission 1 – Gestion des prestations de remise en état (PREE)
+(Document à utiliser : 1)
+
+Dans le cadre de l'évolution du système d'information, il est demandé à la DSI de faire évoluer Torapix pour renseigner le détail des prestations de remise en état (PREE) identifiées par l’expert pour chaque dossier.
+
+Un dossier d’expertise correspond à un seul véhicule. Ces prestations seront identifiées par la référence du dossier d’expertise suivie d'un numéro d'ordre (séquentiel de 1 à x). Chaque prestation sera décrite par un libellé et pourra être précisée par une description. Une photo est réalisée pour chaque prestation.
+
+Il existe deux types de PREE :
+
+* Les prestations **"peinture"** : concernent des travaux sur un ou plusieurs éléments de carrosserie (pare-chocs, aile, etc.), chacun nécessitant un traitement (voile, peinture partielle, etc.).
+* Les prestations **"pièce"** : concernent le remplacement de pièces cassées. Il faut mémoriser les pièces à changer (libellé, référence) et la quantité.
+
+**Question 1.1 :** Proposer une modification de la structure de la base de données pour intégrer la gestion des PREE ( diagramme de classes ou schéma relationnel).
+
+
+
+== Mission 2 – Gestion des rendez-vous
+(Documents à utiliser : 2, 3 et 4)
+
+Il existe deux types de rendez-vous :
+
+* Le rendez-vous client : l’expert rencontre le loueur.
+* Le pool garage : le client dépose son véhicule dans un garage avant l'expertise.
+
+Lorsqu'un expert ne peut pas expertiser le véhicule, on parle d'**indisponibilité**. L'expert renseigne le motif ("Client absent", "Véhicule inaccessible", "Véhicule absent", "Adresse erronée") et la responsabilité du client.
+
+**Question 2.1 :** Justifier le choix d’utiliser une classe abstraite pour la classe Expertise.
+
+**Question 2.2 :** Écrire la méthode `AjouterExpertisePool` de la classe `SocieteFinancement`.
+
+**Question 2.3 :** Écrire la méthode `GetMotif` de la classe `Indisponibilite`.
+
+**Question 2.4 :** Écrire la méthode `LesExpertisesIndispos` de la classe `SocieteFinancement`.
+
+**Question 2.5 :** Écrire la méthode `NbIndisponibilites` qui retourne le nombre d’expertises indisponibles correspondant au motif passé en paramètre.
+
+== Mission 3 – Application mobile pour les experts
+(Documents à utiliser : 5, 6, 7, 8 et 9)
+
+Une application mobile Android a été développée en Java pour permettre aux experts de visualiser leurs missions du jour via des services Web.
+
+**Question 3.1 :** Écrire en langage SQL les requêtes permettant d'obtenir :
+
+1. Liste des informations (date, heure, immatriculation, marque, modèle, expert) triée par date/heure croissantes.
+2. Nombre de véhicules expertisés en 2018 pour chaque expert.
+3. Liste des garages (id, nom, ville, tel) ayant plus de 100 missions créées.
+
+**Question 3.2 :** Proposer un schéma de l’architecture applicative expliquant où s'exécute chaque code et les échanges entre le SGBD SQL Server, le serveur Apache et l'application Android.
+
+**Question 3.3 :** Corriger l’erreur dans le code pour que le nom du garage apparaisse conformément à la maquette. Indiquer les fichiers et numéros de lignes concernés.
+
+== Mission 4 – Cybersécurité et accompagnement de la transformation numérique
+(Documents à utiliser : 5, 6 et 9)
+
+Dans le cadre de l'évolution du SI, le directeur de la DSI, M. Poutia, souhaite renforcer la sécurité de l'application mobile et garantir la conformité au RGPD.
+
+=== 4.1 Analyse de risques et DICP
+L'expertise de fin de contrat est une opération critique car elle impacte directement la facturation des frais de remise en état au client.
+
+**Question 4.1.1 :** En vous appuyant sur les critères **DICP** (Disponibilité, Intégrité, Confidentialité, Preuve), identifiez deux risques majeurs pesant sur la base de données de RestiLoc et proposez une mesure de sécurité pour chacun.
+
+**Question 4.1.2 :** L'expert doit mémoriser une photo pour chaque prestation (PREE) identifiée. Quel critère du DICP est ici principalement visé par la présence de cette photo ? Justifiez votre réponse.
+
+=== 4.2 Protection des données à caractère personnel (RGPD)
+Le Document 5 présente la table `Expert` contenant les colonnes `nom`, `prenom`, `email`, `login` et `mdp`.
+
+**Question 4.2.1 :** Expliquez la différence entre une **donnée à caractère personnel** et une **donnée sensible** au sens du RGPD. Les données de la table `Expert` sont-elles des données sensibles ?
+
+**Question 4.2.2 :** Le mot de passe (`mdp`) des experts ne doit pas être stocké en clair.
+
+1. Expliquez le principe du **hachage** et pourquoi il est préférable au chiffrement pour un mot de passe.
+2. Citez un algorithme de hachage robuste recommandé par l'ANSSI.
+
+=== 4.3 Sécurité applicative et SQL
+L'application mobile communique avec un service Web PHP (Document 6) via une requête HTTP GET (Document 9).
+
+**Question 4.3.1 :** Le code du Document 6 présente une vulnérabilité majeure à l'**injection SQL**.
+
+1. Identifiez la ligne concernée et expliquez le mécanisme de l'attaque.
+2. Proposez une réécriture sécurisée de la partie SQL en utilisant une **requête préparée** avec PDO.
+
+**Question 4.3.2 :** L'URL utilisée dans `MainActivity.java` (Document 9) est : `http://www.restiloc.fr/api/getLesMissionsByIdExpert.php?idExpert=2`.
+Identifiez la faille de contrôle d'accès de type **IDOR** (Insecure Direct Object Reference) et expliquez comment un expert malveillant pourrait en abuser.
+
+=== 4.4 Intégrité des données et audit (Déclencheurs)
+Pour garantir la traçabilité, on souhaite auditer toute suppression de mission d'expertise.
+
+**Question 4.4.1 :** Écrire en Transact-SQL le déclencheur (**Trigger**) `trig_audit_delete_mission` qui, lors de la suppression d'une ligne dans la table `MissionExpertise`, insère l'identifiant de la mission supprimée et la date système dans une table `AUDIT_SUPPRESSION`.
+
+
+== ANNEXES (Dossier Documentaire)
+
+=== DOCUMENT 1 : Extrait du schéma de données existant
+
+image::dc_entite.png[Diagramme de classes - Dossier et Vehicule]
+
+**Modèle relationnel :**
+
+[cols="1,2,1,2", options="header"]
+|===
+| Table | Attributs | Clé Primaire (PK) | Clé(s) Étrangère(s) (FK)
+| **Dossier** | refDossier, nomFichierExpertise, immatriculation | **refDossier** | **immatriculation** en référence à Vehicule(immatriculation)
+| **Vehicule** | immatriculation, anneeMiseEnCirculation, couleur, idModele, refDossier | **immatriculation** | **idModele** en référence à Modele(id) ; **refDossier** en référence à Dossier(refDossier) (attribut à null tant qu'il n'y a pas de dossier)
+| **Modele** | id, libelle, marque | **id** | *Aucune*
+|===
+
+=== DOCUMENT 2 : Diagramme de classes gestion des rendez-vous
+
+image::dc_rdv.png[Diagramme de classes complet]
+
+---
+
+=== DOCUMENT 3 : Description textuelle des classes métier (C#)
+
+[source,csharp]
+----
+public class SocieteFinancement {
+    private string code;
+    private string nom;
+    private List<Expertise> lesExpertises;
+
+    public void AjouterExpertisePool (string dossier, DateTime dateHeure, string lieu, string adresse, string immat, string marque, string modele) {
+        // À compléter
+    }
+
+    public List<Expertise> LesExpertisesIndispos () {
+        // À compléter
+    }
+
+    public int NbIndisponibilites(string leMotif) {
+        // À compléter
+    }
+}
+
+public abstract class Expertise {
+    private string codeDossier;
+    private DateTime dateHeureRDV;
+    private string lieuRDV;
+    private string adresse;
+    private string immatriculation;
+    private string marque;
+    private string modele;
+    private Indisponibilite uneIndispo;
+
+    public Indisponibilite GetIndisponibilite() { ... }
+}
+
+public class Indisponibilite {
+    private string motif;
+    private bool clientResponsable;
+
+    public string GetMotif() {
+        // À compléter
+    }
+}
+----
+
+---
+
+=== DOCUMENT 5 : Schéma relationnel Services Web
+
+[cols="1,2,1,2", options="header"]
+|===
+| Table / Vue | Attributs | Clé Primaire (PK) | Clé(s) Étrangère(s) (FK) / Note
+| Expert | idExpert, nom, prenom, email, login, mdp  | idExpert  | Aucune
+| Garage | idGarage, nom, adnum, rue, cp, ville, tel, latitude, longitude  | idGarage  | Aucune
+| MissionExpertise | idMission, dateMission, heureDebut, idGarage, idExpert, kilometresCompteur, immatriculation  | idMission  | idExpert (Expert), idGarage (Garage)
+| VehiculeExpertise (Vue) | immatriculation, marque, modele, anneeMiseEnCirculation, couleur, idMission  | N/A  | Vue SQL agrégeant les informations nécessaires aux experts concernant les véhicules à expertiser.
+|===
+
+=== DOCUMENT 6 : Code PHP (getLesMissionsByIdExpert.php)
+
+[source,php]
+----
+<?php
+try {
+    $bdd = new PDO('sqlsrv:server=...;Database=...', '...', '...');
+    $id = $_GET['idExpert'];
+    $sql = "SELECT idMission, heureDebut, ville, V.immatriculation AS immatriculation, marque, modele";
+    $sql .= " FROM MissionExpertise M";
+    $sql .= " JOIN Garage G ON M.idGarage = G.idGarage";
+    $sql .= " JOIN VehiculeExpertise V ON M.idMission = V.idMission";
+    $sql .= " WHERE idExpert = ".$id;
+    $sql .= " AND dateMission = '".DATE("Y-m-d")."'";
+    $sql .= " ORDER BY heureDebut ASC";
+    $reponse = $bdd->query($sql);
+    $resultat = $reponse->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    die('Erreur : ' . $e->getMessage());
+}
+echo(json_encode($resultat));
+?>
+----
+
+---
+
+=== DOCUMENT 8 : Interface graphique (list_layout.xml)
+
+[source,xml]
+----
+<RelativeLayout ...>
+    <TextView android:id="@+id/idM" ... />
+    <TextView android:id="@+id/heureM" ... />
+    <TextView android:id="@+id/villeM" ... />
+    <TextView android:id="@+id/immatM" ... />
+    <TextView android:id="@+id/marqueModeleM" ... />
+</RelativeLayout>
+----
+
+image::maquette_souhaitee.png[Maquette interface mobile]
+
+---
+
+=== DOCUMENT 9 : Extraits Code Java Android de l'application mobile
+
+==== Code du fichier GestionURL.java
+[source,java]
+----
+import …;
+
+public class GestionURL {
+    // Méthode qui soumet la requête http et qui retourne le fichier JSON
+    public static String get(String url) throws IOException {
+        InputStream is = null;
+        try {
+            final HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+            // Utilisation de la méthode GET
+            conn.setRequestMethod("GET");
+            conn.setDoInput(true);
+            // Début de la requête http
+            conn.connect();
+            is = conn.getInputStream();
+            // Conversion du résultat au format String
+            return convertToString(is);
+        }
+        catch (Exception e){
+            Log.e("Erreur de connexion", e.toString());
+        }
+        finally {
+            // Fermeture du flux
+            if (is != null) {
+                is.close();
+            }
+        }
+    }
+
+    // Méthode qui convertit le flux en entrée au format String
+    private static String convertToString(InputStream is) throws IOException { … }
+}
+----
+
+==== Code du fichier MainActivity.java
+[source,java]
+----
+import …
+
+public class MainActivity extends AppCompatActivity {
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        String fichierJSON = null;
+        try {
+            String url = "http://www.restiloc.fr/api/getLesMissionsByIdExpert.php?idExpert=2";
+            // Récupération du fichier JSON
+            fichierJSON = GestionURL.get(url)
+            // transformation du fichier JSON en tableau JSON
+            JSONArray ja = new JSONArray(fichierJSON);
+            // Remplissage d'une ArrayList avec le tableau JSON
+            ArrayList<JSONObject> listItems = getArrayListFromJSONArray(ja);
+            ListView listV = (ListView)findViewById(R.id.listv);
+            // Affichage du titre
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+            String dateDuJour = sdf.format(new Date());
+            TextView titre = new TextView(this);
+            titre.setText("Liste des missions du " + dateDuJour);
+            listV.addHeaderView(titre);
+            // Instanciation de la ListAdapter
+            ListAdapter adapter = new ListAdapter(this, R.layout.list_layout, R.id.idE, listItems);
+            // Affichage de la ListView dans l'interface graphique
+            listV.setAdapter(adapter);
+        } catch (IOException e) {
+            Log.e("On Create Erreur IO", e.toString());
+        } catch (JSONException e) {
+            Log.e("On Create Erreur Json", e.toString());
+        }
+    }
+
+    // Méthode qui remplit une ArrayList à partir d'un tableau JSON
+    private ArrayList<JSONObject> getArrayListFromJSONArray(JSONArray jsonArray){ … }
+}
+----
+
+==== Code du fichier ListAdapter.java
+[source,java]
+----
+import …
+
+public class ListAdapter extends ArrayAdapter<JSONObject>{
+    private int vg;
+    private ArrayList<JSONObject> list;
+    private Context context;
+
+    public ListAdapter(Context context, int vg, int id, ArrayList<JSONObject> list){
+        super(context, vg, id, list);
+        this.context = context;
+        this.vg = vg;
+        this.list = list;
+    }
+
+    // méthode appelée automatiquement lors de l’affichage de la liste
+    public View getView(int position, View convertView, ViewGroup parent) {
+        LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        View itemView = inflater.inflate(vg, parent, false);
+        // Instanciation des TextView rattachées à l'interface graphique
+        TextView txtId = (TextView)itemView.findViewById(R.id.idM);
+        TextView txtHeure = (TextView)itemView.findViewById(R.id.heureM);
+        TextView txtVille = (TextView)itemView.findViewById(R.id.villeM);
+        TextView txtImmat = (TextView)itemView.findViewById(R.id.immatM);
+        TextView txtMarqueModele = (TextView)itemView.findViewById(R.id.marqueModeleM);
+
+        try {
+            // Renseignement des TextView
+            txtId.setText(list.get(position).getString("idMission"));
+            txtHeure.setText(list.get(position).getString("heureDebut"));
+            txtVille.setText(list.get(position).getString("ville"));
+            txtImmat.setText(list.get(position).getString("immatriculation"));
+            txtMarqueModele.setText(list.get(position).getString("marque") + " " + list.get(position).getString("modele"));
+        }
+        catch (JSONException e) {
+            Log.e("Erreur getView", e.toString());
+        }
+        return itemView;
+    }
+}
+----
+
+== Guide de mise en œuvre : Prototype et Bac à sable
+
+Cette section fournit les éléments techniques pour déployer l'environnement de test de la Mission 3 et 4.
+
+=== Étape 1 : Préparation de la base de données (MySQL)
+
+Le script suivant crée les tables nécessaires à l'API et à l'audit de sécurité. Un expert de test est inséré avec un mot de passe haché pour respecter les principes du RGPD.
+
+[source,sql]
+----
+-- 1. Création du schéma des experts
+CREATE TABLE Expert (
+    idExpert INT PRIMARY KEY AUTO_INCREMENT,
+    nom VARCHAR(50),
+    prenom VARCHAR(50),
+    email VARCHAR(100),
+    login VARCHAR(50),
+    mdp_hash VARCHAR(255) -- Stockage sécurisé (RGPD)
+) ENGINE=InnoDB;
+
+-- 2. Création du schéma des garages
+CREATE TABLE Garage (
+    idGarage INT PRIMARY KEY AUTO_INCREMENT,
+    nom VARCHAR(100),
+    ville VARCHAR(50),
+    tel VARCHAR(20)
+) ENGINE=InnoDB;
+
+-- 3. Création des missions d'expertise
+CREATE TABLE MissionExpertise (
+    idMission INT PRIMARY KEY AUTO_INCREMENT,
+    dateMission DATE,
+    heureDebut TIME,
+    idGarage INT,
+    idExpert INT,
+    immatriculation VARCHAR(15),
+    CONSTRAINT fk_garage FOREIGN KEY (idGarage) REFERENCES Garage(idGarage),
+    CONSTRAINT fk_expert FOREIGN KEY (idExpert) REFERENCES Expert(idExpert)
+) ENGINE=InnoDB;
+
+-- 4. Table d'audit pour la Mission 4 (Trigger)
+CREATE TABLE AUDIT_SUPPRESSION (
+    idAudit INT PRIMARY KEY AUTO_INCREMENT,
+    idMissionSupprimee INT,
+    dateSuppression DATETIME
+) ENGINE=InnoDB;
+
+-- 5. Données de test
+INSERT INTO Expert (nom, prenom, email, login, mdp_hash)
+VALUES ('Lupin', 'Arsène', 'a.lupin@restiloc.fr', 'alupin', '$2y$10$e0MYzXyjpJS7Pd0RVvHwHeFOnNVatB.9.2DkXzZ.v7Xv6YmN9Z9y6');
+
+INSERT INTO Garage (nom, ville, tel) VALUES ('Garage de l\'Orb', 'Béziers', '0467000000');
+----
+
+=== Étape 2 : Service Web PHP Sécurisé (getLesMissionsByIdExpert.php)
+
+Ce script utilise l'extension PDO avec le pilote MySQL. Les requêtes préparées neutralisent les injections SQL identifiées au Document 6[.
+
+[source,php]
+----
+<?php
+header('Content-Type: application/json');
+
+// Configuration de la connexion
+$host = 'localhost';
+$db   = 'restiloc_db';
+$user = 'admin_api';
+$pass = 'P@ssword123!';
+$charset = 'utf8mb4';
+
+$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
+
+try {
+    $bdd = new PDO($dsn, $user, $pass);
+    $bdd->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+    // Récupération sécurisée de l'idExpert (Prévention IDOR et Injection)
+    $idExpert = filter_input(INPUT_GET, 'idExpert', FILTER_VALIDATE_INT);
+
+    if ($idExpert) {
+        $sql = "SELECT M.idMission, M.heureDebut, G.ville, M.immatriculation, G.nom as nomGarage
+                FROM MissionExpertise M
+                JOIN Garage G ON M.idGarage = G.idGarage
+                WHERE M.idExpert = :idExpert
+                AND M.dateMission = :dateJour
+                ORDER BY M.heureDebut ASC";
+
+        $stmt = $bdd->prepare($sql);
+        $stmt->execute([
+            'idExpert' => $idExpert,
+            'dateJour' => date('Y-m-d')
+        ]);
+
+        $resultat = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode($resultat);
+    } else {
+        http_response_code(400);
+        echo json_encode(["erreur" => "Paramètre idExpert manquant ou invalide"]);
+    }
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(["erreur" => "Erreur interne du serveur"]);
+}
+?>
+----
+
+=== Étape 3 : Audit de sécurité (Déclencheur MySQL)
+
+Voici le code du déclencheur pour assurer la traçabilité des suppressions, répondant aux exigences d'intégrité de la Mission 4.
+
+[source,sql]
+----
+DELIMITER //
+
+CREATE TRIGGER trig_audit_delete_mission
+AFTER DELETE ON MissionExpertise
+FOR EACH ROW
+BEGIN
+    INSERT INTO AUDIT_SUPPRESSION (idMissionSupprimee, dateSuppression)
+    VALUES (OLD.idMission, NOW());
+END //
+
+DELIMITER ;
+----
+=== Instructions pour les étudiants
+
+1.  **Installation** : Déployez la base de données sur MySQL.
+2.  **Configuration PHP** : Placez le fichier PHP dans le répertoire `www` de votre serveur Web (WAMP/MAMP).
+3.  **Test de l'API** : Testez l'URL `http://localhost/api/getLesMissionsByIdExpert.php?idExpert=1` avec un navigateur ou un client type Postman.
+4.  **Audit** : Supprimez une mission dans `MissionExpertise` et vérifiez que la table `AUDIT_SUPPRESSION` est bien alimentée.
+
+=== Structure du projet (Bac à sable PHP)
+
+Pour organiser le travail, il est conseillé de suivre cette arborescence dans le répertoire `www` (ou `htdocs`) du serveur local :
+
+[source,text]
+----
+restiloc/
+├── api/
+│   ├── config.php                 # Paramètres de connexion PDO
+│   └── getLesMissionsByIdExpert.php # Service Web (Document 6 sécurisé)
+├── sql/
+│   └── restiloc_db.sql            # Script complet (Tables, Données, Trigger)
+└── tests/
+    └── test_api.html              # Petit utilitaire pour tester l'API sans navigateur
+----
+
+=== Liste et rôle des fichiers
+
+1. **`sql/restiloc_db.sql`** : contient l'intégralité du script de création de la base de données, des contraintes d'intégrité, du déclencheur d'audit (Mission 4) et du jeu d'essai initial.
+2. **`api/config.php`** : centralise les identifiants de connexion. Cela permet d'enseigner la séparation des configurations et la sécurité (ne pas versionner ce fichier en situation réelle).
+3. **`api/getLesMissionsByIdExpert.php`** : le point d'entrée de l'application mobile (ou JavaFX).C'est ici que l'on traite les requêtes `GET`, que l'on sécurise contre les injections SQL  [cite_start]et que l'on retourne le flux JSON.
+4. **`tests/test_api.html`** (Optionnel) : une simple page avec quelques liens ou un formulaire pour simuler les appels `?idExpert=1`, `?idExpert=2`, etc., et visualiser le résultat JSON brut.
+
+=== Étape 4 : Fichiers de configuration et de test
+
+==== Fichier api/config.php
+Ce fichier centralise les paramètres de connexion. Il sera inclus dans tous les services web pour éviter la duplication de code et faciliter la maintenance.
+
+[source,php]
+----
+<?php
+// Paramètres de connexion MySQL
+$host = 'localhost';
+$db   = 'restiloc_db';
+$user = 'admin_api';
+$pass = 'P@ssword123!';
+$charset = 'utf8mb4';
+
+$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
+$options = [
+    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION, // Gestion des erreurs via exceptions
+    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,       // Retourne des tableaux associatifs par défaut
+    PDO::ATTR_EMULATE_PREPARES   => false,                  // Utilise les vraies requêtes préparées du SGBD
+];
+
+try {
+     $pdo = new PDO($dsn, $user, $pass, $options);
+} catch (\PDOException $e) {
+     // En production, ne jamais afficher $e->getMessage() (fuite d'infos système)
+     die("Erreur de connexion au SGBD.");
+}
+?>
+----
+
+==== Fichier tests/test_api.html
+Un utilitaire simple pour tester les réponses de l'API directement depuis un navigateur.
+
+[source,html]
+----
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Test API Restiloc</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; line-height: 1.6; }
+        .test-link { display: block; margin: 10px 0; padding: 10px; background: #f4f4f4; border-left: 5px solid #2c3e50; text-decoration: none; color: #333; }
+        .test-link:hover { background: #e8e8e8; }
+        code { color: #e74c3c; }
+    </style>
+</head>
+<body>
+    <h1>Console de test API - RestiLoc</h1>
+    <p>Utilisez les liens ci-dessous pour vérifier le bon fonctionnement du service Web <code>getLesMissionsByIdExpert.php</code> :</p>
+
+    <a href="../api/getLesMissionsByIdExpert.php?idExpert=1" target="_blank" class="test-link">
+        <strong>Expert ID 1</strong> (Doit retourner les missions de Lupin si insérées)
+    </a>
+
+    <a href="../api/getLesMissionsByIdExpert.php?idExpert=2" target="_blank" class="test-link">
+        <strong>Expert ID 2</strong> (Test de la valeur par défaut du Document 9)
+    </a>
+
+    <a href="../api/getLesMissionsByIdExpert.php?idExpert=invalid" target="_blank" class="test-link">
+        <strong>Test d'erreur</strong> (id non numérique : doit retourner un code HTTP 400)
+    </a>
+</body>
+</html>
+----
+
+=== Étape 5 : Jeu d'essai étendu (Populate)
+
+Ce script ajoute 3 experts supplémentaires et une dizaine de missions réparties sur plusieurs garages.
+
+[source,sql]
+----
+-- 1. Ajout de nouveaux garages pour varier les lieux
+INSERT INTO Garage (nom, ville, tel) VALUES
+('Garage des Cimes', 'Montpellier', '0467112233'),
+('Auto Citronelle', 'Lavérune', '0467445566'),
+('Espace Carrosserie', 'Castelnau-le-Lez', '0467778899');
+
+-- 2. Ajout de nouveaux experts (MDP par défaut : "Resti2026!")
+-- Note : idExpert 1 est déjà Lupin
+INSERT INTO Expert (nom, prenom, email, login, mdp_hash) VALUES
+('Holmes', 'Sherlock', 's.holmes@restiloc.fr', 'sholmes', '$2y$10$e0MYzXyjpJS7Pd0RVvHwHeFOnNVatB.9.2DkXzZ.v7Xv6YmN9Z9y6'),
+('Poirot', 'Hercule', 'h.poirot@restiloc.fr', 'hpoirot', '$2y$10$e0MYzXyjpJS7Pd0RVvHwHeFOnNVatB.9.2DkXzZ.v7Xv6YmN9Z9y6'),
+('Maigret', 'Jules', 'j.maigret@restiloc.fr', 'jmaigret', '$2y$10$e0MYzXyjpJS7Pd0RVvHwHeFOnNVatB.9.2DkXzZ.v7Xv6YmN9Z9y6');
+
+-- 3. Ajout de missions pour AUJOURD'HUI (apparaîtront dans l'API)
+INSERT INTO MissionExpertise (dateMission, heureDebut, idGarage, idExpert, immatriculation) VALUES
+(CURDATE(), '08:30:00', 1, 1, 'AA-229-XY'), -- Lupin au Garage de l'Orb
+(CURDATE(), '10:45:00', 2, 1, 'BC-548-ZX'), -- Lupin à Montpellier
+(CURDATE(), '14:00:00', 3, 2, 'AB-346-TU'), -- Holmes à Lavérune
+(CURDATE(), '16:15:00', 4, 2, 'DE-998-RS'), -- Holmes à Castelnau
+(CURDATE(), '09:00:00', 2, 3, 'FG-112-HI'); -- Poirot à Montpellier
+
+-- 4. Ajout de missions pour DEMAIN (pour tester le filtrage temporel)
+INSERT INTO MissionExpertise (dateMission, heureDebut, idGarage, idExpert, immatriculation) VALUES
+(DATE_ADD(CURDATE(), INTERVAL 1 DAY), '09:00:00', 1, 1, 'ZZ-999-ZZ'),
+(DATE_ADD(CURDATE(), INTERVAL 1 DAY), '11:00:00', 4, 3, 'XY-001-AB');
+
+-- 5. Ajout de missions PASSÉES (pour l'historique)
+INSERT INTO MissionExpertise (dateMission, heureDebut, idGarage, idExpert, immatriculation) VALUES
+(DATE_SUB(CURDATE(), INTERVAL 1 DAY), '15:00:00', 2, 1, 'OLD-123-OK');
+----
+
+== Mission 5 : Prototype JavaFX (Remplacement Android)
+(Documents à utiliser : 5, 6, 8 et 9)
+
+Par manque d'infrastructure Android, la DSI décide de porter le client mobile sur une version "Desktop" utilisant JavaFX. [cite_start]Ce prototype doit consommer les mêmes services Web que l'application initiale.
+
+=== 3.1 Structure du projet et Configuration Maven
+
+Pour assurer la portabilité et la gestion des dépendances (JavaFX et parsing JSON), le projet utilise Maven.
+
+**Arborescence complète du projet :**
+[source,text]
+----
+restiloc-client/
+├── pom.xml                  # Configuration des dépendances
+└── src/
+    └── main/
+        ├── java/fr/restiloc/
+        │   ├── Launcher.java        # Point d'entrée pour l'exécution JAR
+        │   ├── MainApp.java         # Classe de l'application JavaFX
+        │   ├── controller/
+        │   │   └── MissionsController.java
+        │   ├── model/
+        │   │   └── Mission.java     # Classe métier
+        │   └── service/
+        │       └── RestiClient.java # Client HTTP
+        └── resources/fr/restiloc/view/
+            └── missions.fxml        # Maquette graphique
+----
+
+**Fichier `pom.xml` :**
+[source,xml]
+----
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>fr.restiloc</groupId>
+    <artifactId>restiloc-client</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-controls</artifactId>
+            <version>17.0.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-fxml</artifactId>
+            <version>17.0.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>20231013</version>
+        </dependency>
+    </dependencies>
+</project>
+----
+
+=== 3.2 Modèle et Service de données
+
+Le modèle `Mission` est adapté du schéma relationnel de la vue `VehiculeExpertise`].
+
+**Classe `Mission.java` :**
+[source,java]
+----
+package fr.restiloc.model;
+
+public class Mission {
+    private int idMission;
+    private String heureDebut;
+    private String ville;
+    private String immatriculation;
+    private String nomGarage;
+
+    public Mission(int id, String heure, String ville, String immat, String garage) {
+        this.idMission = id;
+        this.heureDebut = heure;
+        this.ville = ville;
+        this.immatriculation = immat;
+        this.nomGarage = garage;
+    }
+
+    // Getters pour la TableView
+    public int getIdMission() { return idMission; }
+    public String getHeureDebut() { return heureDebut; }
+    public String getVille() { return ville; }
+    public String getImmatriculation() { return immatriculation; }
+    public String getNomGarage() { return nomGarage; }
+}
+----
+
+**Classe `RestiClient.java` (Appel API) :**
+
+Cette classe remplace la logique de `GestionURL.java` en utilisant `HttpClient`.
+
+[source,java]
+----
+package fr.restiloc.service;
+
+import java.net.URI;
+import java.net.http.*;
+import java.util.*;
+import org.json.JSONArray;
+import fr.restiloc.model.Mission;
+
+public class RestiClient {
+    private static final String URL_API = "http://localhost/api/getLesMissionsByIdExpert.php?idExpert=";
+
+    public static List<Mission> fetchMissions(int idExpert) throws Exception {
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(URL_API + idExpert)).build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        List<Mission> missions = new ArrayList<>();
+        JSONArray jsonArray = new JSONArray(response.body());
+        for (int i = 0; i < jsonArray.length(); i++) {
+            var obj = jsonArray.getJSONObject(i);
+            missions.add(new Mission(
+                obj.getInt("idMission"), obj.getString("heureDebut"),
+                obj.getString("ville"), obj.getString("immatriculation"),
+                obj.getString("nomGarage")
+            ));
+        }
+        return missions;
+    }
+}
+----
+
+=== 3.3 Interface et Contrôleur
+
+L'interface FXML reproduit les colonnes d'affichage prévues dans la maquette initiale.
+
+**Fichier `missions.fxml` :**
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.Button?>
+
+<VBox spacing="10" alignment="CENTER" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="fr.restiloc.controller.MissionsController" style="-fx-padding: 20;">
+
+    <Label text="Restiloc : Missions du jour" style="-fx-font-size: 18; -fx-font-weight: bold;"/>
+
+    <TableView fx:id="tableMissions" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="colHeure" text="Heure" prefWidth="100"/>
+            <TableColumn fx:id="colVille" text="Ville" prefWidth="150"/>
+            <TableColumn fx:id="colGarage" text="Garage" prefWidth="200"/>
+            <TableColumn fx:id="colImmat" text="Immatriculation" prefWidth="150"/>
+        </columns>
+    </TableView>
+
+    <Button text="Actualiser" onAction="#chargerDonnees"/>
+</VBox>
+----
+
+**Classe `MissionsController.java` :**
+[source,java]
+----
+package fr.restiloc.controller;
+
+import fr.restiloc.model.Mission;
+import fr.restiloc.service.RestiClient;
+import javafx.fxml.FXML;
+import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
+
+public class MissionsController {
+    @FXML private TableView<Mission> tableMissions;
+    @FXML private TableColumn<Mission, String> colHeure, colVille, colGarage, colImmat;
+
+    @FXML
+    public void initialize() {
+        colHeure.setCellValueFactory(new PropertyValueFactory<>("heureDebut"));
+        colVille.setCellValueFactory(new PropertyValueFactory<>("ville"));
+        colGarage.setCellValueFactory(new PropertyValueFactory<>("nomGarage"));
+        colImmat.setCellValueFactory(new PropertyValueFactory<>("immatriculation"));
+        chargerDonnees();
+    }
+
+    @FXML
+    private void chargerDonnees() {
+        try {
+            tableMissions.getItems().setAll(RestiClient.fetchMissions(1));
+        } catch (Exception e) { e.printStackTrace(); }
+    }
+}
+----
+
+=== 3.4 Classes de lancement
+
+**Classe `MainApp.java` :**
+[source,java]
+----
+package fr.restiloc;
+
+import javafx.application.Application;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
+
+public class MainApp extends Application {
+    @Override
+    public void start(Stage stage) throws Exception {
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/fr/restiloc/view/missions.fxml"));
+        stage.setScene(new Scene(loader.load()));
+        stage.setTitle("Restiloc Expert");
+        stage.show();
+    }
+}
+----
+
+**Classe `Launcher.java` :**
+Indispensable pour lancer JavaFX en tant que Main classique sans erreurs de modules.
+[source,java]
+----
+package fr.restiloc;
+
+public class Launcher {
+    public static void main(String[] args) {
+        javafx.application.Application.launch(MainApp.class, args);
+    }
+}
+----
+
+== Mission 6 : Challenges Expertise & Cybersécurité (Approfondissement)
+
+Cette section propose des exercices pratiques pour valider vos compétences en développement sécurisé et en logique métier.
+
+=== Challenge 1 : La Faille IDOR (Insecure Direct Object Reference)
+**Objectif :** Comprendre pourquoi on ne doit jamais faire confiance aux paramètres envoyés par le client (navigateur ou application).
+
+**Énoncé :** Actuellement, votre client JavaFX demande les missions de l'expert n°1.
+
+1. Modifiez manuellement le code Java pour demander l'expert n°2.
+2. Que constatez-vous ?
+3. Pourquoi est-ce un problème de sécurité majeur pour Restiloc ?
+
+.Indice (HINT) - Cliquez pour dérouler
+[%collapsible]
+====
+* **Où regarder ?** Dans la classe `RestiClient.java`, modifiez la variable `URL_API` ou l'appel à `fetchMissions(1)`.
+* **Concept Cyber :** Une faille IDOR survient quand un utilisateur peut accéder à des données qui ne lui appartiennent pas en changeant simplement un identifiant dans l'URL.
+* **Solution attendue :** L'étudiant doit expliquer qu'un expert malveillant pourrait espionner ses collègues. La solution réelle serait d'utiliser un **Token de session** (jeton) généré après connexion.
+====
+
+=== Challenge 2 : L'audit de suppression (Trigger SQL)
+**Objectif :** Garantir l'intégrité et la preuve (critères I et P du DICP) en cas de suppression de données.
+
+**Énoncé :** On soupçonne certains experts de supprimer des missions difficiles pour alléger leur planning.
+
+1. Implémentez le déclencheur (Trigger) `trig_audit_delete_mission` fourni dans l'annexe technique.
+2. Supprimez une mission via une requête SQL : `DELETE FROM MissionExpertise WHERE idMission = 1;`.
+3. Vérifiez que la table `AUDIT_SUPPRESSION` a bien enregistré la trace.
+
+.Indice (HINT) - Cliquez pour dérouler
+[%collapsible]
+====
+* **Le Trigger :** C'est un programme qui s'exécute automatiquement sur le serveur. Ici, il surveille l'événement `DELETE`.
+* **Table 'OLD' (MySQL) :** Lors d'une suppression, MySQL stocke temporairement la ligne supprimée dans une table virtuelle nommée `OLD`. C'est là que le trigger récupère l'ID pour l'archiver.
+* **Vérification :** Faites un `SELECT * FROM AUDIT_SUPPRESSION;` pour prouver que la trace existe.
+====
+
+=== Challenge 3 : Logique métier - Gestion des "Indispos"
+**Objectif :** Manipuler le modèle de données et l'interface JavaFX.
+
+**Énoncé :** Si un expert se rend sur place mais que le client est absent, la mission doit être marquée comme "Indisponible".
+
+1. Ajoutez un bouton "Marquer Indisponible" sous votre tableau JavaFX.
+2. Lorsqu'on clique dessus, la mission sélectionnée doit s'afficher en **Rouge** dans la liste (ou afficher un message "Indisponible").
+
+.Indice (HINT) - Cliquez pour dérouler
+[%collapsible]
+====
+* **Étape 1 :** Dans `Mission.java`, ajoutez un attribut `boolean indisponible` (par défaut à `false`) et son getter/setter.
+* **Étape 2 (Contrôleur) :** Récupérez la ligne sélectionnée avec `tableMissions.getSelectionModel().getSelectedItem()`.
+* **Étape 3 (UI) :** Pour changer la couleur, il faut utiliser une `setRowFactory` sur la TableView. Pour les plus faibles, commencez par simplement changer le texte d'un Label : `lblStatut.setText("Mission " + id + " indisponible");`.
+====
+
