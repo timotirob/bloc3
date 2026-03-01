@@ -1,0 +1,1408 @@
+= BTS SERVICES INFORMATIQUES AUX ORGANISATIONS
+:session: 2025
+:epreuve: U7 – CYBERSÉCURITÉ DES SERVICES INFORMATIQUES
+:duree: 4 heures
+:coefficient: 4
+:cas: Puces’In
+:imagesdir: images
+
+== Barème
+
+[cols="3,1", options="header"]
+|===
+| Dossier | Points
+| DOSSIER A : Sécurisation des applications VerifColis et Puces’In Rachète | 32 points
+| DOSSIER B : Gestion des droits sur les données à caractère personnel | 18 points
+| DOSSIER C : Résolution d'incidents sur le site web pucesin.com | 30 points
+| **TOTAL** | **80 points**
+|===
+
+== Présentation du contexte
+
+=== L’organisation cliente
+Puces’In est une entreprise française fondée sur le modèle de l’économie circulaire qui récupère, collecte, rachète et revend des livres d’occasion. Puces’In dispose de sept centres de dépôt, tri et revente répartis sur tout le territoire national.
+
+L'entreprise se différencie par deux applications majeures :
+
+* **Puces’In Rachète** : Application mobile (Android/iOS) permettant aux particuliers de scanner les codes-barres de leurs livres pour les revendre.
+* **VerifColis** : Application client lourd (C#) utilisée dans les centres de tri pour vérifier le contenu des colis reçus.
+
+Les livres sont ensuite revendus en rayon ou via le site web **pucesin.com**.
+
+=== L’entreprise prestataire de service
+La société **Solut** est une ESN labellisée ExpertCyber. Vous intervenez en tant que jeune recrue sur la sécurisation des applications et la résolution d’incidents.
+
+
+== DOSSIER A – Sécurisation des applications VerifColis et Puces’In Rachète
+(Documents A1 à A7)
+
+Le processus de rachat de livres, décrit dans le dossier documentaire, utilise deux applications :
+
+-	l'application client lourd VerifColis utilisée par les employés du centre de tri pour traiter les colis de livres reçus. Cette application écrite en C# utilise la base de données pucesin ;
+-	l'application mobile Puces’In Rachète qui permet aux particuliers de revendre des livres à Puces’In. Cette application existant en version Android et IOS utilise une interface de programmation d'application (API) REST (Representational State Transfer) développée en Java qui communique avec la base de données pucesin.
+Des failles ont été détectées dans ces deux applications. Vous devez intervenir pour les sécuriser et appliquer des contre-mesures aux failles détectées.
+
+
+=== Mission A1 – Sécurisation de l'application client lourd VerifColis
+Le service Qualité a détecté une faille : certains prix de rachat validés par les employés sont supérieurs au prix de revente public.
+
+[source,asciidoc]
+****
+**Question A.1.1 :** Identifier la principale conséquence de cette malveillance pour Puces'In.
+****
+
+[source,asciidoc]
+****
+**Question A.1.2 :** Lister les modifications à apporter à la méthode `traiterUnLivre` pour qu'elle intègre la règle de gestion suivante : « Le prix de rachat proposé ne sera enregistré dans la base que s'il ne dépasse pas 10 % du prix de revente de ce livre dans un état jugé acceptable ». (Le code n'est pas demandé).
+****
+
+=== Mission A2 – Sécurisation de l'application mobile Puces'In Rachète
+Puces'In reçoit de nombreux colis vides. Des concurrents utilisent l'application pour générer des bordereaux d'expédition sans intention de vente.
+
+[source,asciidoc]
+****
+**Question A.2.1 :** Identifier et justifier deux conséquences de cette malveillance pour Puces'In.
+****
+
+[source,asciidoc]
+****
+**Question A.2.2 :** Compléter la méthode `validerColis` de la classe `ColisController` (Document A4) afin qu’elle prenne en compte la limite fixée de quatre bordereaux d'expédition par mois et par vendeur.
+****
+
+=== Mission A3 – Gestion de l'interface de programmation d'application (API) REST
+L'application mobile utilise une API REST en Java. Des tests (Document A5) ont révélé des vulnérabilités.
+
+[source,asciidoc]
+****
+**Question A.3.1 :**
+
+a) Identifier les deux tests présentant une vulnérabilité.
+
+b) Expliquer, pour chacun, la vulnérabilité mise en évidence.
+
+c) Indiquer si elle concerne l’intégrité, la disponibilité ou la confidentialité.
+****
+
+Votre responsable technique décide d’augmenter la sécurité de l'interface de programmation d'application (API) REST suite à vos remarques. En plus de la mise en place d’un système de prévention d'intrusion (IPS), il décide d’implémenter deux règles pour contrôler les requêtes vers l'interface de programmation d'application (API) REST :
+
+* Une requête d'authentification doit être réalisée avant toute autre requête à l'interface de programmation d'application (API) REST.
+* Un utilisateur devra être limité en nombre de requêtes vers les identifiants URI (Uniform Resource Identifier) de l'interface de programmation d'application (API) REST.
+
+
+[source,asciidoc]
+****
+**Question A.3.2 :** Indiquer si la méthode `authentifierUtilisateur` de la classe `VendeurDAO` (Document A4) est sécurisée en justifiant votre réponse.
+****
+
+[source,asciidoc]
+****
+**Question A.3.3 :** Proposer une solution technique pour limiter le nombre de requêtes vers l'API.
+****
+
+L'équipe de développement décide d’utiliser des jetons d'authentification (tokens) de type JSON Web Token (JWT) pour implémenter ces deux règles.
+
+[source,asciidoc]
+****
+**Question A.3.4 :** Expliquer en quoi l’utilisation d'une clé de hachage par la fonction HMAC lors de la signature d’un jeton JWT garantit son intégrité.
+****
+
+Elle décide également d'utiliser le protocole HTTPS pour la communication avec l'interface de programmation d'application (API) REST.
+
+[source,asciidoc]
+****
+**Question A.3.5 :** Expliquer pour quelle raison l’utilisation du protocole HTTPS est nécessaire malgré le mode d'authentification par jeton.
+****
+
+L'intégration des jetons d'authentification (tokens) de type JSON Web Token (JWT) dans l'interface de programmation d'application (API) REST est en phase de test.
+Lors des tests, des requêtes ont été envoyées à l'interface de programmation d'application (API) REST. Leurs caractéristiques sont fournies dans le dossier documentaire.
+Le premier test fournit une réponse satisfaisante mais le deuxième est en échec.
+
+[source,asciidoc]
+****
+**Question A.3.6 :** Donner la cause de l'échec du deuxième test du Document A7 en justifiant votre réponse.
+****
+
+== DOSSIER B – Gestion des droits sur les données à caractère personnel
+(Document B1)
+
+=== Mission B1 – Contrôle du respect des obligations légales
+Pour utiliser les applications Puces’In Rachète et pucesin.com, les vendeurs et les acheteurs doivent fournir des données à caractère personnel.
+Le RGPD (articles 15 à 22) permet à toute personne ayant fourni des données à caractère personnel d'exercer des droits auprès de l'organisation les ayant collectées, comme par exemple :
+
+•	le droit d'accès ;
+•	le droit à la limitation du traitement ;
+•	le droit à la portabilité ;
+•	le droit d'opposition.
+
+Actuellement, Puces'In reçoit de la part des vendeurs et des acheteurs des demandes relatives à l'exercice de droits sur leurs données à caractère personnel.
+Le traitement de ces demandes transmises par courriel est réalisé par Mme Sylvie Mathy. Le temps moyen de délai de réponse est de 2 mois, bien au-delà du délai réglementaire.
+
+[source,asciidoc]
+****
+**Question B.1.1 :**
+
+a) Donner deux droits (articles 15 à 22 du RGPD), manquants dans la liste (accès, limitation, portabilité, opposition), que les utilisateurs peuvent exercer.
+
+b) Donner le délai réglementaire pour répondre à ces demandes.
+****
+
+Pour être traitée, une demande doit obligatoirement être accompagnée de la photocopie, au format PDF, d'un document officiel (passeport, carte d'identité, etc.) prouvant l'identité de la personne à l'origine de la demande.
+
+Actuellement, Mme Mathy saisit dans un tableur les caractéristiques des demandes (nom et prénom du demandeur ainsi que le droit exercé).
+
+Lorsque la demande est traitée, Mme Mathy en informe le demandeur par courriel en lui fournissant, le cas échéant, les informations nécessaires.
+
+Ce tableur et les fichiers contenant les documents officiels sont enregistrés dans un répertoire situé sur son poste de travail. En cas de besoin (par exemple : la demande n'est pas explicite ou la photocopie ne permet pas d'identifier le demandeur, etc.), Mme Mathy est amenée à échanger avec le demandeur. Seuls les échanges réalisés par courriel sont conservés dans sa boîte de messagerie durant un mois.
+
+Depuis 2018, Mme Mathy a conservé, par précaution, tous les fichiers prouvant l'identité du demandeur.
+
+[source,asciidoc]
+****
+**Question B.1.2 :** Indiquer si le choix de Mme Mathy de conserver, depuis 2018, les photocopies des documents officiels d'identité est réglementaire. Justifier.
+****
+
+Mme Mathy est consciente que cette manière de gérer les demandes ne permet pas de :
+
+•	garantir que le délai règlementaire fixé pour l'exercice d'un droit est bien respecté ;
+•	réaliser des statistiques sur la durée de traitement des demandes ;
+•	garder la trace des échanges avec le demandeur lors du traitement de la demande.
+Aussi, elle a demandé une application web permettant, entre autres, la saisie d'une demande d'exercice de droits.
+
+[source,asciidoc]
+****
+**Question B.1.3 :** Indiquer dans quel document le traitement de saisie des demandes doit être décrit pour être conforme au RGPD.
+****
+
+=== Mission B2 – Conception de la base de données
+
+En plus de proposer la possibilité de saisir une demande d'exercice de droit, la nouvelle application web permettra à Mme Mathy de gérer correctement le délai réglementaire : lorsqu'elle se connectera à l'application, elle obtiendra les demandes non encore traitées, triées par date de saisie de la plus ancienne à la plus récente. D'autres fonctionnalités lui permettront de saisir les échanges avec les demandeurs et d'obtenir des statistiques sur le délai de traitement des demandes.
+
+Une ébauche de représentation de la base de données utilisée par l'application a été réalisée. Vous allez la compléter pour permettre :
+
+•	la garantie de la gestion du délai règlementaire de traitement d'une demande ;
+•	la réalisation de statistiques sur la durée de traitement d'une demande par type de droit exercé ;
+•	la conservation des dates de changement de l’état d’une demande ;
+•	la conservation des échanges réalisés pour traiter la demande. Pour chaque échange on conservera la date de l'échange, la description de l'échange et un code indiquant la personne à l'origine de l'échange (D pour le demandeur, P pour le DPO de Puces'in).
+
+[source,asciidoc]
+****
+**Question B.2.1 :** Adapter la représentation (diagramme de classes ou schéma E/A) fournie au Document B1 pour intégrer les besoins décrits (statistiques de durée, historique des états, conservation des échanges avec code demandeur/DPO).
+****
+
+== DOSSIER C – Résolution d'incidents sur le site web pucesin.com
+(Documents C1 à C5)
+
+Plusieurs tickets d'incident ont été enregistrés pour le site web principal de Puces’In à savoir pucesin.com. Votre chef de projet vous demande de participer à la résolution de certains d’entre eux.
+
+=== Mission C1 - Identification d'attaques et contre-mesures
+
+[source,asciidoc]
+****
+**Question C.1.1 :** En analysant le ticket S-C-1092 :
+
+a) Nommer la technique utilisée par l'attaquant (URL malveillante).
+
+b) Nommer l’attaque dont l’employé a été victime.
+****
+
+[source,asciidoc]
+****
+**Question C.1.2 :** Donner deux moyens de sensibiliser les employés à ce type d’attaque.
+****
+
+[source,asciidoc]
+****
+**Question C.1.3 :** En analysant le ticket S-A-0095, proposer deux contre-mesures pour éviter la création de sites parodiques (cybersquatting).
+****
+
+À la lecture de ce ticket, l'administrateur système du site pucesin.com a souhaité mettre en place un programme de vérification automatique du renouvellement de la propriété du nom de domaine. Pour ce faire, il a demandé à un stagiaire de développer un programme qui exploite les données de la base Whois, pour le prévenir 3 mois puis 1 mois avant la date d’expiration de la propriété du nom de domaine pucesin.com.
+
+Après une première expérimentation, il constate qu’un rappel supplémentaire lui serait bien utile une semaine avant.
+
+[source,asciidoc]
+****
+**Question C.1.4 :** Compléter le programme PHP (Document C3) pour ajouter un rappel une semaine avant l'expiration du nom de domaine.
+****
+
+=== Mission C2 – Analyse de traces (logs)
+
+À la fin du mois d’avril, vous recevez un courriel de la part du responsable du service comptabilité de Puces’In. Lors du mois de mars, le total des ventes indiqué par le site ne correspond pas aux sommes créditées sur les comptes de Puces’In.
+
+En analysant les traces (logs) d'authentifications réussies ou non du mois de mars, vous identifiez quelques irrégularités.
+
+
+[source,asciidoc]
+****
+**Question C.2.1 :** À partir du Document C4, identifier le type d’attaque subi par le serveur SSH (tentatives répétées).
+****
+[source,asciidoc]
+****
+**Question C.2.2 :** Identifier deux raisons possibles du succès de l’attaque (ligne `Accepted password`).
+****
+[source,asciidoc]
+****
+**Question C.2.3 :** Pour chaque principe (Disponibilité, Intégrité, Confidentialité), donner un risque possible suite à cette compromission du compte `admsys`.
+****
+La lecture du fichier des traces (logs) d'audit du SGBD MySQL du mois d'avril révèle plusieurs requêtes effectuées sur la base de données qui ont engendré une fuite de données.
+
+[source,asciidoc]
+****
+**Question C.2.4 :** Suite à la fuite de données détectée dans le Document C5 :
+
+a) Lister les acteurs devant être informés.
+
+b) Indiquer dans quel document la fuite doit être consignée.
+
+c) Indiquer deux actions pour garantir l'intégrité des preuves.
+****
+[source,asciidoc]
+****
+**Question C.2.5 :** Écrire la requête SQL permettant de supprimer les privilèges attribués abusivement au compte `lecteur` (Document C5).
+****
+
+=== Mission C3 – Sécurisation des accès à une base de données
+
+Le prix de revente des livres de Puces’In varie avec la demande : par exemple, les bandes-dessinées et les mangas, en plus forte demande, ont un prix de revente plus élevé, tout comme d’autres livres d’auteurs populaires (Marc Levy, Michel Bussi, etc.). En revanche les livres de poche et les œuvres de référence, comme celles demandées par les enseignants en classe de première, ont un prix de revente très bas.
+
+Pour déterminer les prix de revente, Puces’In a besoin de faire des statistiques sur les données. Pour ces statistiques, les informations suivantes sont nécessaires : livres commandés, date de publication et prix de vente neuf des publications des livres, libellés des types de publication.
+
+Aussi, il est nécessaire de créer un compte utilisateur statistiques disposant d’un accès à la base de données nommée pucesin pour obtenir les informations utiles aux statistiques.
+
+[source,asciidoc]
+****
+**Question C.3.1 :**
+
+a) Écrire les requêtes SQL (CREATE USER et GRANT) pour créer le compte `statistiques` limité à l'IP `95.10.2.54`.
+
+b) Proposer une solution technique différente (ex: Vue) pour limiter l'accès aux seules données nécessaires.
+****
+
+== DOSSIER DOCUMENTAIRE
+
+==== Document commun 1 : Processus de rachat de livres
+Un livre est un exemplaire d’une publication. Chaque publication de livre est caractérisée par un numéro d'identification unique ISBN (International Standard Book Number), un titre, un auteur, une date de publication, un type de publication (poche, broché, bande dessinée, manga, etc.) et un prix de vente neuf.
+
+Pour chaque publication d'un livre, plusieurs prix de revente sont définis, en fonction de l’état du livre (son niveau d’usure), et de la demande liée à la publication. Par exemple, les mangas étant plus demandés que les livres de poche, ils sont revendus plus chers.
+
+Le processus de rachat de livres est le suivant :
+
+1. Le particulier qui souhaite revendre des livres à Puces’In doit lire le code-barres de chacun d'eux avec l’application **Puces’In Rachète** qu’il aura préalablement installée.
+
+2. L’application affiche le prix de rachat estimé pour chaque livre. Ce prix correspond à **10 % du prix de revente** d'un livre en « bon état » à la clientèle (un prix de revente est défini pour chaque publication de livre et chaque état).
+* _Exemple : si le prix de revente d'une publication pour un livre en « bon état » est fixé à 10 €, alors le prix de rachat estimé d'un livre appartenant à cette publication sera de 1 €._
+
+3. Une fois que le vendeur a traité tous les livres qu’il souhaite revendre, il valide son panier.
+
+4. L'application lui propose alors de se connecter, ou de créer un compte. Dans ce dernier cas, son adresse postale ainsi que l’identifiant international de son compte bancaire (**IBAN**) lui seront demandés.
+
+5. Une fois que le panier est validé, un bordereau d’expédition (appelé également étiquette d'envoi) est généré pour le vendeur, qui peut alors l’imprimer et le coller sur le colis contenant les livres du panier. Le bordereau d'expédition contient un code-barres permettant d'identifier le colis.
+
+6. Le client expédie le colis à Puces’In qui le réceptionnera dans son centre de tri.
+
+7. Les frais de port seront réglés par Puces'In dès que le client aura déposé le colis au bureau de poste ou au point relais de son choix.
+
+8. À la réception du colis, l'état du colis est mis à jour dans la base de données et passe à l'état **« reçu »**.
+
+9. Puis, un employé du centre de tri est chargé de renseigner l’état de chaque livre présent dans le colis. Cet état peut prendre une des valeurs suivantes : « comme neuf », « très bon état », « bon état », « acceptable », « refusé ». Si le livre manque dans le colis, alors il prendra l'état **« absent »**.
+
+10. Si un livre est dans un état **« acceptable »**, alors l’employé du centre de tri saisira une nouvelle proposition de prix de rachat, enregistrée dans le champ `prixRachatPropose`, et l’enverra au client par messagerie. Si le client ne valide pas cette proposition dans un délai d'un mois, alors le livre sera retourné au client.
+
+11. Si un livre est dans un état **« refusé »**, alors il sera également retourné au client.
+
+12. Le client sera réglé :
+* Immédiatement si dans le colis tous les livres ont un état supérieur à l’état « acceptable » (« comme neuf », « très bon état » ou en « bon état ») ;
+* Ou suite à l'acceptation du client de la nouvelle proposition de prix de rachat si un des livres du colis est dans un état « acceptable ».
+
+13. Les livres sont ensuite nettoyés.
+
+14. Le service comptabilité de Puces’In procède alors au virement du montant à régler au client à l’aide d’un logiciel dédié.
+
+=== Document commun 2 : Base de données pucesin
+image::diagClasse.png[Diagramme de classes général]
+
+[cols="1,2,1,2", options="header"]
+|===
+| Table | Attributs | Clé Primaire (PK) | Clé(s) Étrangère(s) (FK) / Note
+
+| Vendeur
+| id, nom, prenom, rue, codePostal, ville, telephone, mel, login, motDePasse, IBAN
+| id
+| Aucune
++1
+
+| Acheteur
+| id, nom, prenom, rue, codePostal, ville, telephone, mel, login, motDePasse
+| id
+| Aucune
++1
+
+| Employe
+| id, nom, prenom
+| id
+| Aucune
++1
+
+| Colis
+| id, refBordereauEnvoi, nomPdfBordereau, dateGenerationBordereau, libelleEtat, idVendeur, idEmploye
+| id
+| idVendeur (Vendeur), idEmploye (Employe)
++1
+
+| TypePublication
+| id, libelle
+| id
+| Aucune
++1
+
+| PublicationLivre
+| id, ISBN, titre, auteur, datePublication, prixVenteNeuf, idTypePublication
+| id
+| idTypePublication (TypePublication)
++1
+
+| EtatLivre
+| id, libelle
+| id
+| Note : Voir doc A2 pour les valeurs de libelle
++1
+
+| Revendre
+| idPublication, idEtatLivre, prixRevente
+| idPublication, idEtatLivre
+| idPublication (PublicationLivre), idEtatLivre (EtatLivre)
++1
+
+| Livre
+| idPublication, numLivre, prixRachatEstime, prixRachatPropose, dateAcceptPrix, idEtatLivre, idColis, idCommande
+| idPublication, numLivre
+| idPublication (PublicationLivre), idEtatLivre (EtatLivre), idColis (Colis), idCommande (CommandeInternet)
++1
+
+| ModePaiement
+| id, libelle
+| id
+| Aucune
++1
+
+| CommandeInternet
+| id, dateCommande, idAcheteur, idModePaiement
+| id
+| idAcheteur (Acheteur), idModePaiement (ModePaiement)
+|===
+
+==== Document commun 3 : Extrait de la documentation de MySQL
+
+[cols="1,2,2", options="header"]
+|===
+| Élément | Syntaxe / Description | Exemple / Note
+
+| **CURRENT_DATE()**
+| Cette fonction retourne la date courante du système sous le format « année-mois-jour ».
+| Retourne : 2024-03-10 si nous sommes le 10 mars 2024.
+
+| **Création d’un compte utilisateur**
+| `CREATE USER 'jeffrey'@'localhost' IDENTIFIED BY 'password';`
+| Crée un utilisateur ‘jeffrey’ qui se connecte avec le mot de passe ‘password’ depuis la machine locale.
+
+| **Attribution de droits**
+| `GRANT ALL ON base.table TO 'jeffrey'@'localhost';`
+| Donne à l’utilisateur ‘jeffrey’ tous les droits sur la table « table » de la base « base ».
+
+| **Révocation de droits**
+| `REVOKE UPDATE ON base.table FROM 'jeffrey'@'localhost';`
+| Supprime le privilège UPDATE sur les enregistrements à l’utilisateur ‘jeffrey’ dans la table « table » de la base « base ».
+|===
+
+=== Document A1 : Formulaire VerifColis
+==== Document A1 : Formulaire de l'application client lourd VerifColis
+
+Lorsqu'un employé du centre de tri des livres lit le code-barres du bordereau d'expédition présent sur un colis, un formulaire s'affiche contenant les livres traités par le client.
+
+Exemple de données affichées sur le formulaire :
+
+Pour chaque livre du colis, l'employé du centre de tri doit :
+
+Renseigner l'état du livre en sélectionnant une valeur dans la liste déroulante ;
+
+Saisir un prix de rachat qui sera proposé au client si l'état du livre est « acceptable ».
+
+=== Traitement du formulaire
+
+Au clic sur le bouton « Valider le colis », la méthode traiterUnLivre fournie ci-dessous est appelée pour chaque ligne de la grille de données.
+
+[.underline]#Exemple de données affichées sur le formulaire :#
+
+image::formulaire_verifcolis.png[Capture d'écran du formulaire de vérification]
+
+
+Pour chaque livre du colis, l'employé du centre de tri doit :
+
+-	renseigner l'état du livre en sélectionnant une valeur dans la liste déroulante ;
+-	saisir un prix de rachat qui sera proposé au client si l'état du livre est « acceptable ».
+
+
+[.underline]#Traitement du formulaire :#
+Au clic sur le bouton « Valider le colis » la méthode traiterUnLivre fournie ci-dessous est appelée pour chaque ligne de la grille de données.
+Elle reçoit deux paramètres :
+
+* un objet unLivre correctement valorisé avec les valeurs du livre d’une ligne et
+* un objet contenant les caractéristiques utiles à la connexion à la base de données.
+
+
+[source,csharp]
+----
+private int traiterUnLivre(Livre unLivre, MySqlConnexion uneConnexion) {
+int valeurRetournee;
+string reqSQL;
+
+// test si le livre est dans l'état « acceptable »
+if (unLivre.getLeEtatLivre().getId() == 4)
+{
+// mise en forme de la requête SQL
+// les paramètres de la requête sont précédés du caractère @
+reqSQL = "update Livre set idEtat = @pEtat, prixRachatPropose = @pPrix where numLivre = @pLivre and idPublication= @pPub";
+}
+else
+{
+// mise en forme de la requête SQL
+reqSQL = "update Livre set idEtat = @pEtat where numLivre = @pLivre and idPublication= @pPub";
+}
+
+// mise en forme de la requête SQL dans l'objet uneComSql
+MySqlCommand uneComSql = new MySqlCommand(reqSQL, uneConnexion);
+
+// renseigne les paramètres à partir des valeurs de l'objet unLivre
+uneComSql.Parameters.AddWithValue("@pEtat", unLivre.getLeEtatLivre().getId());
+
+if (unLivre.getLeEtatLivre().getId() == 4)
+{
+// si l'état du livre est acceptable, le prix de rachat proposé saisi est enregistré
+uneComSql.Parameters.AddWithValue("@pPrix", unLivre.getPrixRachatPropose());
+}
+
+uneComSql.Parameters.AddWithValue("@pLivre", unLivre.getNumLivre());
+uneComSql.Parameters.AddWithValue("@pPub", unLivre.getLaPublication().getId());
+
+// Exécution de la requête contenue dans l'objet uneComSql
+// la méthode ExecuteNonQuery retourne le nombre d'enregistrements modifiés
+valeurRetournee = uneComSql.ExecuteNonQuery();
+
+return valeurRetournee;
+}
+----
+
+==== Document A2 : Extrait des tables EtatLivre et Revendre
+
+La table EtatLivre contient les états possibles d'un livre :
+
+[cols="1,2", options="header"]
+|===
+| id | libelle
+| 1 | comme neuf
+| 2 | très bon état
+| 3 | bon état
+| 4 | Acceptable
+| 5 | Refusé
+| 6 | absent
+|===
+
+La table Revendre contient le prix de revente d'une publication en fonction de l'état du livre.
+
+[.underline]#Exemple :#
+
+Dans l'exemple ci-dessous, on peut voir les prix de revente enregistrés dans la table Revendre pour le livre d'Amélie Nothomb intitulé « Le livre des sœurs » (identifiant de publication = 256) :
+
+[.underline]#Extrait de la table Revendre pour la publication 256#
+
+[cols="1,1,1", options="header"]
+|===
+| idPublication | idEtatLivre | prixRevente
+| 256 | 1 | 13.50
+| 256 | 2 | 13.00
+| 256 | 3 | 12.30
+| 256 | 4 | 9.80
+|===
+
+==== Document A3 : Extrait des classes métier
+
+Seuls les classes métier, attributs et méthodes nécessaires aux traitements demandés sont fournis ci-dessous.
+
+[.underline]#Remarque :#
+Les méthodes de lecture (getters) et de mise à jour (setters) ne sont pas fournies mais existent pour chaque attribut d'une classe.
+
+[source,java]
+----
+public class Livre {
+private int numLivre;
+private float prixRachatEstime;
+private float prixRachatPropose;
+private PublicationLivre laPublication;
+private Colis leColis;
+private EtatLivre leEtatLivre;
+
+public Livre(...) { ... }
+// suite de la classe
+}
+
+public class PublicationLivre {
+private int id;
+private String isbn;
+private String titre;
+private String auteur;
+private Date datePublication;
+private float prixVenteNeuf;
+private TypePublication leTypePublication;
+
+public PublicationLivre(...) { ... }
+// suite de la classe
+}
+
+public class Vendeur {
+private int id;
+private String nom;
+private String prenom;
+
+public Vendeur(...) { ... }
+public int getId() { return id; }
+// suite de la classe
+}
+
+public class TypePublication { ... }
+
+public class EtatLivre { ... }
+
+public class Colis {
+private int id;
+private String refBordereauEnvoi;
+private String nomPdfBordereau;
+private Date dateGenerationBordereau;
+private String libelleEtat;
+private Vendeur leVendeur;
+private Employe leEmp;
+private ArrayList<Livre> lesLivres;
+
+public Colis(...) { ... }
+public int getId() { return id; }
+public String getRefBordereauEnvoi() { ... }
+public String getNomPdfBordereau() { ... }
+public Date getDateGenerationBordereau() { ... }
+public String getLibelleEtat() { ... }
+public Vendeur getLeVendeur() { return leVendeur; }
+// suite de la classe
+}
+----
+
+==== Document A4 : Extrait des classes techniques utilisées par l'interface de programmation d'application (API) REST
+
+[source,java]
+----
+public class VendeurDAO extends DAO {
+
+public static ResultSet authentifierUtilisateur(String login, String mdp) {
+ResultSet unResultSet = null;
+// Appel de la méthode de la classe mère qui donne un objet pour gérer la BDD
+Connection uneConnexion = getConnexion();
+
+    try {
+        // Mise en forme de la requête préparée
+        String sql = "Select id, nom, prenom from Vendeur where login = ? and motDePasse = ?";
+        PreparedStatement unStatement = uneConnexion.prepareStatement(sql);
+
+        // Renseigne les deux paramètres
+        unStatement.setString(1, login);
+        unStatement.setString(2, hashpassword(mdp));
+
+        // Exécute la requête préparée
+        unResultSet = unStatement.executeQuery();
+
+    } catch (SQLException e) {
+        // Gestion de l'exception (code non fourni)
+    }
+
+    // Retourne le jeu d'enregistrement
+    return unResultSet;
+}
+
+/* Retourne le nombre de bordereaux d'expédition générés pour le mois en cours, */
+/* pour le vendeur dont l'identifiant est passé en paramètre */
+public static int getNbBordereauDuMois(int unIdVendeur) { ... }
+}
+
+public class ColisController {
+
+// validerColis permet la génération du bordereau d'expédition et la création des données
+// dans la base de données si le vendeur n'a pas déjà généré quatre bordereaux pour le mois
+// en cours. LeColis est une instance de la Classe Colis.
+// La méthode retourne false si la limite a été atteinte.
+
+public Boolean validerColis(Colis leColis) {
+int idVendeur = leColis.getLeVendeur().getId(); // récupération de l'identifiant du vendeur
+
+    /* à compléter sur votre copie */
+
+    genererPdfBordereau(leColis); // génération du PDF
+    // enregistrement des données dans la base
+    ColisDAO.enregistrerColisAvecLivres(leColis);
+    return true;
+}
+}
+----
+
+==== Document A5 : Résultats des tests de l'interface de programmation d'application (API) REST
+
+image::testsAPI.png[Tests d'API]
+
+
+=== Document A6 : Composition d'un jeton JWT
+JWT signifie JSON Web Token : c’est un standard ouvert (RFC 7519) qui décrit une méthode pour transmettre une information de manière sécurisée.
+
+Les jetons JWT sont utilisés comme jetons d’authentification pour consommer un service. Ils sont généralement placés dans l’entête d'un échange HTTP du type autorisation de porteur (Bearer).
+
+Un jeton JWT est composé de trois parties séparées par un point « . » :
+
+L'entête (header) contient des informations sur le jeton (type de jeton et algorithme utilisé pour la signature) au format JSON encodées en base 64.
+
+Le corps appelé également charge utile (payload) au format JSON encodé en base 64 contient des informations utiles au serveur utilisant le jeton.
+
+La signature du jeton est un condensé (hash) obtenu en appliquant une fonction de hachage sur l'entête concaténé à la charge utile. Cette fonction utilise une clé secrète pour s'assurer de la validité du jeton.
+
+image::structure_jwt.png[Schéma de la structure Header.Payload.Signature]
+
+[.underline]#Détail de la charge utile (payload) :#
+
+Les informations sont fournies sous la forme "nomDePropriété" : valeur. Voici des exemples de propriétés (claims) définies par le standard :
+
+* iss (Issuer) : identifie le serveur qui a émis le jeton.
+* iat (Issued At) : date de génération du jeton au format timestamp.
+* exp (Expiration Time) : date d'expiration du jeton au format timestamp.
+
+[.underline]#Exemple de décodage d'un jeton JWT :#
+
+Voici un exemple de jeton transmis lors d'un échange :
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL3B1Y2VzaW4uY29tIiwiaWF0IjoxNTIxMzA5NjAwLCJleHAiOjE1MjEzMTMyMDB9.sGrqR9WhhjDvs6zH56IVemEVNvmJs63ic2yhQOJJUyU
+
+[cols="1,2", options="header"]
+|===
+| Partie | Contenu décodé (JSON)
+| Entête | { "typ": "JWT", "alg": "HS256" }
+| Charge utile | { "iss": "https://pucesin.com", "iat": 1521309600, "exp": 1521313200 }
+|===
+
+[.underline]#Calcul de la signature :#
+
+La signature est obtenue en utilisant l'algorithme HS256 (HMAC-SHA-256) de la manière suivante :
+
+Signature = HMACSHA256(base64UrlEncode(header) + "." + base64UrlEncode(payload), clé_secrète)
+
+La clé secrète est celle utilisée par le serveur pour générer la signature du jeton
+
+==== Document A7 : Tests de l'interface de programmation d'application (API) réalisés suite à l'intégration des jetons (tokens) JWT
+
+[.underline]#Test n°1 réalisé le 02/05/2024 à 10:08:20 :#
+
+1. Réalisation d'une requête POST api.pucesin.com/auth permettant de se connecter pour obtenir un jeton d'authentification JWT.
+
+2. Réalisation d'une requête GET api.pucesin.com/colis/user1 en transmettant le jeton obtenu.
+
+image::test_jwt_contenu.png[Contenu du jeton JWT encodé et décodé]
+
+
+
+
+[.underline]#Test n°2 réalisé le 02/05/2024 à 10:30:00 :#
+
+Réalisation d'une requête GET api.pucesin.com/colis/user1 en transmettant le jeton obtenu lors du test n°1.
+L'erreur ExpiredJwtException est retournée.
+
+=== Document B1 : Base de données "Gestion des droits"
+image::diagramme_demandes_rgpd.png[Classes EtatDemande, Demande, Droit]
+
+Remarque : actuellement, seul l'état courant de la demande est géré, l’identifiant peut prendre les valeurs : 1 pour en attente de traitement, 2 pour en cours de traitement, 3 pour traitée.
+
+=== Document C1 : Ticket S-C-1092
+image::ticket_etienne_klein.png[Capture du ticket incident redirection mail]
+
+=== Document C2 : Ticket S-A-0095
+image::ticket_jade_chen.png[Capture du ticket sites similaires]
+
+=== Document C3 : Programme de vérification Whois
+[source,php]
+----
+<?php
+1.	// renseigne le nom de domaine
+2.	$domain = 'pucesin.com';
+3.	// exécution de la commande whois pour obtenir les informations du nom de domaine
+4.	$info_nom_domaine = shell_exec('whois ' . escapeshellarg($domain));
+5.	// Récupération de la date d'expiration du nom de domaine
+6.	preg_match('/Expiry Date:(.*?)\n/', $info_nom_domaine, $matches);
+7.	$date_expiration_complete = trim($matches[1]);
+8.	$date_expiration= date('Y-m-d', strtotime($date_expiration_complete));
+9.	// Récupération de la date du jour
+10.	$date_jour = date('Y-m-d');
+11.	// contrôle de la date d'expiration
+12.	$date_dans_3_mois = date('Y-m-d', strtotime('+3 month', strtotime($date_jour)));
+13.	if ($date_expiration == $date_dans_3_mois) {
+14.	    $message = "Le nom de domaine ".$domain." expirera dans 3 mois";
+15.	} else {
+16.	    $date_dans_1_mois = date('Y-m-d', strtotime('+1 month', strtotime($date_jour)));
+17.	    if ($date_expiration == $date_dans_1_mois) {
+18.	        $message = "Le nom de domaine ".$domain." expirera dans 1 mois";
+19.	    }
+20.	}
+21.	if (isset($message)) {
+22.	    envoyer_mail("admin@pucesin.com","Nom de domaine ".$domain, $message);
+23.	}
+/* La fonction envoyer_mail permet l'envoi d'un mail. L'entête de cette fonction est :
+envoyer_mail(string $destinataire, string $sujet, string $corps)
+Remarque : pour ajouter une année à une date on indiquera '+1 year', pour enlever 2 jours à une date on écrira '- 2 days'.
+*/
+?>
+----
+
+=== Document C4 : Traces d'authentification auth.log
+[source,asciidoc]
+....
+Site-pucesin sshd[7683] : Invalid user livre from 51.87.35.150 port 44142
+Site-pucesin sshd[7683] : Failed password for invalid user livre from  51.87.35.150 port 44142 ssh2
+Site-pucesin sshd[7687] : Failed password for admsys from  51.87.35.150 port 44146 ssh2
+Site-pucesin sshd[7687] : Failed password for admsys from  51.87.35.150 port 44146 ssh2
+Site-pucesin sshd[7687] : Failed password for admsys from  51.87.35.150 port 44146 ssh2
+Site-pucesin sshd[7687] : Failed password for admsys from  51.87.35.150 port 44146 ssh2
+Site-pucesin sshd[7687] : Failed password for admsys from  51.87.35.150 port 44146 ssh2
+Site-pucesin sshd[7687] : Failed password for admsys from  51.87.35.150 port 44146 ssh2
+Site-pucesin sshd[7687] : Failed password for admsys from  51.87.35.150 port 44146 ssh2
+Site-pucesin sshd[7687] : Accepted password for admsys from  51.87.35.150 port 44146 ssh2
+Site-pucesin systemd-logind[679]: New session 30 of user admsys
+admsys est le compte de l'administrateur du serveur pucesin.com et dispose de tous les droits.
+....
+
+=== Document C5 : Extrait du fichier des traces (logs) d'audit de MySQL du mois d'avril 2024
+image::extrait_log.png[Extrait des logs moi d'avril]
+
+
+== Mission D : Prototype PHP
+
+=== Base de données MySQL (pucesin_proto)
+
+Ce script crée une structure robuste basée sur le cas Puces'In, avec des données de test diversifiées .
+
+[source,sql]
+----
+CREATE DATABASE IF NOT EXISTS pucesin_proto CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE pucesin_proto;
+
+-- Table des utilisateurs (Vendeurs et Employés)
+CREATE TABLE Utilisateur (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    nom VARCHAR(50) NOT NULL,
+    prenom VARCHAR(50) NOT NULL,
+    login VARCHAR(50) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role ENUM('vendeur', 'employe') DEFAULT 'vendeur'
+) ENGINE=InnoDB;
+
+-- Table des livres (Extraite du catalogue)
+CREATE TABLE PublicationLivre (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    isbn VARCHAR(20) UNIQUE,
+    titre VARCHAR(255),
+    auteur VARCHAR(100),
+    prix_neuf DECIMAL(10,2)
+) ENGINE=InnoDB;
+
+-- Table des exemplaires physiques
+CREATE TABLE Livre (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    idPublication INT,
+    etat ENUM('neuf', 'bon', 'acceptable', 'refuse') DEFAULT 'bon',
+    prix_rachat_propose DECIMAL(10,2),
+    idProprietaire INT,
+    FOREIGN KEY (idPublication) REFERENCES PublicationLivre(id),
+    FOREIGN KEY (idProprietaire) REFERENCES Utilisateur(id)
+) ENGINE=InnoDB;
+
+-- Insertion de données généreuses
+INSERT INTO Utilisateur (nom, prenom, login, password_hash, role) VALUES
+('Martin', 'Alice', 'amartin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'vendeur'),
+('Dubois', 'Thomas', 'tdubois', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'employe');
+-- Note : Le mot de passe pour tous est 'password'
+
+INSERT INTO PublicationLivre (isbn, titre, auteur, prix_neuf) VALUES
+('9782226476364', 'Le livre des soeurs', 'Amélie Nothomb', 18.50),
+('9782070323517', 'Le deuxième sexe', 'Simone de Beauvoir', 12.00),
+('9782266082983', 'Le horla', 'Guy de Maupassant', 6.50),
+('9782253009009', 'Bel-ami', 'Guy de Maupassant', 7.20),
+('9782378803759', 'Veiller sur elle', 'J.B. Andrea', 21.00);
+
+INSERT INTO Livre (idPublication, etat, prix_rachat_propose, idProprietaire) VALUES
+(1, 'bon', 1.85, 1),
+(3, 'acceptable', 0.65, 1),
+(5, 'neuf', 2.10, 1);
+----
+
+=== Configuration et Sécurité Serveur
+
+[.underline]#Fichier : `composer.json`#
+[source,json]
+----
+{
+    "require": {
+        "firebase/php-jwt": "^6.0"
+    }
+}
+----
+
+[.underline]#Fichier : `.htaccess` (En-têtes Authorization)#
+[source,apache]
+----
+RewriteEngine On
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+----
+_Installez via la commande : `composer install`_
+
+=== Le Code Source de l'API
+
+==== Connexion BDD et Configuration
+[.underline]#Fichier : `config.php`#
+[source,php]
+----
+<?php
+require_once 'vendor/autoload.php';
+
+define('JWT_SECRET', 'votre_cle_secrete_super_longue_123'); // À changer en prod
+define('JWT_ALGO', 'HS256');
+
+function getDB() {
+    $host = "localhost";
+    $db   = "pucesin_proto";
+    $user = "root";
+    $pass = ""; // À adapter selon votre config WAMP/XAMPP
+    return new PDO("mysql:host=$host;dbname=$db;charset=utf8mb4", $user, $pass, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+    ]);
+}
+?>
+----
+
+==== Authentification et Génération du Token
+Ce script reçoit le login/password et retourne un jeton JWT valide 1 heure.
+
+[.underline]#Fichier : `login.php`#
+[source,php]
+----
+<?php
+header('Content-Type: application/json');
+require_once 'config.php';
+use \Firebase\JWT\JWT;
+
+$data = json_decode(file_get_contents("php://input"));
+
+if (!empty($data->login) && !empty($data->password)) {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT * FROM Utilisateur WHERE login = ?");
+    $stmt->execute([$data->login]);
+    $user = $stmt->fetch();
+
+    if ($user && password_verify($data->password, $user['password_hash'])) {
+        $payload = [
+            "iss" => "pucesin-api",
+            "iat" => time(),
+            "exp" => time() + 3600, // 1 heure
+            "uid" => $user['id'],
+            "role" => $user['role']
+        ];
+
+        $jwt = JWT::encode($payload, JWT_SECRET, JWT_ALGO);
+        echo json_encode(["token" => $jwt, "message" => "Succès"]);
+    } else {
+        http_response_code(401);
+        echo json_encode(["message" => "Identifiants invalides"]);
+    }
+}
+?>
+----
+
+==== Ressource Protégée (Mes Livres)
+Ce script vérifie la présence et la validité du jeton dans les headers HTTP avant de renvoyer les données.
+
+[.underline]#Fichier : `mes_livres.php`#
+[source,php]
+----
+<?php
+header('Content-Type: application/json');
+require_once 'config.php';
+use \Firebase\JWT\JWT;
+use \Firebase\JWT\Key;
+
+$authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+
+if (preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+    $jwt = $matches[1];
+    try {
+        $decoded = JWT::decode($jwt, new Key(JWT_SECRET, JWT_ALGO));
+        $userId = $decoded->uid;
+
+        $db = getDB();
+        $stmt = $db->prepare("
+            SELECT L.id, P.titre, P.auteur, L.etat, L.prix_rachat_propose
+            FROM Livre L
+            JOIN PublicationLivre P ON L.idPublication = P.id
+            WHERE L.idProprietaire = ?
+        ");
+        $stmt->execute([$userId]);
+        echo json_encode($stmt->fetchAll());
+
+    } catch (Exception $e) {
+        http_response_code(401);
+        echo json_encode(["message" => "Accès refusé : Jeton invalide ou expiré"]);
+    }
+} else {
+    http_response_code(401);
+    echo json_encode(["message" => "Jeton manquant"]);
+}
+?>
+----
+
+=== Méthodes de test de l'API sous PHPStorm
+
+PHPStorm propose des outils puissants pour tester les points d'entrée (endpoints) sans quitter l'EDI.
+
+[.underline]#1. Le Client HTTP intégré (Fichiers .http)#
+
+C'est la méthode recommandée. Elle permet de simuler des requêtes complexes et de manipuler les jetons JWT facilement.
+
+**Procédure :**
+
+* Faites un clic droit sur votre dossier de projet : `New` > `HTTP Request`.
+* Nommez le fichier `pucesin_tests.http`.
+
+[source,http]
+----
+### 1. Authentification (Login)
+# @name login
+POST http://localhost/pucesin/login.php
+Content-Type: application/json
+
+{
+  "login": "amartin",
+  "password": "password"
+}
+
+> {%
+    client.global.set("token", response.body.token);
+%}
+
+### 2. Accès aux livres (Utilise le token du test précédent)
+GET http://localhost/pucesin/mes_livres.php
+Authorization: Bearer {{token}}
+Accept: application/json
+----
+
+Le > est la syntaxe de PhpStorm/IntelliJ pour introduire un response handler — c'est lui qui dit "ce bloc de script doit s'exécuter après réception de la réponse".
+Concrètement :
+[source,adoc]
+----
+> → "quand la réponse arrive, exécute ce qui suit"
+{% ... %} → délimite le code JavaScript à exécuter
+----
+Sans le >, PhpStorm ne saurait pas que ce bloc est un script à déclencher sur la réponse — il le traiterait comme du texte faisant partie du corps de la requête.
+C'est un peu l'équivalent d'un callback : "une fois la réponse reçue >, fais ceci {% ... %}".
+
+
+**Avantages :**
+
+* Exécution en un clic via la flèche verte dans la marge.
+* Historique des requêtes conservé.
+* Supporte les variables d'environnement.
+
+[.underline]#2. Utilisation du Terminal intégré avec cURL#
+
+Si vous préférez la ligne de commande, PHPStorm dispose d'un terminal (`Alt + F12`).
+
+**Test du Login :**
+[source,bash]
+----
+curl -X POST http://localhost/pucesin/login.php -H "Content-Type: application/json" -d "{\"login\":\"amartin\", \"password\":\"password\"}"
+----
+
+**Test de la ressource protégée :**
+[source,bash]
+----
+curl -X GET http://localhost/pucesin/mes_livres.php -H "Authorization: Bearer VOTRE_TOKEN_ICI"
+----
+
+[.underline]#3. Analyse des réponses JSON#
+
+PHPStorm formate automatiquement les réponses JSON reçues.
+* Vous pouvez cliquer sur l'icône **JSON** dans la fenêtre de réponse pour valider la structure.
+* Utilisez l'onglet **Response Handler** pour écrire des tests automatiques en JavaScript (ex: vérifier que le code de statut est bien 200).
+
+=== Mission E : Évolution de l'API - Filtrage et Sécurisation d'accès
+
+[.underline]#Contexte :#
+
+La direction de Puces'In souhaite permettre aux vendeurs de filtrer leurs livres par état (neuf, bon, acceptable, refuse) pour mieux gérer leur stock. De plus, ils veulent un nouveau point d'entrée pour consulter le détail d'un livre spécifique par son identifiant.
+
+Objectif : Modifier le code existant et créer un nouveau script PHP en respectant la sécurité imposée par le jeton JWT.
+
+[.underline]#Travail à réaliser :#
+
+Filtrage par état : Modifier **mes_livres.php** pour qu'il accepte un paramètre optionnel etat dans l'URL (ex: mes_livres.php?etat=bon).
+
+Détail d'un livre : Créer le fichier **details_livre.php** qui retourne les informations d'un livre à partir de son id passé en paramètre.
+
+== Mission F - Prototype Client JavaFX : Application Puces'In
+
+=== Structure du Projet et Démarrage
+
+==== Arborescence des fichiers (Standard Maven)
+
+Voici l'organisation recommandée pour le projet sous **IntelliJ** ou **Eclipse**. Le respect de cette structure est essentiel pour que Maven puisse compiler et inclure les ressources (FXML) correctement.
+
+[source,text]
+----
+client-pucesin/
+├── pom.xml
+└── src/
+    └── main/
+        ├── java/
+        │   └── com/
+        │       └── pucesin/
+        │           ├── Launcher.java          <-- Point d'entrée pour le JAR
+        │           ├── Main.java              <-- Classe Application JavaFX
+        │           ├── controller/
+        │           │   └── MainController.java
+        │           ├── model/
+        │           │   └── Livre.java
+        │           └── service/
+        │               └── ApiService.java
+        └── resources/
+            └── com/
+                └── pucesin/
+                    └── view/
+                        └── main-view.fxml     <-- Interface graphique
+----
+
+Pour consommer l'API PHP, nous utilisons **Java 17+** et la bibliothèque **Jackson** pour le traitement du JSON.
+
+==== Fichier des dépendances pom.xml (Standard Maven)
+
+[.underline]#Fichier : `pom.xml`#
+[source,xml]
+----
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.pucesin</groupId>
+    <artifactId>client-pucesin</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.release>21</maven.compiler.release>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-controls</artifactId>
+            <version>21</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-fxml</artifactId>
+            <version>21</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.15.2</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <release>21</release>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+----
+
+== Modèle de données (POJO)
+
+Les classes métier correspondent à la structure définie dans le **Document A3** .
+
+[.underline]#Fichier : `Livre.java`#
+[source,java]
+----
+package com.pucesin.model;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class Livre {
+    private int id;
+    private String titre;
+    private String etat;
+    private float prix_rachat_propose;
+
+    // Getters et Setters nécessaires pour Jackson
+    public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
+    public String getTitre() { return titre; }
+    public void setTitre(String titre) { this.titre = titre; }
+    public String getEtat() { return etat; }
+    public void setEtat(String etat) { this.etat = etat; }
+    public float getPrix_rachat_propose() { return prix_rachat_propose; }
+    public void setPrix_rachat_propose(float prix) { this.prix_rachat_propose = prix; }
+}
+----
+
+== Service de Communication API (Cœur du Prototype)
+
+Cette classe gère l'authentification et le stockage du jeton **JWT** . Elle utilise le `HttpClient` natif de Java.
+
+[.underline]#Fichier : `ApiService.java`#
+[source,java]
+----
+package com.pucesin.service;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pucesin.model.Livre;
+
+import java.net.URI;
+import java.net.http.*;
+import java.util.List;
+
+public class ApiService {
+    private static final String BASE_URL = "http://localhost/pucesin/";
+    private static String jwtToken = null;
+    private final HttpClient client = HttpClient.newHttpClient();
+    private final ObjectMapper mapper = new ObjectMapper();
+
+    // Authentification et récupération du jeton
+    public boolean login(String login, String password) throws Exception {
+        String json = String.format("{\"login\":\"%s\", \"password\":\"%s\"}", login, password);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "login.php"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(json))
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() == 200) {
+            JsonNode node = mapper.readTree(response.body());
+            jwtToken = node.get("token").asText();
+            return true;
+        }
+        return false;
+    }
+
+    // Récupération des livres avec le Header Authorization
+    public List<Livre> getMesLivres() throws Exception {
+        if (jwtToken == null) throw new Exception("Non authentifié");
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "mes_livres.php"))
+                .header("Authorization", "Bearer " + jwtToken) // Injection du jeton JWT
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        return mapper.readValue(response.body(),
+                mapper.getTypeFactory().constructCollectionType(List.class, Livre.class));
+    }
+}
+----
+
+== Contrôleur JavaFX (Vue Simplifiée)
+
+Le contrôleur lie l'interface utilisateur à la logique de service.
+
+[.underline]#Fichier : `MainController.java`#
+[source,java]
+----
+package com.pucesin.controller;
+
+import com.pucesin.model.Livre;
+import com.pucesin.service.ApiService;
+import javafx.fxml.FXML;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.cell.PropertyValueFactory;
+import java.util.List;
+
+public class MainController {
+    @FXML private TableView<Livre> tvLivres;
+    @FXML private TableColumn<Livre, String> colTitre;
+    @FXML private TableColumn<Livre, String> colEtat;
+    @FXML private TableColumn<Livre, Float> colPrix;
+
+    private final ApiService apiService = new ApiService();
+
+    @FXML
+    public void initialize() {
+        // Liaison des colonnes aux attributs du modèle Livre
+        colTitre.setCellValueFactory(new PropertyValueFactory<>("titre"));
+        colEtat.setCellValueFactory(new PropertyValueFactory<>("etat"));
+        colPrix.setCellValueFactory(new PropertyValueFactory<>("prix_rachat_propose"));
+    }
+
+    @FXML
+    public void chargerLivres() {
+        try {
+            // Dans un cas réel, le login serait fait sur un écran précédent
+            // Ici on simule pour le prototype
+            if(apiService.login("amartin", "password")) {
+                List<Livre> livres = apiService.getMesLivres();
+                tvLivres.getItems().setAll(livres);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+----
+
+=== Classe de lancement (Launcher.java)
+
+Dans les versions récentes de JavaFX, lancer directement une classe qui hérite de `Application` peut poser des problèmes de dépendances modules. On utilise donc un "Launcher" simple.
+
+[.underline]#Fichier : `Launcher.java`#
+[source,java]
+----
+package com.pucesin;
+
+public class Launcher {
+    public static void main(String[] args) {
+        // Appelle la méthode main de la classe Main
+        Main.main(args);
+    }
+}
+----
+
+=== Classe Principale JavaFX (Main.java)
+
+Cette classe initialise la fenêtre principale et charge le fichier FXML.
+
+[.underline]#Fichier : `Main.java`#
+[source,java]
+----
+package com.pucesin;
+
+import javafx.application.Application;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
+import java.io.IOException;
+
+public class Main extends Application {
+    @Override
+    public void start(Stage stage) throws IOException {
+        FXMLLoader fxmlLoader = new FXMLLoader(Main.class.getResource("view/main-view.fxml"));
+        Scene scene = new Scene(fxmlLoader.load(), 600, 400);
+        stage.setTitle("Puces'In - Gestion des livres");
+        stage.setScene(scene);
+        stage.show();
+    }
+
+    public static void main(String[] args) {
+        launch();
+    }
+}
+----
+== Interface Graphique (FXML)
+
+Ce fichier définit la disposition des éléments. Il doit être placé dans `src/main/resources/com/pucesin/view/main-view.fxml`.
+
+[.underline]#Fichier : `main-view.fxml`#
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox spacing="10" alignment="CENTER" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.pucesin.controller.MainController">
+    <padding>
+        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
+    </padding>
+
+    <Label text="Mes Livres en Vente" style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+
+    <TableView fx:id="tvLivres" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="colTitre" text="Titre" prefWidth="250"/>
+            <TableColumn fx:id="colEtat" text="État" prefWidth="100"/>
+            <TableColumn fx:id="colPrix" text="Prix Rachat" prefWidth="100"/>
+        </columns>
+    </TableView>
+
+    <Button text="Actualiser la liste" onAction="#chargerLivres"
+            style="-fx-background-color: #2ecc71; -fx-text-fill: white;"/>
+</VBox>
+----
+[.underline]#Procédure visuelle :#
+
+1. Faites un clic droit sur le dossier src/main/java.
+2. Sélectionnez Mark Directory as > Sources Root. (Le dossier devient bleu).
+3. Faites un clic droit sur le dossier src/main/resources.
+4. Sélectionnez Mark Directory as > Resources Root. (Le dossier affiche une icône spécifique).
+
+== Mission G - Développement de la Logique Métier et Tests Unitaires
+
+=== Contexte de la demande
+La direction de **Puces'In** souhaite automatiser le calcul des offres de rachat. Le système doit désormais appliquer une règle de "Bonus Qualité" gérée directement par l'application cliente avant l'affichage final.
+
+=== Objectifs techniques
+* Implémenter une règle métier en Java.
+* Gérer les cas d'erreurs via des exceptions.
+* Valider le fonctionnement via des tests unitaires automatisés avec **JUnit 5**.
+
+=== Environnement de travail
+* **Dossier Source** : `src/main/java/com/pucesin/service/`
+* **Dossier de Test** : `src/test/java/com/pucesin/service/` (à marquer comme *Test Sources Root* dans l'IDE).
+* **Dépendance** : Vérifiez que `junit-jupiter-api` est bien présente dans votre `pom.xml`.
+
+== Travail à réaliser (À coder)
+
+=== Étape 1 : Création du Service d'Estimation
+Créez une classe nommée `EstimationService`. Elle doit contenir une méthode `calculerPrixFinal` qui prend un objet `Livre` en paramètre et retourne un `float`.
+
+**Règles de gestion à implémenter :**
+
+* **Bonus Neuf** : Si l'état du livre est "neuf" (insensible à la casse), le prix de rachat doit être majoré de **10%**.
+* **Cas Général** : Pour tout autre état, le prix reste inchangé.
+* **Sécurité** : Si le prix de rachat initial du livre est inférieur à 0, la méthode doit lever une exception de type `IllegalArgumentException` avec un message explicite.
+
+=== Étape 2 : Mise en place des Tests Unitaires
+Créez une classe de test `EstimationServiceTest`. Vous devez coder trois méthodes de test pour couvrir tous les scénarios :
+
+1.  **testCalculBonusNeuf** : Vérifie qu'un livre à 10€ passe bien à 11€ s'il est neuf.
+2.  **testCalculSansBonus** : Vérifie qu'un livre à 10€ reste à 10€ s'il est dans un état "bon".
+3.  **testPrixNegatif** : Vérifie que le système lève bien une exception si le prix est de -5€.
+
+[TIP]
+====
+Pour tester une exception en JUnit 5, utilisez :
+`assertThrows(IllegalArgumentException.class, () -> { service.methode(...); });`
+====
+
+== Critères de validation
+* La classe de test sature les trois scénarios (les indicateurs passent au **VERT** dans l'IDE).
+* Le code respecte les conventions de nommage Java (camelCase).
+* Les dossiers de tests sont correctement configurés dans l'arborescence Maven.
