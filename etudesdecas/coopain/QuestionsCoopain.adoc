@@ -1,0 +1,13 @@
+= Cas Coopain : Mobilité, ORM et Tests Métiers
+
+1.  Détaillez les règles de gestion liées à la traçabilité des informations imprimées sur une paillette de semence.
+2.  Expliquez le choix technologique de SQLite pour le stockage des données sur l'application mobile MobiSemin.
+3.  Quels sont les risques pesant sur l'intégrité et la confidentialité des données en cas de perte de l'ordiphone (Smartphone) ?
+4.  Pourquoi le stockage des mots de passe en clair est-il proscrit et quelle solution technique doit être mise en œuvre ?
+5.  Décrivez le mécanisme d'une attaque de type "Man-in-the-Middle" lors de la synchronisation entre le mobile et le serveur.
+6.  Expliquez les bénéfices d'un framework ORM comme Hibernate pour la persistance des objets métiers dans ce projet.
+7.  Comment le mécanisme de surcharge de méthode est-il utilisé pour calculer le chiffre d'affaires d'une tournée ?
+8.  Quel est le rôle de l'annotation `@BeforeEach` dans l'organisation des tests unitaires JUnit 5 ?
+9.  Pourquoi est-il nécessaire de tester spécifiquement le cas d'une visite avec un nombre d'actes égal à zéro ?
+10. Expliquez comment l'interface JavaFX communique avec la classe `ApiService` pour récupérer les données en temps réel.
+

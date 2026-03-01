@@ -1,0 +1,13 @@
+= Cas Hackat'Innov : Web Dynamique et Intégrité SQL
+
+1.  Justifiez l'utilisation d'une jointure de type `LEFT JOIN` pour lister l'ensemble des événements satellites.
+2.  Pourquoi le choix de la date et l'heure comme clé d'un dictionnaire est-il pertinent pour le planning d'un participant ?
+3.  Expliquez comment le déclencheur `tg_check_capacite` garantit que la limite de places d'un hackathon est respectée.
+4.  En quoi l'export des données personnelles des membres vers une application publique constitue-t-il une violation du RGPD ?
+5.  Démontrez l'impact d'une saisie utilisateur contenant des guillemets sur une chaîne JSON construite manuellement.
+6.  Pourquoi la fonction native `json_encode` est-elle préférable à une construction de flux par concaténation ?
+7.  Quel est l'intérêt d'utiliser des transactions SQL lors de l'ajout d'un événement dans les tables mère et fille ?
+8.  Expliquez comment le mécanisme des requêtes préparées avec PDO neutralise physiquement une injection SQL.
+9.  Quel est l'intérêt de placer le serveur de bases de données dans une zone privée, séparée de la DMZ ?
+10. Décrivez la méthodologie TDD (Test Driven Development) utilisée pour corriger les erreurs de la classe `Initiation`.
+

@@ -1,0 +1,13 @@
+= Cas Restiloc : Services Web et Audit de Sécurité
+
+1.  Quelle modélisation de base de données avez-vous choisie pour différencier les prestations "Peinture" et "Pièce" ?
+2.  Justifiez l'utilisation d'une classe abstraite pour la classe `Expertise` dans le diagramme de classes.
+3.  Expliquez l'architecture applicative permettant l'échange de données entre le SGBD, le serveur PHP et le client JavaFX.
+4.  Pourquoi la présence d'un identifiant en clair dans l'URL d'une API constitue-t-elle une vulnérabilité de type IDOR ?
+5.  En quoi l'utilisation de HTTPS est-elle indispensable même si l'application nécessite une authentification ?
+6.  Expliquez la différence entre une donnée à caractère personnel et une donnée sensible selon les critères du RGPD.
+7.  Pourquoi le hachage des mots de passe est-il techniquement préférable à leur chiffrement ?
+8.  Quel critère du DICP est principalement visé par l'archivage obligatoire d'une photo pour chaque prestation ?
+9.  Expliquez le fonctionnement du déclencheur `trig_audit_delete_mission` pour assurer la traçabilité des suppressions.
+10. Comment la classe `RestiClient` transforme-t-elle un flux JSON reçu par l'API en une liste d'objets `Mission` ?
+

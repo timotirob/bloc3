@@ -1,0 +1,14 @@
+
+= Cas WebCaisse : Architecture Java, SQL et Sécurité
+
+1.  Expliquez comment la réglementation NF525 influence la conception fonctionnelle du logiciel WebCaisse.
+2.  Pourquoi l'envoi d'identifiants par messagerie en clair est-il considéré comme une faille critique de confidentialité ?
+3.  Justifiez pourquoi la structure initiale de la table `FormuleSouscrite` ne permettait pas de gérer un historique de facturation mensuelle.
+4.  Quel est l'intérêt technique d'un déclencheur (Trigger) pour assurer la traçabilité des changements de formule pour un point de vente ?
+5.  Expliquez la différence entre une clause `WHERE` et une clause `HAVING` dans la recherche des consommateurs réguliers.
+6.  Démontrez comment la concaténation de chaînes de caractères dans une requête SQL peut être exploitée pour une injection.
+7.  Quels sont les avantages concrets de l'utilisation de `PreparedStatement` par rapport à un `Statement` classique en Java ?
+8.  Expliquez l'intérêt du mot-clé `instanceof` dans la méthode `compareLieuVente` pour traiter les types de ventes. Critiquez son usage
+9.  Pourquoi est-il crucial de gérer l'exception de division par zéro lors du calcul de l'indice de comparaison des ventes ?
+10. Quel est le rôle des classes `Launcher` et `Main` pour assurer le bon démarrage d'une application JavaFX moderne ?
+

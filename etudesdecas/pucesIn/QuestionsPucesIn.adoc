@@ -1,0 +1,12 @@
+= Cas Puces'In : JWT, Forensique et Protection des Données
+
+1.  Expliquez la logique métier permettant de calculer le prix de rachat d'un livre en fonction de son prix de revente.
+2.  Quelles sont les conséquences financières et opérationnelles pour Puces'In suite à la génération massive de faux bordereaux ?
+3.  Comment avez-vous analysé les traces `auth.log` pour identifier une tentative d'attaque par Brute Force sur SSH ?
+4.  Détaillez la structure d'un jeton JWT et expliquez le rôle de la signature HMAC dans la garantie d'intégrité.
+5.  Pourquoi un jeton d'authentification doit-il impérativement comporter une durée d'expiration (Claim `exp`) ?
+6.  En quoi HTTPS complète-t-il la sécurité du jeton JWT lors des échanges entre le mobile et l'API ?
+7.  Distinguez le droit à l'effacement du droit à la portabilité dans le cadre de la gestion des demandes RGPD.
+8.  Quelle est la procédure réglementaire obligatoire en cas de détection d'une fuite de données personnelles ?
+9.  Expliquez comment révoquer proprement les privilèges d'un compte utilisateur MySQL créé abusivement.
+10. Pourquoi est-il nécessaire de tester la levée d'une `IllegalArgumentException` pour un prix de rachat négatif ?
