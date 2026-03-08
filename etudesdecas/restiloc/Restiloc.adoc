@@ -18,18 +18,18 @@
 
 == Dossier documentaire
 
-[cols="1,3,1", options="header"]
+[cols="1,3", options="header"]
 |===
-| Document | Libellé | Page
-| Document 1 | Extrait du schéma de la base de données existante | page 7
-| Document 2 | Diagramme de classes correspondant à la gestion des rendez-vous | page 8
-| Document 3 | Description textuelle des classes métier | page 8
-| Document 4 | Exemple d’utilisation d’une collection | page 10
-| Document 5 | Extrait du schéma relationnel concerné par les services Web | page 11
-| Document 6 | Code PHP du service Web getLesMissionsByIdExpert.php | page 11
-| Document 7 | Exemple de résultat au format JSON retourné par le service | page 12
-| Document 8 | Code du fichier list_layout.xml et maquette de l'interface graphique | page 12
-| Document 9 | Codes Android Java de l'application mobile | page 13
+| Document | Libellé
+| Document 1 | Extrait du schéma de la base de données existante
+| Document 2 | Diagramme de classes correspondant à la gestion des rendez-vous
+| Document 3 | Description textuelle des classes métier
+| Document 4 | Exemple d’utilisation d’une collection
+| Document 5 | Extrait du schéma relationnel concerné par les services Web
+| Document 6 | Code PHP du service Web getLesMissionsByIdExpert.php
+| Document 7 | Exemple de résultat au format JSON retourné par le service
+| Document 8 | Code du fichier list_layout.xml et maquette de l'interface graphique
+| Document 9 | Codes Android Java de l'application mobile
 |===
 
 == Présentation du contexte
@@ -507,7 +507,7 @@ END //
 
 DELIMITER ;
 ----
-=== Instructions pour les étudiants
+=== Instructions pour construire le prototype
 
 1.  **Installation** : Déployez la base de données sur MySQL.
 2.  **Configuration PHP** : Placez le fichier PHP dans le répertoire `www` de votre serveur Web (WAMP/MAMP).
@@ -897,7 +897,7 @@ Cette section propose des exercices pratiques pour valider vos compétences en d
 ====
 * **Où regarder ?** Dans la classe `RestiClient.java`, modifiez la variable `URL_API` ou l'appel à `fetchMissions(1)`.
 * **Concept Cyber :** Une faille IDOR survient quand un utilisateur peut accéder à des données qui ne lui appartiennent pas en changeant simplement un identifiant dans l'URL.
-* **Solution attendue :** L'étudiant doit expliquer qu'un expert malveillant pourrait espionner ses collègues. La solution réelle serait d'utiliser un **Token de session** (jeton) généré après connexion.
+* **Solution attendue :** Il doit être mentionné qu'un expert malveillant pourrait espionner ses collègues. La solution réelle serait d'utiliser un **Token de session** (jeton) généré après connexion.
 ====
 
 === Challenge 2 : L'audit de suppression (Trigger SQL)
@@ -930,6 +930,6 @@ Cette section propose des exercices pratiques pour valider vos compétences en d
 ====
 * **Étape 1 :** Dans `Mission.java`, ajoutez un attribut `boolean indisponible` (par défaut à `false`) et son getter/setter.
 * **Étape 2 (Contrôleur) :** Récupérez la ligne sélectionnée avec `tableMissions.getSelectionModel().getSelectedItem()`.
-* **Étape 3 (UI) :** Pour changer la couleur, il faut utiliser une `setRowFactory` sur la TableView. Pour les plus faibles, commencez par simplement changer le texte d'un Label : `lblStatut.setText("Mission " + id + " indisponible");`.
+* **Étape 3 (UI) :** Pour changer la couleur, il faut utiliser une `setRowFactory` sur la TableView. Pour les moins avancés en Dév, commencez par simplement changer le texte d'un Label : `lblStatut.setText("Mission " + id + " indisponible");`.
 ====
 
