@@ -1,0 +1,230 @@
+Partie 1 – Évolution de la base de données
+
+Question 1.1 :
+
+@startuml
+
+skinparam classAttributeIconSize 0
+
+class Formule {
++id : Integer
++libelle : String
++prix : Decimal
++nbVendeursSimultanes : Integer
+}
+
+class Langue {
++id : Integer
++libelle : String
++codeIso : String
+}
+
+class ProgrammeFidelite {
++id : Integer
++nom : String
++tauxConversion : Float
+}
+
+class Client {
++id : Integer
++raisonSociale : String
++rue : String
++codePostal : String
++ville : String
++telephone : String
+}
+
+' Relations
+Client "0..*" -- "1" Formule : souscrit >
+Client "0..*" -- "1" Langue : utilise >
+Client "0..*" -- "0..1" ProgrammeFidelite : active >
+
+@enduml
+
+
+Partie 2 – Audit de sécurité (Cybersécurité / DICP)
+
+
+Question 1.2 :
+Confidentialité : Le mot de passe peut être intercepté pendant son envoie
+
+Pour corriger le problème de vulnérabilité :  solution recommandée consiste à déléguer la création du mot de passe à l'utilisateur final via un processus d'activation par jeton unique (token).
+
+Question 1.3 :
+
+La structure de cette table ne permet pas de gérer l’historique nécessaire à la facturation mensuelle car elle écrase les anciennes données. Ce qui rend impossible le calcul de la facturation sur une période donnée.
+
+Question 1.4 :
+
+Il faut ajouter une notion de temporalité (date de début et date de fin) pour tracer chaque changement.
+C’est-à-dire :
+FormuleSouscrite (id, idPointDeVente, idFormule, dateDebut, dateFin)
+
+
+
+
+
+Question 1.5 :
+
+CREATE TRIGGER tg_audit_changement_formule
+AFTER UPDATE ON POINT_DE_VENTE
+FOR EACH ROW
+WHEN OLD.idFormule <> NEW.idFormule
+BEGIN
+INSERT INTO AuditChangement (idPointDeVente, ancienneFormule, nouvelleFormule, dateModification)
+VALUES (OLD.id, OLD.idFormule, NEW.idFormule, CURRENT_TIMESTAMP);
+END;
+
+Mission 2 : Fidélisation des consommateurs et Robustesse
+
+Documents à utiliser : 3, 4, 5, 6, 7, 8 et 11
+Partie 1 – Amélioration du module GRC et Injection SQL
+
+Question 2.1 :
+a)
+SELECT DISTINCT nom, prenom, courriel
+FROM Consommateur C
+JOIN Vente V ON C.id = V.idConsommateur
+WHERE V.dateVente LIKE '2017%';
+b)
+SELECT COUNT(*)
+FROM Consommateur
+WHERE fidelise = 1
+AND age BETWEEN 18 AND 30;
+c)
+SELECT nom, prenom, SUM(montant) AS total_ventes
+FROM Consommateur C
+LEFT JOIN Vente V ON C.id = V.idConsommateur
+GROUP BY C.id, nom, prenom;
+
+Question 2.2 :
+
+La méthode consistant à concaténer une variable saisie directement par l'utilisateur (seuilVentes) dans une requête SQL expose l'application à une Injection SQL. Cette faille majeure (référencée dans le top 10 de l'OWASP) permet à un attaquant de modifier la structure de la requête pour accéder, modifier ou supprimer des données sensibles en saisissant des commandes SQL au lieu d'un nombre.
+
+
+
+Question 2.3 :
+–jointure pour “not== (différent)”
+SELECT idConsommateur, nom, prenom
+FROM Consommateur
+JOIN Vente ON Consommateur.id = Vente.idConsommateur
+WHERE fidelise = 0
+AND dateVente BETWEEN ? AND ?
+GROUP BY idConsommateur, nom, prenom
+HAVING COUNT(*) > ?;
+
+
+Partie 2 – Réalisation de tests unitaires (TDD)
+
+Question 2.4 :
+
+public void testInitConso() throws Exception {
+
+ConsoFidele consoTest = new ConsoFidele("Lifo", "Paul", " lifo.paul@gmail.com ", "0600000000",
+
+new SimpleDateFormat("yyyy-MM-dd").parse("1961-01-03"),
+new SimpleDateFormat("yyyy-MM-dd").parse("2017-01-05");
+
+        // Vérification que le nombre de points initial est bien égal à 0
+        assertEquals("Erreur : le compteur de points doit être à 0 à l'initialisation", 0, consoTest.getPointsFidelite());
+    }
+
+Question 2.5 :
+
+public void testAddMontant() throws Exception {
+ConsoFidele consoTest = new ConsoFidele("Lifo", "Paul",
+" lifo.paul@gmail.com ", "0600000000",
+new SimpleDateFormat("yyyy-MM-dd").parse("1961-01-03"),
+new SimpleDateFormat("yyyy-MM-dd").parse("2017-01-05"));
+
+        // Cas 1 : Achat de 150€ (palier 100-200) -> 10 points
+        consoTest.addFidelite(3, 150);
+        assertEquals("Erreur palier 10 points", 10, consoTest.getPointsFidelite());
+
+        // Cas 2 : Nouvel achat de 300€ (palier 201-500) -> +20 points (Total 30)
+        consoTest.addFidelite(3, 300);
+        assertEquals("Erreur palier 20 points", 30, consoTest.getPointsFidelite());
+
+        // Cas 3 : Nouvel achat de 600€ (palier > 500) -> +50 points (Total 80)
+        consoTest.addFidelite(3, 600);
+        assertEquals("Erreur palier 50 points", 80, consoTest.getPointsFidelite());
+    }
+
+Mission 3 : Statistiques des ventes (POO)
+
+Questions 3.1 :
+
+/**
+* Calcule le pourcentage de ventes réalisées par des consommateurs fidèles
+* par rapport au nombre total de ventes de la journée.
+* @param lesVentesDuJour La liste des ventes enregistrées dans la journée.
+* @return Le pourcentage (double) de ventes "fidèles".
+**/
+
+Question 3.2 :
+
+public int getNbVentes() {
+
+return this.lesVentes.size();
+
+}
+
+Question 3.3 :
+
+public VenteEcommerce(Date uneDateVente, Conso unConso, double unMontant,
+String adresseLivraison, String optionLivraison) {
+
+super(uneDateVente, unConso, unMontant); // Appel au constructeur de Vente
+
+this.adresseLivraison = adresseLivraison;
+
+this.optionLivraison = optionLivraison;
+
+}
+
+
+Question 3.4 :
+
+for (ConsoFidele cf : lesConsos) {
+
+for (Vente uneVente : cf.getVentes()) {
+
+if (uneVente instanceof VenteEcommerce) {
+
+totalEcom += uneVente.getMontantVente();
+
+}
+
+else if (uneVente instanceof VenteMagasin) {
+
+totalMag += uneVente.getMontantVente();
+
+}
+
+}
+
+}
+
+Question 3.5 :
+
+if (totalEcom == 0) {
+
+return -1  ; // Ou une autre valeur conventionnelle indiquant l'impossibilité du calcul
+
+}
+
+return totalMag / totalEcom;
+
+Question 3.6 :
+
+public ArrayList<Vente> getVentesSuperieures(double seuil) {
+ArrayList<Vente> resultat = new ArrayList<Vente>();
+for (Vente v : this.lesVentes) {
+if (v.getMontantVente() > seuil) {
+resultat.add(v);
+}
+}
+return resultat;
+}
+
+
