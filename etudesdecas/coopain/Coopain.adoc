@@ -69,7 +69,8 @@ Les nouvelles fonctionnalités de l’application métier **LogiSemin** à déve
 * la gestion des tournées d'insémination ;
 * le bilan inséminateur (contrôle des ratios : nombre d’inséminations, ou autres actes par kilomètre parcouru).
 
-Les nouvelles fonctionnalités de l’application **MobiSemin** à développer sont :
+Les nouvelles fonctionnalités de l’application **MobiSemin** à développer sont:
+
 * la saisie à partir de l’ordiphone (smartphone) des tournées des inséminateurs ;
 * la remontée journalière de ces informations par synchronisation via un serveur Web, vers la BDD.
 
