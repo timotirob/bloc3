@@ -1063,6 +1063,7 @@ public class Launcher {
 == Mission 5 : Évolution de l'application (TDD et Interface Graphique)
 
 L'application prototype développée dans la Mission 4 fonctionne, mais le chef de projet a relevé deux points d'amélioration suite aux premiers retours des utilisateurs testeurs :
+
 1. **Fiabilité** : Il faut s'assurer mathématiquement qu'une erreur de saisie (zéro acte réalisé) ne corrompt pas le chiffre d'affaires.
 2. **Ergonomie (UI/UX)** : Actuellement, lorsque l'utilisateur clique sur "Ajouter l'acte", seul le montant total change. L'utilisateur n'a pas de trace visuelle des actes qu'il vient d'ajouter.
 
@@ -1094,6 +1095,10 @@ Ouvrez le fichier `GestionTourneeTest.java` (dans le dossier `src/test/...`) et 
     }
 ----
 *Exécutez ensuite la classe de test dans votre IDE pour vérifier que tous les voyants sont au vert.*
+
+*Mr Robert ou copie d'écran*
+
+
 ====
 
 === 5.2. Amélioration de l'interface JavaFX
@@ -1144,3 +1149,39 @@ _Explication : La méthode `appendText()` ajoute du texte à la fin du `TextArea
 
 **Validation de la mission :**
 Relancez votre application en exécutant `Launcher.java`. Sélectionnez une prestation, saisissez un nombre d'actes et cliquez sur Ajouter. Vous devriez maintenant voir l'acte s'ajouter visuellement dans votre nouvelle zone de texte, confirmant la bonne communication entre la vue FXML et le contrôleur Java !
+
+*Mr Robert ou copie d'écran*
+
+=== 5.3. Autonomie : Préparer une nouvelle tournée
+
+Suite aux améliorations précédentes, un dernier problème ergonomique se pose : une fois la saisie d'une tournée terminée, l'inséminateur est obligé de fermer et de relancer l'application pour en commencer une nouvelle.
+
+**Objectif :** Ajouter un bouton "Nouvelle Tournée" permettant de réinitialiser complètement l'interface graphique et de vider les objets métiers en mémoire, afin de démarrer une saisie vierge.
+
+[IMPORTANT]
+====
+**Travail à réaliser (en autonomie) :**
+
+Vous devez implémenter cette fonctionnalité par vous-même, en modifiant deux fichiers de votre architecture.
+
+**1. Fichier impacté : `tournee.fxml` (La Vue)**
+
+* **Action :** Ajoutez un nouveau composant Bouton (`<Button>`) dans l'interface, par exemple tout en bas de la fenêtre.
+* **Propriétés :** Donnez-lui un texte explicite (ex: "Nouvelle Tournée") et liez l'événement de clic (`onAction`) à une nouvelle méthode que vous définirez dans le contrôleur (par exemple `#handleNouvelleTournee`).
+
+**2. Fichier impacté : `TourneeController.java` (Le Contrôleur)**
+
+* **Action :** Créez la méthode correspondante (ex: `public void handleNouvelleTournee()`) et marquez-la avec l'annotation `@FXML`.
+* **Logique Métier :** Dans cette méthode, vous devez "écraser" l'état actuel de votre application. Instanciez une nouvelle `Tournee`, recréez l'objet `GestionTournee`, et créez une nouvelle `Visite` vierge. N'oubliez pas d'ajouter cette nouvelle visite à la tournée (inspirez-vous fortement de ce qui est déjà fait dans la méthode `initialize()` au démarrage ).
+* **Logique Graphique :** Toujours dans cette méthode, vous devez réinitialiser l'affichage pour l'utilisateur :
+
+** Remettez le texte du Label du chiffre d'affaires à "0.0 €".
+** Videz la zone de texte de l'historique (`txtHistorique`) de tout son contenu[cite: 829].
+** Effacez les éventuels messages d'erreur du `lblMessage`.
+** (Optionnel) Remettez le champ de saisie du nombre d'actes à sa valeur par défaut ("1").
+====
+
+**Validation de la mission :**
+Lancez l'application. Ajoutez plusieurs actes pour faire monter le chiffre d'affaires et remplir l'historique. Cliquez sur votre nouveau bouton "Nouvelle Tournée" : tout doit disparaître visuellement. Si vous ajoutez ensuite un nouvel acte, le calcul du chiffre d'affaires doit bien recommencer à partir de zéro, sans tenir compte de la tournée précédente !
+
+*Mr Robert ou copie d'écran*
