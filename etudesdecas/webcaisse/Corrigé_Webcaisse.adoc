@@ -1,0 +1,342 @@
+= Proposition de Corrigé - TP Étude de Cas WebCaisse
+:toc: left
+:toc-title: Sommaire
+:icons: font
+
+== Mission 1 : Souscription en ligne et Sécurité
+
+=== Partie 1 – Évolution de la base de données
+**Question 1.1 : Modifications de la structure de la base de données**
+Pour permettre la souscription en ligne avec les nouveaux critères (formule par point de vente, programme de fidélisation, et langues des modules), voici le schéma relationnel mis à jour :
+
+* **Formule** (#id, libelle, prix, nbVendeursSimultanes)
+* **Module** (#id, libelle)
+* **Composer** (#idFormule, #idModule)
+_Clés étrangères : idFormule -> Formule(id), idModule -> Module(id)_
+* **Client** (#id, raisonSociale, rue, codePostal, ville, telephone, domaineActivite)
+_Remarque : Le client n'a plus d'idFormule direct._
+* **PointDeVente** (#id, nom, rue, codePostal, ville, #idClient, #idProgrammeFidelisation)
+_Clés étrangères : idClient -> Client(id), idProgrammeFidelisation -> ProgrammeFid(id)_
+* **ProgrammeFid** (#id, libelle) _Ex: 1='Tampon', 2='Montant Achat', 3='Points'_
+* **FormuleSouscrite** (#idPointDeVente, #idFormule, dateSouscription)
+_Clés étrangères : idPointDeVente -> PointDeVente(id), idFormule -> Formule(id)_
+* **Langue** (#id, libelle)
+* **ModuleLangue** (#idPointDeVente, #idModule, #idLangue)
+_Clés étrangères : idPointDeVente -> PointDeVente(id), idModule -> Module(id), idLangue -> Langue(id)_
+
+=== Partie 2 – Audit de sécurité (Cybersécurité / DICP)
+**Question 1.2 : Faille de l'envoi de mot de passe**
+
+* **L'explication (DICP) :** Envoyer un mot de passe en clair par messagerie électronique viole le principe de **Confidentialité**. Les e-mails transitent souvent en clair sur les réseaux et peuvent être interceptés. De plus, au regard du RGPD, l'entreprise n'a pas à connaître le mot de passe de ses clients.
+* **La correction (Processus sécurisé) :**
+1. Le système génère un jeton (token) unique, aléatoire et temporaire (valide 1 heure par exemple).
+2. Le système envoie un e-mail au client contenant un lien intégrant ce jeton (ex: `https://webcaisse.nasdy.com/init-password?token=xyz`).
+3. Le client clique, saisit lui-même son mot de passe sur une page sécurisée (HTTPS).
+4. Le mot de passe est haché (par exemple avec Bcrypt ou Argon2) puis stocké en base de données. Le mot de passe en clair n'est jamais stocké ni transmis par l'entreprise.
+
+
+On peut également proposer l'utilisateur d'OAuth2 avec Google par exemple.
+
+=== Partie 3 - Gestion du changement de formule (Triggers)
+**Question 1.3 : Problème d'historisation**
+La table `FormuleSouscrite(idPointDeVente, idFormule)` a pour clé primaire le couple `(idPointDeVente, idFormule)`.
+
+1. Il est impossible pour un même point de vente de souscrire deux fois à la même formule à des dates différentes (violation d'unicité de la clé primaire).
+2. Il n'y a aucun champ de type `Date` permettant de savoir quand la formule a été activée ou désactivée, rendant le calcul de la facturation mensuelle impossible.
+
+Attention: ne pas confondre clef primaire et contrainte de clef primaire.
+
+**Question 1.4 : Correction de la table**
+Il faut ajouter la notion de temporalité dans la clé primaire :
+
+* `FormuleSouscrite(#idPointDeVente, #idFormule, #dateDebut, dateFin)`
+
+On se retrouve avec une clef primaire composée de 4 champs. Si on met une contrainte de clef primaire dessus on n'aura pas de souci.
+
+**Question 1.5 : Trigger d'audit SQL**
+[source,sql]
+----
+CREATE TRIGGER tg_audit_changement_formule
+AFTER UPDATE ON FormuleSouscrite
+FOR EACH ROW
+BEGIN
+    INSERT INTO Audit_Formule (idPointDeVente, ancienneFormule, nouvelleFormule, dateModification, utilisateur)
+    VALUES (NEW.idPointDeVente, OLD.idFormule, NEW.idFormule, NOW(), USER());
+END;
+----
+
+C'est la structure d'un déclencheur MySQL.
+Attention: si sujet SQL Server, on utilise les tables INSERTED et DELETED.
+
+== Mission 2 : Fidélisation des consommateurs et Robustesse
+
+=== Partie 1 – Amélioration du module GRC et Injection SQL
+**Question 2.1 : Requêtes SQL**
+a) Liste des consommateurs avec au moins une vente en 2017 :
+[source,sql]
+----
+SELECT DISTINCT c.nom, c.prenom, c.mail
+FROM Conso c
+JOIN Vente v ON c.id = v.idConso
+WHERE YEAR(v.dateVente) = 2017;
+----
+
+Jointure avec filtre
+
+b) Nombre de consommateurs fidélisés (18-30 ans) :
+[source,sql]
+----
+SELECT COUNT(*)
+FROM ConsoFidele
+WHERE TIMESTAMPDIFF(YEAR, dateNaiss, CURDATE()) BETWEEN 18 AND 30;
+----
+
+Agrégat simple avec filtre
+
+c) Liste des consommateurs avec le montant total des ventes :
+[source,sql]
+----
+SELECT c.nom, c.prenom, c.mail, SUM(v.montantVente) AS TotalAchats
+FROM Conso c
+JOIN Vente v ON c.id = v.idConso
+GROUP BY c.id, c.nom, c.prenom, c.mail;
+----
+
+Agrégat avec jointure
+
+**Question 2.2 : Analyse de vulnérabilité (OWASP)**
+
+En concaténant directement la variable `seuilVentes` (qui provient de la saisie utilisateur) dans la chaîne SQL, le développeur expose l'application à une **Injection SQL**. Un utilisateur malveillant pourrait saisir une valeur du type `1 OR 1=1; DROP TABLE Conso;` et altérer ou détruire la base de données.
+
+En 2025 il s'agit de la 5ème faille de Cybersécurité OWASP. Si elle a régressé dans le classement elle reste redoutable notammant pour les sites 'Legacy'
+
+**Question 2.3 : Correction avec PreparedStatement**
+[source,java]
+----
+public static ArrayList<Conso> listeConsoAFideliser(int seuilVentes, Date dateDeb, Date dateFin) throws SQLException {
+    ArrayList<Conso> lesConsos = new ArrayList<>();
+
+    String requete = "SELECT c.nom, c.prenom, c.tel, c.mail "
+                   + "FROM Conso c "
+                   + "JOIN Vente v ON c.id = v.idConso "
+                   + "WHERE c.id NOT IN (SELECT id FROM ConsoFidele) "
+                   + "AND v.dateVente BETWEEN ? AND ? "
+                   + "GROUP BY c.id, c.nom, c.prenom, c.tel, c.mail "
+                   + "HAVING count(v.id) > ?";
+
+    // Utilisation du PreparedStatement pour sécuriser l'injection
+    PreparedStatement pstmt = dbConnect.prepareStatement(requete);
+    pstmt.setDate(1, dateDeb);
+    pstmt.setDate(2, dateFin);
+    pstmt.setInt(3, seuilVentes);
+
+    ResultSet res = pstmt.executeQuery();
+    while (res.next()) {
+        lesConsos.add(new Conso(res.getString("nom"), res.getString("prenom"), res.getString("tel"), res.getString("mail")));
+    }
+    return lesConsos;
+}
+----
+
+Attention ici il faut:
+
+- ajouter les bons paramètres à la signature de la méthode
+- ajouter les paramètres à la requête SQL (les ?)
+- préparer la requête
+- faire le mapping entre les paramètres de méthode et les paramètres de la requête
+- exécuter la requête
+
+=== Partie 2 – Réalisation de tests unitaires (TDD)
+**Question 2.4 : Test d'initialisation**
+[source,java]
+----
+public void testInitConso() {
+    ConsoFidele consoTest = new ConsoFidele("Lifo", "Paul", "lifo.paul@gmail.com", "0600000000", new Date(), new Date());
+    // Vérification que les points sont à zéro à la création
+    assertEquals("Erreur : Les points initiaux ne sont pas à 0", 0, consoTest.getPointsFidelite());
+}
+----
+
+Ici on teste que l'initialisation est Ok. On ne doit PAS ajouter des points de fidélité !
+
+**Question 2.5 : Test du programme par tranches (Type 3)**
+[source,java]
+----
+public void testAddMontant() {
+    ConsoFidele consoTest = new ConsoFidele("Lifo", "Paul", "lifo.paul@gmail.com", "0600000000", new Date(), new Date());
+
+    consoTest.addFidelite(3, 150);
+    assertEquals("Erreur tranche 1 (100-200)", 10, consoTest.getPointsFidelite());
+
+    consoTest.addFidelite(3, 300);
+    assertEquals("Erreur tranche 2 (201-500)", 30, consoTest.getPointsFidelite()); // 10 + 20
+
+    consoTest.addFidelite(3, 600);
+    assertEquals("Erreur tranche 3 (>500)", 80, consoTest.getPointsFidelite()); // 30 + 50
+}
+----
+
+On teste la bonne implémentation des différentes règles de gestion (seuils de bonus)
+
+== Mission 3 : Statistiques de ventes (POO)
+
+**Question 3.1 : Commentaire Javadoc de la méthode `statVente`**
+[source,java]
+----
+/**
+ * Calcule et retourne le pourcentage de ventes réalisées par des clients fidèles
+ * par rapport au nombre total de ventes de la journée passée en paramètre.
+ * @param lesVentesDuJour La liste contenant toutes les ventes de la journée.
+ * @return Le pourcentage (double) de ventes associées à des clients fidèles.
+ */
+----
+
+Les docs JavaDoc et PHPDoc sont essentielles car elles permettent de générer automatiquement des fichiers ADOC "riches" à partir de commentaire on fait donc d'un pierre plusieurs coups
+
+**Question 3.2 : Méthode `getNbVentes` de la classe `Conso`**
+[source,java]
+----
+public int getNbVentes() {
+    return this.lesVentes.size();
+}
+----
+
+Presque aussi simple qu'un getter standard
+
+**Question 3.3 : Constructeur de `VenteEcommerce` (Héritage)**
+[source,java]
+----
+public VenteEcommerce(Date uneDateVente, Conso unConso, double unMontant, String adresseLivraison, String optionLivraison) {
+    // Appel au constructeur de la classe mère (Vente)
+    super(uneDateVente, unConso, unMontant);
+    this.adresseLivraison = adresseLivraison;
+    this.optionLivraison = optionLivraison;
+}
+----
+
+Constructeur standard d'une classe fille: on a donc pour les paramètres hérités l'appel au constructeur de la classe Mère
+
+**Question 3.4 : Méthode `compareLieuVente` (Polymorphisme)**
+[source,java]
+----
+public static double compareLieuVente(ArrayList<ConsoFidele> lesConsos) {
+    double totalEcom = 0;
+    double totalMag = 0;
+
+    for (ConsoFidele cf : lesConsos) {
+        // Parcours de toutes les ventes du consommateur
+        for (Vente v : cf.getVentes()) {
+            if (v instanceof VenteEcommerce) {
+                totalEcom += v.getMontantVente();
+            } else if (v instanceof VenteMagasin) {
+                totalMag += v.getMontantVente();
+            }
+        }
+    }
+
+    if (totalEcom == 0) {
+        return 0; // Prévention de la division par zéro (Question 3.5)
+    }
+    return totalMag / totalEcom;
+}
+----
+
+Algorithmique standard typique étude de cas. Attention actuellement dans la vraie vie l'utilisation d'instanceof est un ANTI PATTERN. cf question de synthèse.
+
+**Question 3.5 : Faille de robustesse**
+
+L'instruction `return totalMag/totalEcom;` est dangereuse car si `totalEcom` vaut 0 (le client n'a fait aucun achat sur le site e-commerce, ce qui est très probable), l'application va planter avec une erreur de type `ArithmeticException` (Division par zéro).
+
+Les tests unitaires servent à tester tous les cas limites susceptibles de faire planter l'application.
+
+Pour avoir quelque chose de "propre": conditions + gestion d'exceptions & erreurs (try catch) + tests unitaires
+
+_Correction apportée dans le code de la question 3.4 (vérification préalable)._
+
+**Question 3.6 : Méthode pour lister les ventes supérieures à un montant**
+[source,java]
+----
+// Dans la classe Conso
+public ArrayList<Vente> getVentesSup(double montantMin) {
+    ArrayList<Vente> lesVentesFiltrees = new ArrayList<>();
+
+    for (Vente uneVente : this.lesVentes) {
+        if (uneVente.getMontantVente() > montantMin) {
+            lesVentesFiltrees.add(uneVente);
+        }
+    }
+    return lesVentesFiltrees;
+}
+----
+
+Typique étude de cas:
+
+* instanciation d'une collection
+* bouche foreach (en Java: for (Type nomObjet : nomCollection)) . Varie selon le langage
+* condition
+* valorisation d'un compteur ou alimentation d'une collection
+* retour valeur si fonction
+
+== Questions de synthèse - Corrigé WebCaisse : Architecture et Sécurité SQL
+
+1. **Réglementation NF525** :
+Elle impose l'inaltérabilité, la sécurisation, la conservation et l'archivage des données de règlement. Techniquement, cela interdit toute modification ou suppression directe d'une ligne de vente validée en base de données sans laisser de trace d'annulation (contre-passation).
+Cette question est hors périmètre des études de cas BTS SIO mais comme il y a énormément d'actualités autour du sujet de la sécurisation comptable ça peut être un point d'entrée pour des stages ou jobs sur le marché du travail.
+
+2. **Identifiants en clair par mail** : C'est une faille car le protocole SMTP circule souvent en clair. Si le mail est intercepté (Man-in-the-Middle), l'attaquant récupère un accès direct au compte client. Il faut privilégier l'envoi d'un lien de réinitialisation à durée limitée.
+Cf question 1.2 pour processus avec lien. Sinon privilégier OAuth2 (google ou autre)
+
+
+3. **Historique de facturation** : La structure initiale ne permettait pas de stocker plusieurs souscriptions successives pour un même client. Sans une colonne "Date de début" ou un identifiant de période, on ne peut pas savoir quelle formule était active à un instant T du passé.
+
+4. **Rôle du Trigger** : Le déclencheur permet d'automatiser l'archivage dans une table d'historique dès qu'une mise à jour est détectée sur la table principale. Cela garantit qu'aucune modification de contrat n'échappe à la surveillance, même si elle est faite manuellement en SQL. L'utilisation des déclencheurs est critiquée d'un point de vue opérationnel mais cette technique doit être maitrisée pour l'étude de cas du BTS SIO option SLAM
+
+5. **WHERE vs HAVING** : `WHERE` filtre les lignes individuelles avant le regroupement. `HAVING` filtre les groupes de lignes après l'exécution d'une fonction d'agrégation (comme `COUNT` ou `SUM`). On l'utilise ici pour filtrer les clients ayant effectué plus de X consommations.
+
+6. **Injection par concaténation** : Si le code fait ` "WHERE login = '" + saisie + "'" `, une saisie comme `' OR 1=1 --` transforme la requête en `WHERE login = '' OR 1=1 --'`, ce qui valide l'authentification sans mot de passe.
+
+7. **PreparedStatement** : Il pré-compile la requête sur le serveur SQL et traite les paramètres comme des données pures, jamais comme du code exécutable. Cela neutralise les injections SQL et améliore les performances pour les requêtes répétitives.
+
+8. **Critique de instanceof** : Bien qu'il permette d'identifier le type (`Magasin` ou `ECommerce`), son usage est une mauvaise pratique. Il viole le polymorphisme : le comportement (calcul des frais) devrait être défini dans chaque sous-classe via une méthode redéfinie (`@Override`) plutôt que testé par le code extérieur.
+
+9. **Exception de division par zéro** : En statistiques, si aucun produit n'est vendu, le diviseur est nul. Ne pas gérer cette exception fait planter l'application (Runtime Error). Il faut vérifier que le dénominateur est supérieur à zéro avant le calcul.
+
+10. **Launcher et Main** : La classe `Launcher` ne doit pas hériter de `Application`. Elle sert de point d'entrée "neutre" pour que la machine virtuelle Java charge les modules JavaFX correctement avant de lancer la classe `Main` qui, elle, gère l'interface.
+
+== Approfondissement point 8 : Critique de l'usage de instanceof
+L'opérateur instanceof permet de vérifier le type d'un objet au moment de l'exécution. Si son usage semble pratique, il pose trois problèmes majeurs :
+
+1. Violation du principe de *Polymorphisme*
+Le but de l'orienté objet est de laisser l'objet décider de son comportement. Utiliser instanceof, c'est faire l'inverse : c'est le code "extérieur" qui inspecte l'objet pour décider quoi faire à sa place.
+2. Violation du principe Ouvert/Fermé (*Open/Closed Principle*)
+Si vous ajoutez un nouveau type (par exemple, un nouveau type de vente "VentePrivée" dans WebCaisse), vous devrez modifier tous les blocs if (obj instanceof ...) éparpillés dans votre application. Un bon code devrait permettre d'ajouter une fonctionnalité sans modifier l'existant.
+3. Problème de Maintenance
+Les chaînes de if-else instanceof sont difficiles à lire et à tester. Elles cachent souvent une logique métier qui devrait être encapsulée dans les classes elles-mêmes.
+
+Exemple concret : WebCaisse
+
+Imaginons que nous devions calculer des frais de gestion différents selon le lieu de vente (Magasin ou E-commerce).
+La "Mauvaise" Méthode (avec instanceof) :
+
+[source,java]
+----
+public double calculerFrais(LieuVente lieu) {
+if (lieu instanceof Magasin) {
+return 5.0; // Frais fixes magasin
+}
+else if (lieu instanceof ECommerce)
+{
+return 2.0; // Frais réduits web
+}
+return 0;
+}
+----
+
+La "Bonne" Méthode (Polymorphisme) :
+On définit une méthode abstraite dans la classe mère et chaque sous-classe l'implémente.
+[source,java]
+----
+// Dans la classe mère LieuVente public abstract double getFraisGestion();
+// Dans la classe Magasin @Override public double getFraisGestion() { return 5.0; }
+// Dans la classe ECommerce @Override public double getFraisGestion() { return 2.0; }
+----

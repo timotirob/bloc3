@@ -1,0 +1,144 @@
+= Correction Personnalisée - TP Étude de Cas WebCaisse
+:author: Correction pour M. NGuyen
+:toc: left
+:toc-title: Sommaire
+:icons: font
+
+Bonjour M. NGuyen.
+
+Le travail fourni présente de bonnes réalisations en programmation orientée objet (Mission 3), mais comporte des lacunes majeures en modélisation et en requêtage SQL. De plus, plusieurs éléments sont incomplets ou totalement absents (comme les questions de synthèse).
+
+**Rappel impératif :** L'ensemble de cette correction et de vos réponses devra faire l'objet d'une validation orale stricte avec M. Robert. Cette étape est indispensable pour s'assurer de votre maîtrise réelle des concepts et vérifier que le travail n'a pas été généré de manière automatisée.
+
+Voici le détail factuel de la correction.
+
+
+== Mission 1 : Souscription en ligne et Sécurité
+
+=== Question 1.1 — Proposition de structure de base de données
+**Votre proposition :** Diagramme PlantUML avec `Formule`, `Langue`, `ProgrammeFidelite` et `Client`.
+
+[WARNING]
+.Erreur - Modélisation très incomplète et fausse
+====
+Votre modèle relationnel est incorrect :
+
+* L'entité `PointDeVente` est totalement absente de votre schéma, alors qu'elle est centrale dans la nouvelle gestion.
+* L'entité `Module` et la table d'association `Composer` sont également absentes.
+* Toutes les relations pointent vers `Client`, ce qui contredit la règle de gestion stipulant que les formules et les langues sont associées aux points de vente, et non directement au client.
+====
+
+=== Question 1.2 — Faille de l'envoi de mot de passe
+**Votre réponse :** Identification de la faille de confidentialité (interception). Proposition d'activation par jeton unique (token).
+
+[NOTE]
+.Évaluation - Validé
+====
+Le diagnostic est exact et le processus de remédiation par jeton temporaire correspond aux normes de sécurité attendues.
+====
+
+=== Questions 1.3 et 1.4 — Historisation des formules
+**Votre réponse :** Constat de l'écrasement des données. Ajout des champs `dateDebut` et `dateFin` dans `FormuleSouscrite`.
+
+[NOTE]
+.Évaluation - Conforme
+====
+Le problème est bien identifié et la solution d'ajouter une notion de temporalité est correcte pour permettre le calcul de la facturation.
+====
+
+=== Question 1.5 — Trigger SQL
+**Votre réponse :** Déclencheur sur `POINT_DE_VENTE` avec la syntaxe `WHEN OLD.idFormule <> NEW.idFormule`.
+
+[WARNING]
+.Erreur - Table ciblée et Syntaxe
+====
+* **Table :** Le déclencheur cible `POINT_DE_VENTE` au lieu de la table gérant l'historique des souscriptions (ex: `FormuleSouscrite`).
+* **Syntaxe :** L'utilisation de `WHEN` au niveau de la déclaration `FOR EACH ROW` n'est pas la norme MySQL standard attendue ici. Il faut utiliser une instruction conditionnelle `IF` à l'intérieur du bloc `BEGIN ... END`.
+====
+
+== Mission 2 : Exploitation des données et Sécurité
+
+=== Question 2.1 — Requêtes SQL
+**Vos requêtes :**
+
+[WARNING]
+.Erreur - Syntaxes SQL et Modèle de données
+====
+Vos requêtes comportent plusieurs erreurs techniques :
+
+* **Requête a :** L'utilisation de `LIKE '2017%'` sur un champ date est une mauvaise pratique. Il faut utiliser la fonction `YEAR(dateVente) = 2017`. De plus, vous utilisez une table `Consommateur` au lieu de `Conso`.
+
+* **Requête b :** Le champ `age` n'existe pas dans le modèle. Il faut le calculer via `TIMESTAMPDIFF(YEAR, dateNaiss, CURDATE())`. Vous filtrez sur `fidelise = 1` au lieu d'utiliser la table `ConsoFidele`.
+
+* **Requête c :** L'attribut `mail` (courriel) exigé par la consigne est absent du `SELECT` et du `GROUP BY`.
+====
+
+=== Questions 2.2 et 2.3 — Faille de sécurité (OWASP) et PreparedStatement
+**Votre réponse :** Identification de l'injection SQL. Fourniture d'une requête SQL préparée.
+
+[WARNING]
+.Erreur - Code Java manquant
+====
+L'explication de l'injection SQL est exacte.
+Cependant, pour la question 2.3, vous n'avez fourni que la requête SQL. Le **code Java** implémentant `PreparedStatement`, l'injection des paramètres (`setDate`, `setInt`) et l'exécution de la requête est totalement absent.
+====
+
+=== Questions 2.4 et 2.5 — Tests unitaires (JUnit)
+**Votre réponse :** Tests d'initialisation et des paliers (10, 30, 80 points).
+
+[NOTE]
+.Évaluation - Validé
+====
+Les assertions sont correctes et couvrent l'ensemble des règles de gestion des points de fidélité.
+====
+
+== Mission 3 : Statistiques de ventes (POO)
+
+=== Questions 3.1 à 3.3 — Javadoc, Méthodes et Constructeur
+**Votre réponse :** Rédaction de la Javadoc, méthode `size()` et appel à `super()`.
+
+[NOTE]
+.Évaluation - Validé
+====
+L'implémentation répond aux consignes. L'encapsulation et l'héritage sont correctement appliqués.
+====
+
+=== Questions 3.4 et 3.5 — Polymorphisme et Robustesse
+**Votre réponse :** Utilisation de `instanceof` et gestion de la division par zéro avec `return -1`.
+
+[NOTE]
+.Évaluation - Conforme
+====
+L'algorithme de comparaison est correct. Le risque de l'exception mathématique (division par zéro) est identifié et traité de manière fonctionnelle.
+====
+
+=== Question 3.6 — Filtrage des ventes
+**Votre réponse :** Boucle `for` avec condition `> seuil` et renvoi d'une liste `resultat`.
+
+[NOTE]
+.Évaluation - Validé
+====
+L'algorithme de filtrage de la collection est exact.
+====
+
+---
+
+== Partie 3 : Questions de synthèse (Java, SQL et Sécurité)
+
+[WARNING]
+.Erreur - Partie absente
+====
+L'intégralité de la section "Questions de synthèse" est manquante. Cette partie est obligatoire pour valider votre compréhension globale de l'architecture, de la cybersécurité (OWASP, NF525) et de l'orienté objet.
+====
+
+== Conclusion
+
+Note estimée : *12 / 20*
+
+Le travail en Java est satisfaisant, mais l'absence du code JDBC, les erreurs de modélisation (UML et SQL) et l'omission totale des questions de synthèse pénalisent fortement la note.
+
+Pour améliorer vos évaluations, vous devez impérativement :
+
+- Traiter la partie des questions de synthèse.
+- Contacter M. Robert pour l'entretien oral de vérification des acquis sur votre travail
+- Compléter le prototype et me le montrer (ou mettre des copies d'écran)
