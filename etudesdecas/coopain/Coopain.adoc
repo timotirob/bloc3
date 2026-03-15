@@ -1176,7 +1176,7 @@ Vous devez implémenter cette fonctionnalité par vous-même, en modifiant deux 
 * **Logique Graphique :** Toujours dans cette méthode, vous devez réinitialiser l'affichage pour l'utilisateur :
 
 ** Remettez le texte du Label du chiffre d'affaires à "0.0 €".
-** Videz la zone de texte de l'historique (`txtHistorique`) de tout son contenu[cite: 829].
+** Videz la zone de texte de l'historique (`txtHistorique`) de tout son contenu.
 ** Effacez les éventuels messages d'erreur du `lblMessage`.
 ** (Optionnel) Remettez le champ de saisie du nombre d'actes à sa valeur par défaut ("1").
 ====
