@@ -1140,6 +1140,34 @@ Ajoutez la ligne suivante à l'intérieur du bloc `if (typeSelectionne != null &
 
 _Explication : La méthode `appendText()` ajoute du texte à la fin du `TextArea` sans effacer ce qui s'y trouve déjà. Le `\n` permet de faire un retour à la ligne automatique._
 ====
+=== 5.3. Autonomie : Préparer une nouvelle tournée
+
+Suite aux améliorations précédentes, un dernier problème ergonomique se pose : une fois la saisie d'une tournée terminée, l'inséminateur est obligé de fermer et de relancer l'application pour en commencer une nouvelle.
+
+**Objectif :** Ajouter un bouton "Nouvelle Tournée" permettant de réinitialiser complètement l'interface graphique et de vider les objets métiers en mémoire, afin de démarrer une saisie vierge.
+
+[IMPORTANT]
+====
+**Travail à réaliser (en autonomie) :**
+
+Vous devez implémenter cette fonctionnalité par vous-même, en modifiant deux fichiers de votre architecture.
+
+**1. Fichier impacté : `tournee.fxml` (La Vue)**
+
+* **Action :** Ajoutez un nouveau composant Bouton (`<Button>`) dans l'interface, par exemple tout en bas de la fenêtre.
+* **Propriétés :** Donnez-lui un texte explicite (ex: "Nouvelle Tournée") et liez l'événement de clic (`onAction`) à une nouvelle méthode que vous définirez dans le contrôleur (par exemple `#handleNouvelleTournee`).
+
+**2. Fichier impacté : `TourneeController.java` (Le Contrôleur)**
+
+* **Action :** Créez la méthode correspondante (ex: `public void handleNouvelleTournee()`) et marquez-la avec l'annotation `@FXML`.
+* **Logique Métier :** Dans cette méthode, vous devez "écraser" l'état actuel de votre application. Instanciez une nouvelle `Tournee`, recréez l'objet `GestionTournee`, et créez une nouvelle `Visite` vierge. N'oubliez pas d'ajouter cette nouvelle visite à la tournée (inspirez-vous fortement de ce qui est déjà fait dans la méthode `initialize()` au démarrage ).
+* **Logique Graphique :** Toujours dans cette méthode, vous devez réinitialiser l'affichage pour l'utilisateur :
+
+** Remettez le texte du Label du chiffre d'affaires à "0.0 €".
+** Videz la zone de texte de l'historique (`txtHistorique`) de tout son contenu.
+** Effacez les éventuels messages d'erreur du `lblMessage`.
+** (Optionnel) Remettez le champ de saisie du nombre d'actes à sa valeur par défaut ("1").
+====
 
 **Validation de la mission :**
 Relancez votre application en exécutant `Launcher.java`. Sélectionnez une prestation, saisissez un nombre d'actes et cliquez sur Ajouter. Vous devriez maintenant voir l'acte s'ajouter visuellement dans votre nouvelle zone de texte, confirmant la bonne communication entre la vue FXML et le contrôleur Java !
