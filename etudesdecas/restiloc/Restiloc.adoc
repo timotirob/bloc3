@@ -204,7 +204,42 @@ public class Indisponibilite {
 }
 ----
 
----
+=== DOCUMENT 4 : Exemple de manipulation d'une collection
+
+Attention: le sujet d'origin est en C#, j'ai gardé une partie en C# mais une autre en Java pour le prototype.
+
+[IMPORTANT]
+.Passage de Java à C# : 3 différences syntaxiques à retenir
+====
+* **1. Le nommage des méthodes (Conventions)**
+En Java, la norme est d'utiliser le `camelCase` pour les méthodes (la première lettre est en minuscule, ex: `calculerMontant()`). En C#, la convention stricte de Microsoft impose le `PascalCase` (la première lettre est en majuscule, ex: `CalculerMontant()`).
+
+* **2. L'encapsulation (Getters/Setters vs Propriétés)**
+Java nécessite l'écriture de méthodes explicites pour lire ou modifier un attribut privé (ex: `getNom()`, `setNom(String n)`). C# intègre le concept de **Propriétés** (`public string Nom { get; set; }`), qui masque l'appel aux accesseurs tout en s'utilisant syntaxiquement comme une variable publique.
+
+* **3. L'héritage et l'implémentation d'interfaces**
+Java utilise des mots-clés distincts pour hériter d'une classe (`extends`) ou implémenter une interface (`implements`). C# simplifie et unifie cette syntaxe en utilisant uniquement le symbole deux-points `:` (ex: `class Adherent : Personne, IClient`).
+====
+
+
+[source,java]
+----
+// À compléter sur votre copie
+
+// Déclaration et instanciation d’une collection d’instances d’Indisponibilite
+List<Indisponibilite> lesIndispos = new ArrayList<>();
+
+Indisponibilite uneIndispo = new Indisponibilite(...);
+lesIndispos.add(uneIndispo); // Ajout d’un élément à la collection
+
+lesIndispos.get(0); // Obtient le premier élément de la collection
+lesIndispos.size(); // Obtient le nombre d’éléments présents dans la collection
+
+for (Indisponibilite indispo : lesIndispos) {
+    // Parcours de tous les éléments de la collection
+    // indispo étant l'objet en cours dans le parcours
+}
+----
 
 === DOCUMENT 5 : Schéma relationnel Services Web
 
@@ -241,7 +276,38 @@ echo(json_encode($resultat));
 ?>
 ----
 
----
+
+=== DOCUMENT 7 : Exemple de résultat au format JSON retourné par le service Web getLesMissionsByIdExpert
+
+[source,json]
+----
+[
+  {
+    "idMission": 2,
+    "heureDebut": "10:30",
+    "ville": "Montpellier",
+    "immatriculation": "AA-229-XY",
+    "marque": "Citroën",
+    "modele": "C3"
+  },
+  {
+    "idMission": 7,
+    "heureDebut": "11:30",
+    "ville": "Lavérune",
+    "immatriculation": "BC-548-ZX",
+    "marque": "Peugeot",
+    "modele": "208"
+  },
+  {
+    "idMission": 6,
+    "heureDebut": "15:20",
+    "ville": "Béziers",
+    "immatriculation": "AB-346-TU",
+    "marque": "Renault",
+    "modele": "Clio"
+  }
+]
+----
 
 === DOCUMENT 8 : Interface graphique (list_layout.xml)
 
