@@ -710,9 +710,77 @@ INSERT INTO MissionExpertise (dateMission, heureDebut, idGarage, idExpert, immat
 == Mission 5 : Prototype JavaFX (Remplacement Android)
 (Documents à utiliser : 5, 6, 8 et 9)
 
-Par manque d'infrastructure Android, la DSI décide de porter le client mobile sur une version "Desktop" utilisant JavaFX. [cite_start]Ce prototype doit consommer les mêmes services Web que l'application initiale.
+Par manque d'infrastructure Android, la DSI décide de porter le client mobile sur une version "Desktop" utilisant JavaFX. Ce prototype doit consommer les mêmes services Web que l'application initiale.
 
-=== 3.1 Structure du projet et Configuration Maven
+=== Fiche Mémo : Configuration du Prototype JavaFX sous IntelliJ IDEA
+
+Ce guide vous accompagne pas à pas pour configurer correctement votre environnement de développement IntelliJ IDEA pour le prototype applicatif (JavaFX + Hibernate).
+
+**A reprendre lorsque vous aurez installé votre projet**
+
+==== Étape 1 : Ouverture et Configuration Maven (`pom.xml`)
+
+Le fichier `pom.xml` est le cœur de votre projet. Il indique à l'outil **Maven** de télécharger automatiquement toutes les bibliothèques nécessaires (JavaFX, Hibernate, MySQL, JUnit).
+
+1. Ouvrez IntelliJ IDEA.
+2. Cliquez sur **File > Open...** et sélectionnez le dossier racine de votre projet (celui qui contient le fichier `pom.xml`).
+3. Dans l'explorateur de projet à gauche, faites un **clic droit sur le fichier `pom.xml`**.
+4. Dans le menu déroulant, cliquez sur **Add as Maven Project** (ou _"Reload Project"_ si Maven est déjà actif).
+5. *Patientez quelques instants.* Une barre de progression s'affiche en bas de l'écran pendant qu'IntelliJ télécharge Internet toutes les dépendances.
+
+[NOTE]
+====
+Si la fenêtre d'outil Maven n'apparaît pas sur le bord droit de votre écran, vous pouvez l'afficher via **View > Tool Windows > Maven**. Un clic sur l'icône "Actualiser" (flèches circulaires) forcera le téléchargement si besoin.
+====
+
+==== Étape 2 : Définir le rôle des dossiers (Mark Directory as)
+
+Pour qu'IntelliJ comprenne l'architecture de votre projet, il faut lui indiquer où se trouve le code, où se trouvent les vues, et où se trouvent les tests.
+
+Dans l'explorateur de projet (à gauche), effectuez les actions suivantes :
+
+* **Le code source Java :**
+Faites un clic droit sur le dossier `src/main/java` -> **Mark Directory as** -> **Sources Root** (le dossier deviendra bleu).
+
+* **Les ressources (Vues FXML, configuration Hibernate) :**
+Faites un clic droit sur le dossier `src/main/resources` -> **Mark Directory as** -> **Resources Root** (le dossier aura une icône avec des bandes jaunes).
+
+* **Les tests unitaires (JUnit) :**
+Faites un clic droit sur le dossier `src/test/java` -> **Mark Directory as** -> **Test Sources Root** (le dossier deviendra vert).
+
+==== Étape 3 : Points bloquants fréquents et Solutions
+
+Voici les erreurs les plus courantes lors du premier lancement du prototype et comment les résoudre immédiatement.
+
+===== Problème 1 : Erreur "JavaFX runtime components are missing"
+C'est l'erreur la plus classique avec Java 11+. JavaFX nécessite normalement de configurer des modules complexes.
+**La solution simple (Le contournement "Launcher") :**
+Ne lancez **jamais** directement votre classe `Main` (qui hérite de `Application`).
+Créez une seconde classe nommée `Launcher` qui ne contient qu'une méthode `main` classique, et qui appelle votre vraie classe principale :
+[source,java]
+----
+public class Launcher {
+    public static void main(String[] args) {
+        Main.main(args); // Appelle votre classe JavaFX
+    }
+}
+----
+Faites un clic droit sur **`Launcher.java` -> Run 'Launcher.main()'**.
+
+===== Problème 2 : Version du SDK Java (Erreurs de syntaxe / Non reconnu)
+Le projet utilise une version récente de Java. Si le code est souligné en rouge :
+
+1. Allez dans **File > Project Structure...** (ou `Ctrl+Alt+Shift+S`).
+2. Dans la section **Project**, vérifiez que le champ **SDK** est défini sur la version 17 (ou supérieure). S'il est vide, cliquez sur _Download JDK..._ et choisissez _Eclipse Temurin_ (version 17).
+3. Vérifiez que le **Language level** est bien réglé sur la même version.
+
+===== Problème 3 : L'application se lance, mais affiche des erreurs rouges (Hibernate)
+L'interface graphique s'ouvre, mais vos listes sont vides ou le terminal affiche une `ExceptionInInitializerError`.
+1. **Base de données éteinte :** Vérifiez que votre serveur local (Laragon, XAMPP, WAMP) est bien démarré et que MySQL tourne.
+2. **Mot de passe BDD :** Par défaut sous Windows, l'utilisateur MySQL est `root` sans mot de passe. Si vous êtes sous macOS (MAMP) ou que vous avez sécurisé MySQL, ouvrez `src/main/resources/hibernate.cfg.xml` et renseignez le bon mot de passe dans la balise `hibernate.connection.password`.
+
+
+=== PROTO: Structure du projet et Configuration Maven
 
 Pour assurer la portabilité et la gestion des dépendances (JavaFX et parsing JSON), le projet utilise Maven.
 
@@ -772,7 +840,7 @@ restiloc-client/
 </project>
 ----
 
-=== 3.2 Modèle et Service de données
+=== PROTO: Modèle et Service de données
 
 Le modèle `Mission` est adapté du schéma relationnel de la vue `VehiculeExpertise`].
 
@@ -844,7 +912,7 @@ public class RestiClient {
 }
 ----
 
-=== 3.3 Interface et Contrôleur
+=== PROTO: Interface et Contrôleur
 
 L'interface FXML reproduit les colonnes d'affichage prévues dans la maquette initiale.
 
@@ -909,7 +977,7 @@ public class MissionsController {
 }
 ----
 
-=== 3.4 Classes de lancement
+=== PROTO: Classes de lancement
 
 **Classe `MainApp.java` :**
 [source,java]
