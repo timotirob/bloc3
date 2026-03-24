@@ -291,6 +291,8 @@ Pourquoi le hachage des mots de passe est-il techniquement préférable à leur 
 
 Quel critère du DICP est principalement visé par l'archivage obligatoire d'une photo pour chaque prestation ?
 
+**Le critère du DICP est principalement visé par l'archivage obligatoire d'une photo pour chaque prestation est la PREUVE (elle prouve la réalisation, garantit l'état, assure la traçabilité)**
+
 Expliquez le fonctionnement du déclenchement trig_audit_delete_missionpour assurer la traçabilité des suppressions.
 
 Comment la classe RestiClienttransforme-t-elle un flux JSON reçu par l'API en une liste d'objets Mission?
