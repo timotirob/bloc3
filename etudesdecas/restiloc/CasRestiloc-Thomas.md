@@ -293,7 +293,11 @@ Question 8 : Quel critère du DICP est principalement visé par l'archivage obli
 
 **Le critère du DICP est principalement visé par l'archivage obligatoire d'une photo pour chaque prestation est la PREUVE (elle prouve la réalisation, garantit l'état, assure la traçabilité)**
 
-Question 9 : Expliquez le fonctionnement du déclenchement trig_audit_delete_missionpour assurer la traçabilité des suppressions.
+Question 9 : Expliquez le fonctionnement du déclenchement trig_audit_delete_mission pour assurer la traçabilité des suppressions.
+
+**Le trigger trig_audit_delete_mission est comme une caméra de surveillance : au moment où quelqu'un retire un dossier du placard (suppression), il prend instantanément une photo du dossier et du visage de la personne pour la ranger dans un coffre-fort (table d'audit).**
 
 Question 10 : Comment la classe RestiClienttransforme-t-elle un flux JSON reçu par l'API en une liste d'objets Mission?
+
+**Le RestClient agit comme un traducteur : il prend une liste écrite en "langage texte" (JSON) et la recopie fidèlement dans des formulaires structurés (objets Mission) qu'il range ensuite dans un classeur (la List).**
 
