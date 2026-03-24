@@ -274,7 +274,20 @@ En quoi l'utilisation de HTTPS est-elle indispensable même si l'application né
 
 Expliquez la différence entre une donnée à caractère personnel et une donnée sensible selon les critères du RGPD.
 
+1) Les données à caractère personnel : c'est toute information qui permet d'identifier une personne physique, directement ou indirectement. 
+
+**Identification directe : Nom, prénom, photo.**
+
+**Identification indirecte : Numéro de téléphone, adresse IP, plaque d'immatriculation**
+
+2) Les données à caractère sensibles : toutes données qui sont particulièrement protégées car leur utilisation pourrait entraîner des discriminations ou des préjudices graves.
+   Leur collecte est interdite par défaut, sauf exceptions très strictes (consentement explicite, santé publique, etc.).
+
 Pourquoi le hachage des mots de passe est-il techniquement préférable à leur chiffrement ?
+
+**Pour retrouver le mot de passe, le chiffrement est idéal mais attention toute personne possédant la clé de déchiffrement peut donc retrouver le mot de passe initial. Alors que lorsque l'on hash un mot de passe, il est impossible de retrouver le mot de passe initial car le hashage se fait d'en 1 seul sens.**
+
+**En résumé : Le chiffrement est comme un coffre-fort (on peut l'ouvrir avec la clé), alors que le hachage est comme une omelette : une fois que les œufs sont mélangés et cuits, on ne peut plus jamais les remettre dans leur coquille.**
 
 Quel critère du DICP est principalement visé par l'archivage obligatoire d'une photo pour chaque prestation ?
 
