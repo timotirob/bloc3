@@ -252,27 +252,27 @@ CREATE TABLE AUDIT_SUPPRESSION (
 
 **Cas Restiloc : Services Web et Audit de Sécurité**
 
-Quelle modélisation de base de données avez-vous choisi pour différencier les prestations "Peinture" et "Pièce" ?
+Question 1 : Quelle modélisation de base de données avez-vous choisi pour différencier les prestations "Peinture" et "Pièce" ?
 
 **j'ai choisi la modélisation du schéma relationnel pour différencier les prestations "Peinture" et "Pièce"**
 
-Justifiez l'utilisation d'une classe abstraite pour la classe Expertisedans le diagramme de classes.
+Question 2 : Justifiez l'utilisation d'une classe abstraite pour la classe Expertisedans le diagramme de classes.
 
 **Utiliser une classe abstraite permet de définir une identité commune et d'imposer des règles à d'autres classes**
 
-Expliquez l'architecture applicative permettant l'échange de données entre le SGBD, le serveur PHP et le client JavaFX.
+Question 3 : Expliquez l'architecture applicative permettant l'échange de données entre le SGBD, le serveur PHP et le client JavaFX.
 
 ****
 
-Pourquoi la présence d'un identifiant en clair dans l'URL d'une API constitue-t-elle une vulnérabilité de type IDOR ?
+Question 4 : Pourquoi la présence d'un identifiant en clair dans l'URL d'une API constitue-t-elle une vulnérabilité de type IDOR ?
 
 **La présence d'un identifiant en clair dans l'URL d'une API constitue une vulnérabilité car elle peut être simple à deviner mais avant tout il y a une absence de contrôle d'autorisation**
 
-En quoi l'utilisation de HTTPS est-elle indispensable même si l'application nécessite une authentification ?
+Question 5 : En quoi l'utilisation de HTTPS est-elle indispensable même si l'application nécessite une authentification ?
 
 **L'utilisation de HTTPS est inispensable même si l'application nécessite une authentification car le HTTPS crée un tunnel blindé pour que personne ne voie ce que tu fais ou ne vole tes preuves d'identité pendant le trajet.**
 
-Expliquez la différence entre une donnée à caractère personnel et une donnée sensible selon les critères du RGPD.
+Question 6 : Expliquez la différence entre une donnée à caractère personnel et une donnée sensible selon les critères du RGPD.
 
 1) Les données à caractère personnel : c'est toute information qui permet d'identifier une personne physique, directement ou indirectement. 
 
@@ -283,17 +283,17 @@ Expliquez la différence entre une donnée à caractère personnel et une donné
 2) Les données à caractère sensibles : toutes données qui sont particulièrement protégées car leur utilisation pourrait entraîner des discriminations ou des préjudices graves.
    Leur collecte est interdite par défaut, sauf exceptions très strictes (consentement explicite, santé publique, etc.).
 
-Pourquoi le hachage des mots de passe est-il techniquement préférable à leur chiffrement ?
+Question 7 : Pourquoi le hachage des mots de passe est-il techniquement préférable à leur chiffrement ?
 
 **Pour retrouver le mot de passe, le chiffrement est idéal mais attention toute personne possédant la clé de déchiffrement peut donc retrouver le mot de passe initial. Alors que lorsque l'on hash un mot de passe, il est impossible de retrouver le mot de passe initial car le hashage se fait d'en 1 seul sens.**
 
 **En résumé : Le chiffrement est comme un coffre-fort (on peut l'ouvrir avec la clé), alors que le hachage est comme une omelette : une fois que les œufs sont mélangés et cuits, on ne peut plus jamais les remettre dans leur coquille.**
 
--> Quel critère du DICP est principalement visé par l'archivage obligatoire d'une photo pour chaque prestation ?
+Question 8 : Quel critère du DICP est principalement visé par l'archivage obligatoire d'une photo pour chaque prestation ?
 
 **Le critère du DICP est principalement visé par l'archivage obligatoire d'une photo pour chaque prestation est la PREUVE (elle prouve la réalisation, garantit l'état, assure la traçabilité)**
 
-Expliquez le fonctionnement du déclenchement trig_audit_delete_missionpour assurer la traçabilité des suppressions.
+Question 9 : Expliquez le fonctionnement du déclenchement trig_audit_delete_missionpour assurer la traçabilité des suppressions.
 
-Comment la classe RestiClienttransforme-t-elle un flux JSON reçu par l'API en une liste d'objets Mission?
+Question 10 : Comment la classe RestiClienttransforme-t-elle un flux JSON reçu par l'API en une liste d'objets Mission?
 
