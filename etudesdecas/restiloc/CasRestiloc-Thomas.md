@@ -289,7 +289,7 @@ Pourquoi le hachage des mots de passe est-il techniquement préférable à leur 
 
 **En résumé : Le chiffrement est comme un coffre-fort (on peut l'ouvrir avec la clé), alors que le hachage est comme une omelette : une fois que les œufs sont mélangés et cuits, on ne peut plus jamais les remettre dans leur coquille.**
 
-Quel critère du DICP est principalement visé par l'archivage obligatoire d'une photo pour chaque prestation ?
+-> Quel critère du DICP est principalement visé par l'archivage obligatoire d'une photo pour chaque prestation ?
 
 **Le critère du DICP est principalement visé par l'archivage obligatoire d'une photo pour chaque prestation est la PREUVE (elle prouve la réalisation, garantit l'état, assure la traçabilité)**
 
