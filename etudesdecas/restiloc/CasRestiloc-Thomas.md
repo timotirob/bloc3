@@ -249,3 +249,36 @@ CREATE TABLE AUDIT_SUPPRESSION (
     dateSuppression DATETIME
 );
 ````
+
+**Cas Restiloc : Services Web et Audit de Sécurité**
+
+Quelle modélisation de base de données avez-vous choisi pour différencier les prestations "Peinture" et "Pièce" ?
+
+**j'ai choisi la modélisation du schéma relationnel pour différencier les prestations "Peinture" et "Pièce"**
+
+Justifiez l'utilisation d'une classe abstraite pour la classe Expertisedans le diagramme de classes.
+
+**Utiliser une classe abstraite permet de définir une identité commune et d'imposer des règles à d'autres classes**
+
+Expliquez l'architecture applicative permettant l'échange de données entre le SGBD, le serveur PHP et le client JavaFX.
+
+****
+
+Pourquoi la présence d'un identifiant en clair dans l'URL d'une API constitue-t-elle une vulnérabilité de type IDOR ?
+
+**La présence d'un identifiant en clair dans l'URL d'une API constitue une vulnérabilité car elle peut être simple à deviner mais avant tout il y a une absence de contrôle d'autorisation**
+
+En quoi l'utilisation de HTTPS est-elle indispensable même si l'application nécessite une authentification ?
+
+**L'utilisation de HTTPS est inispensable même si l'application nécessite une authentification car le HTTPS crée un tunnel blindé pour que personne ne voie ce que tu fais ou ne vole tes preuves d'identité pendant le trajet.**
+
+Expliquez la différence entre une donnée à caractère personnel et une donnée sensible selon les critères du RGPD.
+
+Pourquoi le hachage des mots de passe est-il techniquement préférable à leur chiffrement ?
+
+Quel critère du DICP est principalement visé par l'archivage obligatoire d'une photo pour chaque prestation ?
+
+Expliquez le fonctionnement du déclenchement trig_audit_delete_missionpour assurer la traçabilité des suppressions.
+
+Comment la classe RestiClienttransforme-t-elle un flux JSON reçu par l'API en une liste d'objets Mission?
+
