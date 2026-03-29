@@ -1,0 +1,87 @@
+= Correction Personnalisée - TP Étude de Cas RestiLoc
+:author: Correction pour M. Thomas Nguyen
+:toc: left
+:toc-title: Sommaire
+:icons: font
+
+Bonjour M. Nguyen.
+
+Le travail fourni sur l'étude de cas RestiLoc est très original et témoigne d'une bonne préparation. Vos métaphores pour expliquer la cybersécurité (l'omelette pour le hachage, la caméra de surveillance pour le trigger) sont excellentes pour mémoriser. L'utilisation d'un diagramme de séquence pour l'architecture est également une excellente initiative.
+
+Voici le détail factuel de votre évaluation.
+
+---
+
+== Mission 1 : Modélisation des prestations (PREE)
+
+**Votre réponse :** Création de deux tables `Peinture` et `Pièce` avec des clés primaires composites faisant office de clés étrangères.
+
+[NOTE]
+.Évaluation - Conforme
+====
+L'idée de l'héritage est comprise. Cependant, dans votre tableau, vous avez omis de définir explicitement la table mère `PREE`. Vos clés étrangères pointent vers `refDossier, numOrdre` sans préciser la table cible. L'intention est bonne, mais le formalisme manque d'un peu de précision.
+====
+
+== Mission 2 : Gestion des rendez-vous (C#)
+
+**Vos réponses :** Justification de l'abstraction et implémentation des 4 méthodes orientées objet.
+
+[NOTE]
+.Évaluation - Excellent
+====
+* **Abstraction (2.1) :** La justification est exacte (impossibilité d'instancier, structuration, évitement de la duplication).
+* **Algorithmique (2.2 à 2.5) :** Le code est robuste et propre. Vous avez parfaitement intégré le contrôle de nullité (`if (e.GetIndisponibilite() != null)`) avant de lire le motif, ce qui est la bonne pratique absolue pour éviter les plantages d'application.
+* *Remarque de forme :* Il n'était pas nécessaire de réécrire toute la structure de la classe (`public class SocieteFinancement { ... }`) autour de chaque méthode, mais le code en lui-même est tout à fait valide.
+====
+
+== Mission 3 : Application et Architecture
+
+**Vos réponses :** Trois requêtes SQL et un diagramme de séquence métier. La question 3.3 (Correction de l'affichage) est manquante.
+
+[WARNING]
+.Erreur - Syntaxe SQL et Oubli
+====
+* **SQL (3.1) :** Vos requêtes contiennent des erreurs bloquantes. Vous utilisez une table nommée `Mission` qui n'existe pas dans le schéma (il s'agit de `MissionExpertise`). De plus, pour les requêtes 1 et 2, vous avez oublié les jointures (`JOIN`) indispensables avec les tables `VehiculeExpertise` et `Expert` pour récupérer les noms et modèles. Le moteur SGBD rejettera ces requêtes.
+* **Question 3.3 :** L'identification des fichiers à corriger (PHP et Java) pour le bug du nom du garage a été totalement ignorée.
+====
+
+[NOTE]
+.Évaluation - Architecture (Excellent)
+====
+* **Architecture (3.2) :** L'utilisation d'un diagramme de séquence pour modéliser le flux HTTP/JSON/SQL est une initiative excellente. Cela montre que vous avez parfaitement compris la cinématique d'une API REST et les interactions entre les tiers.
+====
+
+== Mission 4 : Cybersécurité et RGPD
+
+**Vos réponses :** DICP, Hachage vs Chiffrement, Réécriture PDO, IDOR et Trigger.
+
+[NOTE]
+.Évaluation - Très bien
+====
+* **Théorie :** L'analyse des risques (Confidentialité / Intégrité) est très pertinente. Vous avez bien identifié le critère de "Preuve/Traçabilité" pour la photo.
+* *Petite erreur de numérotation :* Vous avez répondu à la question sur le hachage (4.2.2) sous le titre de la question RGPD (4.2.1), mais le contenu est juste.
+* **Sécurisation (4.3) :** La réécriture avec `PDO::prepare` et les marqueurs `?` est parfaite. L'explication de la vulnérabilité IDOR ("prévisibilité des identifiants" et changement manuel dans l'URL) est digne d'un rapport d'audit professionnel.
+* **Base de données (4.4) :** Votre Trigger Transact-SQL utilisant la table `deleted` est totalement fonctionnel.
+====
+
+== Questions de synthèse
+
+**Vos réponses :** Les 10 concepts théoriques, expliqués avec des métaphores.
+
+[NOTE]
+.Évaluation - Très original et pertinent
+====
+Vos capacités de vulgarisation technique sont remarquables.
+
+* Comparer le hachage à une "omelette" (irréversible) et le chiffrement à un "coffre-fort" (réversible avec clé) est une métaphore parfaite.
+* La "caméra de surveillance" pour le Trigger et le "traducteur" pour le parsing JSON sont tout aussi justes.
+* *Bémol :* Vous avez laissé la question 3 (sur l'architecture 3-tiers) totalement vide (`****`).
+====
+
+== Conclusion
+
+Note estimée : **17 / 20**
+
+C'est bien, continuez. Vous allez au bout des prototypes, c'est très bien, il reste à s'assurer que vous maitriser les bases.
+
+Révisez vos bases SQL (`JOIN`, manipulation de plusieurs tables) et vous serez  prêt pour l'étude de cas.
