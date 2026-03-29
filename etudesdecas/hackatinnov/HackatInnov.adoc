@@ -883,6 +883,12 @@ _Une fois l'attaque comprise et constatée, supprimez ce fichier vulnérable et 
 ** Clé étrangère : idHackathon en référence à id de HACKATHON
 ** _Note : retenu indique si le projet proposé a été retenu ou pas._
 
+
+**Diagramme de classe UML**
+
+image::edc21ms-HackatInnov.png[Architecture Réseau DMZ]
+
+
 === Document 2 : Extrait de la syntaxe SQL
 
 [source,sql]
