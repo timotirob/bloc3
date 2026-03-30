@@ -883,6 +883,12 @@ _Une fois l'attaque comprise et constatée, supprimez ce fichier vulnérable et 
 ** Clé étrangère : idHackathon en référence à id de HACKATHON
 ** _Note : retenu indique si le projet proposé a été retenu ou pas._
 
+
+**Diagramme de classe UML**
+
+image::edc21ms-HackatInnov.png[Architecture Réseau DMZ]
+
+
 === Document 2 : Extrait de la syntaxe SQL
 
 [source,sql]
@@ -899,19 +905,81 @@ CREATE TABLE nomTable
 CREATE VIEW nomVue (champ[, ...]) AS requêteSQL ;
 ----
 
-=== Document 3 : Scripts SQL (Triggers)
-[source,sql]
+=== Document 3 : Exemples d'événements au format JSON
+
+==== Exemple d’événements de type "Initiation"
+
+[source,json]
 ----
--- Trigger de contrôle de capacité
-DELIMITER //
-CREATE TRIGGER tg_check_capacite
-BEFORE INSERT ON INSCRIRE
-FOR EACH ROW
-BEGIN
-    -- Logique de vérification du nombre de places
-END //
-DELIMITER ;
+[
+  {
+    "libelle": "Introduction au PHP",
+    "dateHeure": "19/06/2021 13:00",
+    "duree": "2h",
+    "salle": "Alan Turing",
+    "typePublic": "étudiants ou jeunes développeurs débutants",
+    "animateur": {
+      "prenom": "Morgan",
+      "nom": "Friche",
+      "mel": "mfriche@mail.com",
+      "telephone": "06 39 98 65 14"
+    },
+    "nbPlaces": 40,
+    "materiels": [
+      {
+        "libelle": "ordinateur portable",
+        "quantite": 1
+      },
+      {
+        "libelle": "IDE PHPStorm en mode évaluation gratuit",
+        "quantite": 1
+      }
+    ]
+  },
+  {
+    "libelle": "Introduction à la cybersécurité",
+    "dateHeure": "19/06/2021 16:00",
+    "duree": "2h",
+    "salle": "Alan Turing",
+    "typePublic": "étudiants ou jeunes développeurs débutants",
+    "animateur": {
+      "prenom": "Morgan",
+      "nom": "Friche",
+      "mel": "mfriche@mail.com",
+      "telephone": "06 39 98 65 14"
+    },
+    "nbPlaces": 40,
+    "materiels": [
+      {
+        "libelle": "bloc-notes papier",
+        "quantite": 1
+      }
+    ]
+  }
+]
 ----
+
+==== Exemple d'un événement de type "Conférence"
+
+[source,json]
+----
+{
+  "libelle": "Les méthodes agiles ?",
+  "dateHeure": "19/06/2021 09:00",
+  "duree": "2h",
+  "salle": "Hedy Lamarr",
+  "typePublic": "chefs de projets novices",
+  "animateur": {
+    "prenom": "Louison",
+    "nom": "Gelin",
+    "mel": "lgelin@mail.com",
+    "telephone": "06 39 98 23 01"
+  },
+  "theme": "gestion de projet"
+}
+----
+
+
 
 === Document 4 : Modélisation du Domaine (UML)
 
@@ -960,85 +1028,14 @@ L'architecture est segmentée comme suit :
 2. **DMZ** : Serveur Web Apache et services API PHP.
 3. **Zone Privée** : Serveur MySQL contenant les données sensibles.
 
-=== Document 6 : Exemple d’événements au format JSON
 
-**Exemple d’évènements de type initiation :**
-[source,json]
-----
-[
-  {
-    "libelle" : "Introduction au PHP",
-    "dateHeure" : "19/06/2021 13:00",
-    "duree" : "2h",
-    "salle" : "Alan Turing",
-    "typePublic" : "étudiants ou jeunes développeurs débutants",
-    "animateur" : {
-      "prenom" : "Morgan",
-      "nom" : "Friche",
-      "mel" : "mfriche@mail.com",
-      "telephone" : "06 39 98 65 14"
-    },
-    "nbPlaces" : 40,
-    "materiels" : [
-      {
-        "libelle" : "ordinateur portable",
-        "quantite" : 1
-      },
-      {
-        "libelle" : "IDE PHPStorm en mode évaluation gratuit",
-        "quantite" : 1
-      }
-    ]
-  },
-  {
-    "libelle" : "Introduction à la cybersécurité",
-    "dateHeure" : "19/06/2021 16:00",
-    "duree" : "2h",
-    "salle" : "Alan Turing",
-    "typePublic" : "étudiants ou jeunes développeurs débutants",
-    "animateur" : {
-      "prenom" : "Morgan",
-      "nom" : "Friche",
-      "mel" : "mfriche@mail.com",
-      "telephone" : "06 39 98 65 14"
-    },
-    "nbPlaces" : 40,
-    "materiels" : [
-      {
-        "libelle" : "bloc-notes papier",
-        "quantite" : 1
-      }
-    ]
-  }
-]
-----
-
-**Exemple d'un événement de type conférence :**
-[source,json]
-----
-{
-  "libelle" : "Les méthodes agiles ?",
-  "dateHeure" : "19/06/2021 09:00",
-  "duree" : "2h",
-  "salle" : "Hedy Lamarr",
-  "typePublic" : "chefs de projets novices",
-  "animateur" : {
-    "prenom" : "Louison",
-    "nom" : "Gelin",
-    "mel" : "lgelin@mail.com",
-    "telephone" : "06 39 98 23 01"
-  },
-  "theme" : "gestion de projet"
-}
-----
-
-=== Document 7 : Diagramme de classes du module Hackat'Event
+=== Document 6 : Diagramme de classes du module Hackat'Event
 
 image::DiagClasse.png[Diagramme de classe du module Hackat Event]
 
 La classe `Evenement` est une classe abstraite donc elle ne pourra pas être instanciée. Seules ses deux classes filles, `Conference` et `Initiation` pourront être instanciées.
 
-=== Document 8 : Code PHP partiel des classes du module Hackat'Event
+=== Document 7 : Code PHP partiel des classes du module Hackat'Event
 
 [source,php]
 ----
@@ -1217,7 +1214,7 @@ class Initiation extends Evenement {
 ?>
 ----
 
-=== Document 9 : Extrait de la classe de test TestInitiation
+=== Document 8 : Extrait de la classe de test TestInitiation
 
 [source,php]
 ----
@@ -1264,7 +1261,7 @@ class TestInitiation {
 ?>
 ----
 
-=== Document 10 : Extrait de documentation PHP
+=== Document 9 : Extrait de documentation PHP
 
 **Exemple d'utilisation de la collection (tableau indicé en PHP)**
 [source,php]
@@ -1318,7 +1315,7 @@ if ($unPart instanceof Participant) {
 ?>
 ----
 
-=== Document 11 : Schéma relationnel du module Hackat'Event
+=== Document 10 : Schéma relationnel du module Hackat'Event
 
 [cols="2,4,2,4", options="header"]
 |===
@@ -1357,8 +1354,47 @@ idAnimateur (réf. MEMBRE.id)
 idMembre (réf. MEMBRE.id)
 |===
 
-=== Document 12 : Copie d'écran de l'interface mobile pour la recherche
+=== Document 11 : Copie d'écran de l'interface mobile pour la recherche
 image::copie_ecran_interface_mobile.png[Copie d'écran de l'application Vue.js montrant la recherche par ville]
+
+
+=== Document 12 : Code source du composant liste.vue (Vue.js)
+
+[source,html, linenums]
+----
+<template>
+<div>
+    <div class="row" id="filtre">
+        <div class="col">
+        <input type="text" name="critere" placeholder="Votre critère de recherche…" v-model="recherche">
+        </div>
+        <div class="col">
+            <input type="button" v-on:click="rechercher()">
+        </div>
+    </div>
+<div class="row">
+    <div class="col text-center bigTitle">
+    {{lesHackathons.length}}
+    </div>
+</div>
+<div v-if="lesHackathons.length > 0">
+    <table>
+    <tr>
+        <th>Date</th>
+        <th>Ville</th>
+    </tr>
+    <tr v-for="hackathon in lesHackathons" :key="hackathon.id">
+        <td>{{hackathon.dateDebut}}</td>
+        <td>{{hackathon.ville}}</td>
+    </tr>
+    </table>
+</div>
+    <div v-else>
+    Aucun résultat.
+    </div>
+</div>
+</template>
+----
 
 
 === Document 13 : Code source de l'API de recherche (PHP)
