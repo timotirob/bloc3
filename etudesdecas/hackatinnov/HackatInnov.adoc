@@ -1400,23 +1400,16 @@ image::copie_ecran_interface_mobile.png[Copie d'écran de l'application Vue.js m
 ----
 
 
-=== Document 14 : Code source de l'API de recherche (PHP)
-
-[source,php]
+=== Document 14 : Scripts SQL (Triggers)
+[source,sql]
 ----
-<?php
-2.	  include("util/bdd.php");
-3.	  header("Content-Type: application/json");
-4.	  $pdo = connexionBdd();        // Connexion à la base de données
-5.	  // Récupération avec filtrage du critère de recherche passé par la méthode POST
-6.	  $critere = filter_input (INPUT_POST, 'critere', FILTER_SANITIZE_STRING) ;
-7.	  // Requête de recherche.
-8.	  $sql = 'SELECT DATE_FORMAT(dateHeureDebut, "%d/%m/%Y") AS dateDebut, ville   FROM HACKATHON WHERE ville LIKE :critere ORDER BY dateDebut, ville';
-9.	  $stmt = $pdo->prepare($sql);
-10.	  $stmt->bindValue(':critere', "%$critere%", PDO::PARAM_STR);
-11.	  $stmt->execute();
-12.	  // Récupération de l'ensemble des résultats
-13.	  $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-14.	  echo json_encode($rows); // Affichage de la liste des hackathons
-15.	?>
+-- Trigger de contrôle de capacité
+DELIMITER //
+CREATE TRIGGER tg_check_capacite
+BEFORE INSERT ON INSCRIRE
+FOR EACH ROW
+BEGIN
+    -- Logique de vérification du nombre de places
+END //
+DELIMITER ;
 ----
