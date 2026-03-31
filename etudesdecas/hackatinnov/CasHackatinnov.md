@@ -268,7 +268,7 @@ public function toJson() {
 Question B.3.1. : 
 
 D’après les attributs de la classe Membre, l’export de ces données vers une application publique constitue une faille de confidentialité et une violation du RGPD car n’importe quel utilisateur peut récupérer les coordonnées de tous les participants. (confidentialité) et les données doivent être collectées pour des finalités déterminées et ne pas être exposées au-delà du nécessaire (principe de minimisation), (RGPD).
-Il faut donc retourner les données nécessaires en enlevant les données sensibles. Voici une solution algorithmique simple pour y remédier : 
+Il faut donc retourner les données nécessaires en enlevant les données personnelles. Voici une solution algorithmique simple pour y remédier : 
 ````java
 public function lesParticipantsToJson() {
     $participants = [];
