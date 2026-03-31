@@ -377,3 +377,24 @@ Les intérêts de mettre le serveur de bases de données en dehors de la zone d�
 | 4. Se connecter via un réseau Wi-Fi sécurisé | Client Android (zone publique)                           |
 | 5. Préserver l'intégrité des données (droits d'accès) | Serveur MySQL (zone privée)                    |
 | 6. Mise à jour des bibliothèques et composants logiciels | Serveur Apache + API PHP (DMZ) + Serveur MySQL (zone privée) |
+
+
+
+# Cas Hackat'Innov : Web Dynamique et Intégrité SQL
+
+1. **Justifiez l'utilisation d'une jointure de type `LEFT JOIN` pour lister l'ensemble des événements satellites.**  
+   La jointure `LEFT JOIN` permet de lister tous les événements satellites, même ceux qui n'ont pas encore d'inscription ou de participation associée. Contrairement à un `INNER JOIN` qui ne retournerait que les événements possédant des correspondances dans la table jointe, le `LEFT JOIN` conserve l'intégralité des événements de la table de gauche (ici les événements satellites) et associe les données disponibles de la table de droite. Cela garantit qu'aucun événement n'est exclu du listing, ce qui est essentiel pour une vue d'ensemble exhaustive.
+
+2. **Pourquoi le choix de la date et l'heure comme clé d'un dictionnaire est-il pertinent pour le planning d'un participant ?**  
+   Utiliser la date et l'heure comme clé d'un dictionnaire permet d'organiser le planning de manière chronologique et d'assurer un accès direct aux créneaux horaires. Cette structure garantit l'unicité de chaque créneau pour un participant donné (un participant ne peut être à deux endroits à la fois) et facilite les vérifications de chevauchement. De plus, l'accès par clé offre une complexité théorique O(1), ce qui est performant pour consulter ou modifier un créneau spécifique.
+
+3. **Expliquez comment le déclencheur `tg_check_capacite` garantit que la limite de places d'un hackathon est respectée.**  
+   Le déclencheur `tg_check_capacite` est un trigger SQL activé avant l'insertion d'une nouvelle inscription. Il vérifie, en comptant le nombre d'inscriptions déjà enregistrées pour le hackathon concerné, que la capacité maximale définie n'est pas atteinte. Si la limite est déjà atteinte ou dépassée, le déclencheur lève une exception et annule l'insertion, empêchant ainsi toute inscription supplémentaire. Cela garantit l'intégrité des données au niveau de la base de données, indépendamment de la couche applicative.
+
+4. **En quoi l'export des données personnelles des membres vers une application publique constitue-t-il une violation du RGPD ?**  
+   Le RGPD (Règlement Général sur la Protection des Données) impose que les données personnelles soient traitées de manière licite, loyale et transparente, avec des garanties de sécurité appropriées. Exporter des données personnelles vers une application publique sans consentement explicite des personnes concernées, sans contrôle d'accès et sans mesure de sécurité constitue plusieurs violations : absence de base légale, défaut de minimisation des données, absence de mesure de sécurité (chiffrement, contrôle d'accès), et risque de fuite de données. Cela expose l'organisation à des sanctions administratives et à des recours juridiques de la part des personnes concernées.
+
+5. **Démontrez l'impact d'une saisie utilisateur contenant des guillemets sur une chaîne JSON construite manuellement.**  
+   Si un utilisateur saisit une chaîne contenant des guillemets, par exemple `"John "The Hacker" Doe"`, et que cette valeur est insérée manuellement par concaténation dans une chaîne JSON, le résultat sera :
+   ```json
+   {"nom": "John "The Hacker" Doe"}
