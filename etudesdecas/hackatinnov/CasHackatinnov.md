@@ -33,7 +33,7 @@
 - Clé primaire : id
 - Clé étrangère : idProjet référence PROJET(id)
 
-**INSCRIPTION** (idHackathon, idMembre, idEquipe, dateInscription)
+**EVENEMENT** (idHackathon, idMembre, idEquipe, dateInscription)
 - Clé primaire : (idHackathon, idMembre)
 - Clés étrangères : idHackathon référence HACKATHON(id), idMembre référence MEMBRE(id), idEquipe référence EQUIPE(id) (nullable)
 
@@ -104,7 +104,7 @@ Retourner planningParParticipant
 DELIMITER //
 
 CREATE TRIGGER tg_check_capacite
-BEFORE INSERT ON INSCRIPTION
+BEFORE INSERT ON EVENEMENT
 FOR EACH ROW
 BEGIN
     DECLARE v_capacité INT;
@@ -117,7 +117,7 @@ BEGIN
 
     -- Comptage du nombre d'inscrits actuels
     SELECT COUNT(*) INTO v_inscrits 
-    FROM INSCRIPTION 
+    FROM EVENEMENT 
     WHERE idHackathon = NEW.idHackathon;
 
     -- Si complet, on bloque l'insertion avec un message d'erreur
@@ -128,7 +128,7 @@ BEGIN
 END //
 DELIMITER ;
 ````
-2. Création de la table :
+2. Création de la table "LOG_VOTES" :
 ````sql
 CREATE TABLE LOG_VOTES (
     idAudit INT AUTO_INCREMENT PRIMARY KEY,
