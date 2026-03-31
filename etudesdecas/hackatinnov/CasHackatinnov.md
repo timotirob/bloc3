@@ -398,3 +398,57 @@ Les intérêts de mettre le serveur de bases de données en dehors de la zone d�
    Si un utilisateur saisit une chaîne contenant des guillemets, par exemple `"John "The Hacker" Doe"`, et que cette valeur est insérée manuellement par concaténation dans une chaîne JSON, le résultat sera :
    ```json
    {"nom": "John "The Hacker" Doe"}
+
+6. **Pourquoi la fonction native `json_encode` est-elle préférable à une construction de flux par concaténation ?**  
+   La fonction native `json_encode` est préférable pour plusieurs raisons :
+   - **Échappement automatique des caractères spéciaux** : elle gère correctement les guillemets, antislashs, retours à la ligne et caractères Unicode, produisant systématiquement une chaîne JSON valide.
+   - **Gestion native des types de données** : elle convertit automatiquement les tableaux, objets, booléens, entiers et valeurs null en leur représentation JSON appropriée, sans risque d'erreur de syntaxe.
+   - **Prévention des injections JSON** : en échappant rigoureusement les valeurs, elle empêche un utilisateur malveillant d'injecter du contenu qui pourrait briser la structure JSON ou introduire des comportements inattendus.
+   - **Lisibilité et maintenabilité** : le code est plus concis, moins sujet aux erreurs et plus facile à faire évoluer qu'une concaténation manuelle fastidieuse.
+   - **Respect des standards** : elle garantit la conformité avec la spécification JSON (RFC 7159), contrairement à une construction artisanale qui peut omettre des règles essentielles.
+
+7. **Quel est l'intérêt d'utiliser des transactions SQL lors de l'ajout d'un événement dans les tables mère et fille ?**  
+   L'utilisation des transactions SQL est cruciale pour garantir l'intégrité des données dans un scénario d'ajout multi-tables :
+   - **Atomicité** : l'insertion dans la table mère (ex: `HACKATHON`) et dans les tables filles (ex: `ORGANISER`, `COMPOSITEUR`) est traitée comme une seule unité atomique. Si une opération échoue, l'ensemble est annulé par `ROLLBACK`, évitant les données orphelines.
+   - **Cohérence référentielle** : on s'assure qu'il n'existe pas d'enregistrement dans une table fille sans correspondance valide dans la table mère.
+   - **Isolation** : les transactions isolent les opérations des autres utilisateurs simultanés, empêchant la lecture d'états intermédiaires incohérents.
+   - **Pérennité** : une fois validée (`COMMIT`), l'opération est durable même en cas de panne système.
+   - **Gestion des erreurs** : permet d'implémenter une logique de reprise cohérente en cas d'exception.
+
+8. **Expliquez comment le mécanisme des requêtes préparées avec PDO neutralise physiquement une injection SQL.**  
+   Les requêtes préparées avec PDO neutralisent les injections SQL par une séparation stricte entre le code SQL et les données :
+   - **Phase 1 - Préparation** : la requête contenant des marqueurs (paramètres nommés `:nom` ou positionnels `?`) est envoyée au moteur SQL. Celui-ci analyse, valide et compile le plan d'exécution sans connaître les valeurs.
+   - **Phase 2 - Exécution avec liaison** : les données utilisateur sont transmises séparément via `bindParam()` ou `execute()`. Ces valeurs sont traitées comme des données brutes, jamais interprétées comme du code SQL.
+   
+   **Conséquence physique** : même si un utilisateur saisit une chaîne malveillante comme `' OR 1=1; DROP TABLE membres; --`, celle-ci est automatiquement échappée et passée comme valeur littérale. Le moteur SQL l'interprète comme une simple chaîne de caractères et non comme des instructions exécutables. Cette approche élimine la possibilité d'injection SQL quelle que soit la nature de la donnée fournie.
+
+9. **Quel est l'intérêt de placer le serveur de bases de données dans une zone privée, séparée de la DMZ ?**  
+   Cette architecture en zones distinctes répond à des exigences fondamentales de sécurité :
+   - **Principe de défense en profondeur** : la base de données n'est pas exposée directement sur Internet. Un attaquant doit d'abord compromettre un serveur de la DMZ avant de pouvoir tenter d'accéder aux données.
+   - **Réduction de la surface d'attaque** : seuls les ports nécessaires aux échanges avec les serveurs applicatifs (généralement le port 3306 pour MySQL) sont ouverts entre les zones.
+   - **Limitation de l'impact en cas de compromission** : même si un serveur web est piraté, les données critiques restent protégées par une barrière supplémentaire (pare-feu, ACL, authentification renforcée).
+   - **Conformité réglementaire** : de nombreux standards (PCI-DSS, RGPD, ISO 27001) imposent la segmentation des systèmes traitant des données sensibles.
+   - **Contrôle des accès facilité** : permet de définir des politiques de sécurité distinctes et plus restrictives pour la zone privée (chiffrement au repos, authentification forte, journalisation renforcée).
+
+10. **Décrivez la méthodologie TDD (Test Driven Development) utilisée pour corriger les erreurs de la classe `Initiation`.**  
+    Le TDD est une approche de développement itérative basée sur le cycle **Red-Green-Refactor** :
+    
+    **1. Red (Rouge - Échec)** :
+    - Rédaction d'un test unitaire qui reproduit spécifiquement le comportement erroné de la classe `Initiation`.
+    - Exécution du test : il échoue (rouge), confirmant que l'erreur est bien identifiée et que le test est valide.
+    - Ce test sert de spécification exécutable de la correction attendue.
+    
+    **2. Green (Vert - Succès)** :
+    - Correction du code de la classe `Initiation` en se concentrant uniquement sur le test en échec.
+    - Exécution du test : il passe (vert), prouvant que l'erreur a été corrigée.
+    - À ce stade, on n'optimise pas, on se contente de faire passer le test.
+    
+    **3. Refactor (Refactorisation)** :
+    - Nettoyage du code : suppression des redondances, amélioration de la lisibilité, respect des conventions de nommage, extraction de méthodes si nécessaire.
+    - Réexécution de l'ensemble des tests (non régressifs) pour garantir que les modifications n'ont pas introduit de nouveaux bugs.
+    
+    **Avantages appliqués à la correction des erreurs** :
+    - **Traçabilité** : chaque correction est associée à un test automatisé.
+    - **Non-régression** : les tests empêchent la réapparition des erreurs lors d'évolutions futures.
+    - **Couverture** : l'ensemble du comportement attendu de la classe `Initiation` est documenté et validé.
+    - **Confiance** : permet de refactoriser sereinement le code sans crainte de casser des fonctionnalités existantes.
