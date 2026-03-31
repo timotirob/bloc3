@@ -1,8 +1,8 @@
-**TP Étude de Cas : Hackat'Innov**
+## **TP Étude de Cas : Hackat'Innov**
 
-Dossier A – Gestion des participants
+**Dossier A – Gestion des participants**
 
-Mission A.1 – Évolution de la base de données pour la gestion des hackathons
+**Mission A.1 – Évolution de la base de données pour la gestion des hackathons**
 
 **Question A.1 :**
 
@@ -48,7 +48,7 @@ Mission A.1 – Évolution de la base de données pour la gestion des hackathons
 A.2.1. 1 Hackathon est associé à 1 seule heure de début, on justifie cela par la clé primaire du couple : idHackathon, dateHeureDebut. = 1 Hackathon → 1 heure de début
 
 A.2.2. Requête de la création de la table PLANNING en respectant les types de données et les contraintes d’intégrité référentielle 
-
+````sql
 create table Planning (
 
 idHackathon INT NOT NULL, 
@@ -65,7 +65,7 @@ CONSTRAINT FK_PLANNING_HACKATHON FOREIGN KEY (idHackathon) REFERENCES HACKATHON(
 
 CONSTRAINT FK_PLANNING_PHASE FOREIGN KEY (idPhase) REFERENCES PHASE(id) ON DELETE RESTRICT
 )
-
+````
 **Mission A.3 – Consultation du planning par participant**
 
 **Questions A.3 :**
@@ -73,7 +73,7 @@ CONSTRAINT FK_PLANNING_PHASE FOREIGN KEY (idPhase) REFERENCES PHASE(id) ON DELET
 Question A.3.1 : le choix de la "date et heure de début" comme clé du dictionnaire est pertinent pour garantir l’unicité des activités affichées dans le planning d’un participant pour une garantie de l’unicité technique des entrées dans le dictionnaire, empêchant tout doublon d’activités pour un même créneau horaire. Il permet ainsi d’assurer une cohérence métier et une facilité du tri chronologique automatique du planning du participant .
 
 Question A.3.2 : Algorithme permettant de remplir ce dictionnaire à partir des données de l’objet Hackathon et des inscriptions du Membre : 
-
+````php
 // Initialisation du dictionnaire
 planningParParticipant <- Nouveau Tableau Associatif()
 // 1. Parcours des événements du hackathon
@@ -96,7 +96,7 @@ Pour chaque unEvt dans unHackathon.lesEvenements faire
     Fin Si
 Fin Pour
 Retourner planningParParticipant
-
+````
 **Mission A.4 – Mise en place de déclencheurs (Triggers)**
 
 1. Contrôle de capacité
