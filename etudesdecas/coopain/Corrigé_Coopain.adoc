@@ -1,0 +1,298 @@
+= Proposition de Corrigé - TP Étude de Cas Coopain
+:toc: left
+:toc-title: Sommaire
+:icons: font
+
+== Mission 1 : Gestion des demandes d'insémination
+
+**Question 1.1 : Règle de gestion (Requête SQL)**
+
+La sous-requête avec `MIN(date)` et la condition `stockRestant >= 1` permettent de déduire la règle suivante : "Lors d'une demande d'insémination, le système sélectionne automatiquement le lot de paillettes **le plus ancien** (règle du Premier Entré, Premier Sort - FIFO) pour le taureau et le type de paillette choisis, à condition qu'il reste **au moins une paillette en stock** dans ce lot."
+
+**Question 1.2 : Provenance des informations imprimées**
+[cols="2,3", options="header"]
+|===
+| Information sur la paillette | Provenance / Transformation
+| Date de collecte | `Collecte.date` (à transformer au format AAJJJ)
+| N° d'agrément du CCS | Valeur constante (Paramètre de l'application Coopain)
+| N° national du taureau | `Taureau.idNational`
+| Code à barres | Concaténation de `Taureau.numeroIE`, Quantième (calculé à partir de `Collecte.date`) et `Lot.numero`
+| N° IE du taureau | `Taureau.numeroIE`
+| Quantième date de collecte | Calculé : Différence en jours entre le 01/01/2002 et `Collecte.date`
+| Numéro de lot | `Lot.numero`
+| Code de la race | `Race.code`
+| Nom du taureau | `Taureau.nom`
+|===
+
+**Question 1.3 : Requête des tarifs**
+[source,sql]
+----
+SELECT TP.libelle, T.prixPaillette
+FROM Tarif T
+JOIN TypePaillette TP ON T.idTypePaillette = TP.id
+WHERE T.idNationalTaureau = 'FR0103015562';
+----
+
+**Question 1.4 : Requête des stocks par taureau**
+[source,sql]
+----
+SELECT T.idNational, T.nom, SUM(L.stockRestant) AS stockTotal
+FROM Taureau T
+LEFT JOIN Lot L ON T.idNational = L.idNationalTaureau
+GROUP BY T.idNational, T.nom
+ORDER BY stockTotal ASC;
+----
+
+_Note : Pour certains leur IA leur donne une solution avec une sous requête corrélée, c'est Ok mais plus dur à écrire_
+
+**Question 1.4 : Avec sous requête corrélée**
+[source,sql]
+----
+SELECT
+T.idNational,
+T.nom,
+(SELECT SUM(L.stockRestant)
+FROM Lot L
+WHERE L.idNationalTaureau = T.idNational) AS stockTotal
+FROM Taureau T
+ORDER BY stockTotal ASC;
+----
+
+_Note : Mêmes résultats qu'avec la jointure mais un peu moins performant_
+
+**Question 1.5 : Évolution du schéma de données (Schéma relationnel)**
+
+* **Secteur** (#id, nom, description)
+* **Adherent** (#id, nom, prenom, adresse, tel, #idSecteur)
+* **Inseminateur** (#id, nom, prenom, numLicence, telPortable, #idSecteur)
+* **Vehicule** (#immatriculation, marque, modele, dateAchat)
+* **UtiliserVehicule** (#idInseminateur, #immatriculation)
+* **Vache** (#idNational, nom, #idAdherent)
+* **Demande** (#id, dateDemande, dateInsemination, heureInsemination, tempAmbiante, compteRendu, #idAdherent, #idVache, #idNationalTaureau, #idTypePaillette, #numeroLot)
+
+_Note : Les clés étrangères (#) lient la Demande à l'Adhérent, la Vache, et au Lot précis utilisé.Certains ont créé une nouvelle table pour distinfuer demande et insémination concrète, c'est Ok aussi_
+
+
+== Mission 2 : Nouvelles fonctionnalités (MobiSemin)
+
+=== Partie 1 : Implémentation
+**Question 2.1 : Scénarios d'erreur (Saisie tournée)**
+
+* **4.b** Le kilométrage de fin de tournée saisi est inférieur au kilométrage de début de tournée. Le système affiche un message d'erreur d'incohérence et demande de ressaisir la valeur.
+* **4.c** Le format de la saisie est incorrect (caractères alphabétiques au lieu de chiffres). Le système bloque la saisie et notifie l'utilisateur.
+
+_Note : D'autres propositions sont acceptées également_
+
+**Question 2.2 : Méthode `onCreate` de SQLite**
+[source,java]
+----
+    @Override
+    public void onCreate(SQLiteDatabase db) {
+        String strReq = "CREATE TABLE inseminateur(id INTEGER PRIMARY KEY AUTOINCREMENT, nom TEXT, prenom TEXT)";
+        db.execSQL(strReq);
+
+        strReq = "CREATE TABLE vehicule(id INTEGER PRIMARY KEY AUTOINCREMENT, immat TEXT, marque TEXT, modele TEXT, dateAchat TEXT)";
+        db.execSQL(strReq);
+
+        // CORRECTION : Création de la table histoKm avec clés étrangères
+        strReq = "CREATE TABLE histoKm("
+               + "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+               + "date TEXT, "
+               + "kmDebut INTEGER, "
+               + "kmFin INTEGER, "
+               + "idInsemin INTEGER, "
+               + "idVehicule INTEGER, "
+               + "FOREIGN KEY(idInsemin) REFERENCES inseminateur(id), "
+               + "FOREIGN KEY(idVehicule) REFERENCES vehicule(id))";
+        db.execSQL(strReq);
+    }
+----
+
+_Note :Certaines missions sont spécifiées dans les annexes, ici il fallait lire le commentaire pour constater que 3 tables étaient demandées et seulement 2 implémentées_
+
+
+=== Partie 2 : Audit de sécurité (DICP et Mobilité)
+**Question 2.3 : Perte du mobile (Risques et Solutions)**
+
+* **Confidentialité** : L'attaquant peut lire les données SQLite en clair (informations sur les adhérents, les tournées, les véhicules).
+* **Intégrité** : L'attaquant peut modifier la base locale (`kmFin`) avant la prochaine synchronisation, faussant ainsi les frais de déplacement.
+* **Solutions** : Mise en place d'un **MDM** (Mobile Device Management) pour effacer l'appareil à distance (Remote Wipe), obligation d'un code de déverrouillage fort, et utilisation de **SQLCipher** pour chiffrer le fichier de base de données local avec une clé matérielle.
+
+_Note :Une seule solution était demandée mais il est nécessaire de la détailler_
+
+**Question 2.4 : Vulnérabilité OWASP (Mot de passe)**
+Stocker ou manipuler un mot de passe en clair dans un attribut d'objet (`private String password;`) expose l'application à des fuites lors d'un dump mémoire, ou à l'interception si cet objet est sérialisé et transmis sur le réseau.
+
+**Recommandation** : Ne jamais stocker le mot de passe en clair. L'application doit utiliser des mots de passe hachés (ex: `Bcrypt`).
+
+_Note : les IA vont vous proposer d'utiliser un système de jetons d'authentification éphémères de type **JWT** (JSON Web Token). C'est Ok mais attention que cela va au delà de la question posée. Essayer d'aller au plus simple. Nous avons aborder JWT en dernière séance sur authentifiation session et cela sera pratiqué lors de la dernière étude de cas pucesIn_
+
+
+== Mission 3 : Gestion des tournées (POO)
+
+**Question 3.1.1 : Mécanisme de différenciation (Surcharge)**
+Il s'agit du mécanisme de **surcharge (overloading)** en Programmation Orientée Objet. Bien que les méthodes aient le même nom (`CATournee`), le compilateur Java les différencie par leur signature, c'est-à-dire le nombre et le type de leurs paramètres (l'une n'a pas de paramètre, l'autre prend un objet `TypePrestation`).
+
+**Question 3.1.2 : Méthode `getCoordGPS()`**
+[source,java]
+----
+public String getCoordGPS() {
+    return this.latitude + " " + this.longitude;
+}
+----
+
+_Note : Bon exemple de getter utile puisqu'il renvoie une donnée métier, les coordonnées GPS, à partir de 2 attributs_
+
+
+**Question 3.1.3 : Méthode `getAdherents()`**
+[source,java]
+----
+public ArrayList<Adherent> getAdherents() {
+    ArrayList<Adherent> listeAdherents = new ArrayList<>();
+
+    for (Visite v : this.laTournee.getLesVisites()) {
+        Adherent a = v.getLeAdherent();
+        // Vérification pour ne pas ajouter le même adhérent en doublon
+        if (!listeAdherents.contains(a)) {
+            listeAdherents.add(a);
+        }
+    }
+    return listeAdherents;
+}
+----
+
+_Note : En étude de cas, vous pouvez tous au moins en faire une partie. Exemple de barême: 6 points, dont 1 point pour l'initialisation de listeAdhérents, 2 points pour la boucle for, 2 points pour la condition, 1 point pour le return_
+
+
+**Question 3.1.4 : Méthode `montantAFacturer()`**
+[source,java]
+----
+public float montantAFacturer() {
+    float montantTotal = 0;
+    for (PrestationVisite pv : this.lesPrestationsVisite) {
+        montantTotal += pv.getNombreActes() * pv.getLeTypePrestation().getPrixForfaitaire();
+    }
+    return montantTotal;
+}
+----
+
+_Note : ce qui est évalué ici c'est un peu d'algo et surtout votre capacité de compréhension du modèle métier et la navigation entre classes.
+pv.getLeTypePrestation ramène un objet instance de TyprePrestation sur lequel on applique alors la méthode getPrixForfaitaire qui renvoie un entier.
+Très peu de maitrise sur cette partie, attention_
+
+**Question 3.2 : Tests unitaires (JUnit)**
+[source,java]
+----
+@Test
+public void testCATournee() {
+    // 1. Initial : 0 visite
+    assertEquals("Le CA initial n'est pas nul", 0.0f, gt.CATournee());
+
+    // 2. Après la 1ère visite : (3 * 100) + (1 * 10) = 310
+    Visite v1 = new Visite(adh1, "09:00");
+    v1.ajouterPrestationVisite(tp1, 3);
+    v1.ajouterPrestationVisite(tp2, 1);
+    gt.ajouterVisite(v1);
+    assertEquals("Erreur calcul visite 1", 310.0f, gt.CATournee());
+
+    // 3. Après la 2ème visite : 310 + (1 * 100) = 410
+    Visite v2 = new Visite(adh2, "10:30");
+    v2.ajouterPrestationVisite(tp1, 1);
+    gt.ajouterVisite(v2);
+    assertEquals("Erreur CA final de la tournée", 410.0f, gt.CATournee());
+}
+----
+
+_Note : ce qui est évalué ici c'est votre compréhension des tests unitaires. Le principe des tests unitaires est très simple mais ici ce n'est pas trivial de produire la valeur attendue car il faut calculer à partir des données d'initialisation. Utiliser les IA sans le faire soi même peut amener des désillusions_
+
+**Question 3.3 : Cybersécurité des API (L'attaque MitM)**
+
+Une attaque **Man-in-the-Middle (MitM)** consiste pour un pirate à s'intercaler entre le smartphone de l'inséminateur et le serveur Web de l'API (par exemple en créant un faux point d'accès Wi-Fi public). Il peut alors lire les données de synchronisation en clair.
+Pour contrer cela, le serveur doit impérativement utiliser le protocole **HTTPS** (couche de chiffrement **TLS/SSL**) afin de chiffrer le tunnel de communication de bout en bout.
+
+_Note : l'utilisation d'https est un standard dorénavant. Si nous ne l'utilisons pas en TP c'est simplement pour pouvoir débugger plus facilement_
+
+== Missions 4 et 5 : Validations Pratiques (Sandbox)
+
+Les missions 4 et 5 évaluent la capacité des étudiants à mettre en œuvre un prototype complet (Full-Stack).
+Voici les éléments clés permettant au correcteur de valider l'exercice :
+
+**Validation TDD (Mission 5.1)**
+Le test unitaire `testAjoutZeroActe()` doit obligatoirement inclure l'instanciation d'une visite, un appel avec `0` en argument, et une assertion vérifiant que `gt.CATournee()` retourne bien `0.0f`.
+
+**Validation JavaFX (Mission 5.2)**
+Le contrôleur JavaFX mis à jour doit comporter la trace de l'historique :
+[source,java]
+----
+// ... dans TourneeController.java ...
+@FXML private TextArea txtHistorique;
+
+// ... dans handleAjouterActe() ...
+if (typeSelectionne != null && nbActes > 0) {
+    visiteCourante.ajouterPrestationVisite(typeSelectionne, nbActes);
+    lblTotal.setText("CA Total de la tournée : " + gestionTournee.CATournee() + " €");
+
+    // VALIDATION DE L'AJOUT GRAPHIQUE
+    txtHistorique.appendText("- " + nbActes + "x " + typeSelectionne.getLibelle() + "\n");
+}
+----
+_Vous démontrez ainsi votre maîtrise de la liaison entre la vue (`@FXML`) et le code métier (Contrôleur)._
+
+=== Corrigé de la Mission 5.3 : Préparer une nouvelle tournée
+
+Voici les modifications techniques attendues pour implémenter la fonctionnalité de réinitialisation.
+
+**1. Modification de la Vue (`tournee.fxml`)**
+
+Ajouter un composant `<Button>` avec l'attribut `onAction` pointant vers la nouvelle méthode.
+
+[source,xml]
+----
+<Button text="Nouvelle Tournée" onAction="#handleNouvelleTournee" style="-fx-background-color: #6c757d; -fx-text-fill: white;"/>
+----
+
+**2. Modification du Contrôleur (`TourneeController.java`)**
+
+Vous devez créer la méthode associée pour réinitialiser à la fois l'état des objets métiers (mémoire) et l'état des composants graphiques (affichage).
+
+[source,java]
+----
+@FXML
+public void handleNouvelleTournee() {
+    // 1. Réinitialisation de la logique métier (écrasement des anciens objets)
+    gestionTournee = new GestionTournee(new Tournee());
+    visiteCourante = new Visite();
+    gestionTournee.ajouterVisite(visiteCourante);
+
+    // 2. Réinitialisation de l'interface graphique (IHM)
+    lblTotal.setText("CA Total de la tournée : 0.0 €");
+
+    if (txtHistorique != null) {
+        txtHistorique.clear(); // Vide la zone de texte multi-lignes
+    }
+
+    lblMessage.setText("");
+    txtNbActes.setText("1"); // Remise à la valeur par défaut
+}
+----
+
+== Corrigé Questions de synthèse : Mobilité et ORM
+
+1. **Traçabilité Paillette** : Elle doit mentionner l'identifiant du taureau, son code racial, la date de collecte et le numéro de lot. Cela permet de remonter toute la chaîne génétique en cas d'anomalie sanitaire sur un veau.
+2. **Choix de SQLite** : C'est une base de données "embarquée" (un seul fichier, sans serveur). Elle est parfaite pour le mobile car elle permet de travailler en mode déconnecté (dans les fermes sans réseau) avant de synchroniser avec le serveur central.
++
+c'est la BDD par défaut d'Android, de Chrome et de Brave.
++
+Par ailleurs , quand on démarre un projet Laravel, cela permet de prototyper rapidement, pas de port à indiquer, d'username et password.
+
+3. **Risques DICP sur mobile** :
+* **Confidentialité** : Accès aux données des éleveurs par un tiers.
+* **Intégrité** : Modification frauduleuse des actes d'insémination.
+* **Disponibilité** : Perte de la tournée de la journée si aucune sauvegarde n'est faite.
+4. **Hachage vs Clair** : Le hachage est irréversible. On stocke l'empreinte (ex: SHA-256) du mot de passe. Lors de la connexion, on hache la saisie et on compare les empreintes. Si la base est volée, les mots de passe ne sont pas exploitables.
+5. **Man-in-the-Middle** : L'attaquant s'interpose entre le smartphone et le serveur (souvent via un faux Wi-Fi). Il peut intercepter et modifier les données de synchronisation s'il n'y a pas de chiffrement TLS (HTTPS).
+6. **Bénéfices de l'ORM** : Hibernate transforme automatiquement les lignes de la base de données en objets Java (et inversement). Cela évite d'écrire manuellement des centaines de requêtes SQL `INSERT` ou `SELECT` répétitives.
+7. **Surcharge de méthode** : On peut avoir `calculerCA()` (total de la journée) et `calculerCA(TypePrestation t)` (total pour un type précis). La signature change mais le nom reste le même, facilitant l'usage du code. La surcharge (overloading) existe en Java mais n'est pas possible telle quelle en PHP
+8. **Annotation @BeforeEach** : Elle s'exécute avant chaque méthode de test. Elle sert à réinitialiser l'environnement (ex: créer un nouvel objet `Vendeur` propre) pour s'assurer qu'un test n'influence pas le suivant.
+9. **Test du cas "0 acte"** : C'est un test aux limites. Cela permet de vérifier que l'application ne génère pas de facture vide ou d'erreur de calcul si l'inséminateur se déplace mais ne réalise pas l'acte (ex: vache malade).
+10. **Liaison UI/Service** : Le contrôleur récupère la saisie de l'utilisateur, appelle les méthodes de `ApiService`, reçoit la réponse (souvent une liste d'objets) et met à jour les composants JavaFX (comme la `ListView` ou `TableView`).

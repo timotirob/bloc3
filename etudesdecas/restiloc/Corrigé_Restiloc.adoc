@@ -1,0 +1,181 @@
+= ÉLÉMENTS DE CORRECTION : Étude de Cas RestiLoc
+:author: Dossier de correction - BTS SIO SLAM
+:revdate: 2026-02-24
+:toc: macro
+:toc-title: Sommaire du corrigé
+
+toc::[]
+
+== Mission 1 : Gestion des prestations de remise en état (PREE)
+
+=== Question 1.1 : Modification de la structure de la base de données
+L'objectif est d'intégrer les PREE (Prestations de Remise en État) identifiées par l'expert. Un véhicule correspond à un dossier, et un dossier peut contenir plusieurs prestations.
+
+**Solution par Schéma Relationnel (Optimisé pour étudiants) :**
+
+* **PREE** ([.underline]#refDossier#, [.underline]#numOrdre#, libelle, description, photo, typePREE, elementCarrosserie, traitementPeinture, refPiece, qtePiece
+** **refDossier** : Clé étrangère en référence à `Dossier(refDossier)`.
+** **numOrdre** : Entier (1 à n) permettant d'identifier la prestation au sein du dossier.
+** **typePREE** : Colonne permettant de distinguer 'Peinture' de 'Pièce'.
+
+**Note pédagogique :** On utilise ici une "Table Unique" Bottom Up pour gérer l'héritage. Les colonnes spécifiques à la peinture seront à `NULL` pour une prestation de type pièce, et inversement. C'est la solution la plus simple à implémenter pour vous qui débutez en modélisation et en SQL. Pour ceux qui veulent l'état de l'art me demander mon PPT sur les façons d'implémenter l'héritage en SQL
+
+== Mission 2 : Gestion des rendez-vous (C#)
+
+=== Question 2.1 : Justification de la classe abstraite
+La classe `Expertise` est **abstraite** car elle représente un concept générique. Dans le monde réel de RestiLoc, une expertise est soit un `RendezVousClient`, soit un `PoolGarage`. On ne peut pas créer une expertise "tout court". En programmation, cela permet de factoriser les attributs communs (date, immatriculation) tout en interdisant l'instanciation directe de la classe mère.
+
+=== Question 2.2 à 2.5 : Développement des méthodes
+
+[source,csharp]
+----
+// 2.2 Ajouter une expertise de type Pool
+public void AjouterExpertisePool(string dossier, DateTime dateHeure, string lieu, string adresse, string immat, string marque, string modele) {
+    PoolGarage uneExp = new PoolGarage(dossier, dateHeure, lieu, adresse, immat, marque, modele);
+    this.lesExpertises.Add(uneExp);
+}
+
+// 2.3 Getter du motif d'indisponibilité
+public string GetMotif() {
+    return this.motif;
+}
+
+// 2.4 Liste des expertises avec indisponibilité
+public List<Expertise> LesExpertisesIndispos() {
+    List<Expertise> lesIndispos = new List<Expertise>();
+    foreach(Expertise e in this.lesExpertises) {
+        // On vérifie si l'objet Indisponibilite existe pour cette expertise
+        if (e.GetIndisponibilite() != null) {
+            lesIndispos.Add(e);
+        }
+    }
+    return lesIndispos;
+}
+
+// 2.5 Comptage par motif
+public int NbIndisponibilites(string leMotif) {
+    int nb = 0;
+    foreach(Expertise e in this.LesExpertisesIndispos()) {
+        if (e.GetIndisponibilite().GetMotif() == leMotif) {
+            nb++;
+        }
+    }
+    return nb;
+}
+----
+
+== Mission 3 : Application et Architecture
+
+=== Question 3.1 : Requêtes SQL
+
+[source,sql]
+----
+-- 1. Liste des missions triée par date et heure
+SELECT dateMission, heureDebut, immatriculation, marque, modele, nom, prenom
+FROM MissionExpertise M
+JOIN Expert E ON M.idExpert = E.idExpert
+JOIN VehiculeExpertise V ON M.immatriculation = V.immatriculation
+ORDER BY dateMission ASC, heureDebut ASC;
+
+-- 2. Nombre de véhicules expertisés en 2018 par chaque expert
+SELECT idExpert, COUNT(*) AS nbVehicules
+FROM MissionExpertise
+WHERE YEAR(dateMission) = 2018
+GROUP BY idExpert;
+
+-- 3. Garages ayant plus de 100 missions créées
+SELECT idGarage, nom, ville
+FROM Garage
+WHERE idGarage IN (
+    SELECT idGarage FROM MissionExpertise
+    GROUP BY idGarage HAVING COUNT(*) > 100
+);
+
+-- remarque: la solution donnée est optimale mais un correcteur pourrait se contenter de la sous requête sans
+-- avoir le nom et la ville du garage
+-- On peut également faire comme d'habitude avec une jointure exactement pareil
+-- mais là la difficulté consistait à identifier la nature de la requête demandée
+-- Alternative
+SELECT g.idGarage, g.nom, g.ville
+FROM Garage g
+INNER JOIN MissionExpertise me idGarage
+ON g.idGarage = me.idGarage
+GROUP BY g.idGarage, g.nom, g.ville
+HAVING COUNT(*) > 100
+;
+
+----
+
+=== Question 3.2 : Schéma d'architecture
+1. **SGBD (SQL Server)** : Stockage des données. Répond aux requêtes du serveur Web.
+2. **Serveur Web (Apache/PHP)** : Reçoit les requêtes HTTP de l'application, interroge la base de données via PDO, et transforme le résultat en format **JSON**.
+3. **Client (JavaFX / Android)** : Consomme le JSON via une requête HTTP, le décode, et peuple l'interface graphique (TableView).
+
+== Mission 4 : Cybersécurité et RGPD
+
+=== 4.1 Analyse DICP
+* **Question 4.1.1 (Risques)** :
+** **Disponibilité** : Panne du serveur Web empêchant les experts de voir leur planning. *Mesure* : Redondance des serveurs.
+** **Confidentialité** : Un expert accède aux dossiers d'un autre expert. *Mesure* : Authentification forte et contrôle d'accès.
+* **Question 4.1.2 (Photo)** : La photo vise la **Preuve** (Non-répudiation). Elle prouve l'état réel du véhicule pour éviter toute contestation du client lors de la facturation.
+
+=== 4.2 Protection des données (RGPD)
+* **Question 4.2.1** : Une donnée personnelle identifie une personne (Nom). Une donnée sensible concerne la vie privée profonde (Santé, Religion). Les données de la table `Expert` sont **personnelles** mais **non sensibles**.
+* **Question 4.2.2** : Le **hachage** est une fonction irréversible. On préfère le hachage car même si la base est volée, les mots de passe ne peuvent pas être "déchiffrés". *Algorithme recommandé* : BCrypt ou Argon2.
+
+=== 4.3 Sécurité applicative
+* **Question 4.3.1** : Injection SQL à la ligne 11 du PHP : `$sql .= " WHERE idExpert = ".$id;`. L'identifiant est concaténé directement.
+* **Question 4.3.2** : Faille **IDOR**. L'application demande `idExpert=2`. Un utilisateur peut modifier ce chiffre dans l'URL pour voir les missions d'un collègue car le serveur ne vérifie pas l'identité de celui qui demande.
+
+== Mission 6 : Corrigé des Challenges
+
+=== Challenge 1 : Correction de l'IDOR
+Pour corriger l'IDOR, le serveur ne doit pas recevoir l'ID de l'expert en paramètre GET, mais le récupérer via un **Token de session sécurisé** généré au moment de la connexion.
+
+=== Challenge 2 : Trigger d'audit (MySQL)
+[source,sql]
+----
+DELIMITER //
+CREATE TRIGGER trig_audit_delete_mission
+AFTER DELETE ON MissionExpertise
+FOR EACH ROW
+BEGIN
+    INSERT INTO AUDIT_SUPPRESSION (idMissionSupprimee, dateSuppression)
+    VALUES (OLD.idMission, NOW());
+END //
+DELIMITER ;
+----
+
+=== Challenge 3 : Logique JavaFX (Indispos)
+Pour gérer l'affichage en rouge, on modifie le contrôleur pour utiliser une `RowFactory` :
+[source,java]
+----
+tableMissions.setRowFactory(tv -> new TableRow<Mission>() {
+    @Override
+    protected void updateItem(Mission item, boolean empty) {
+        super.updateItem(item, empty);
+        if (item == null || item.getHeureDebut() == null) {
+            setStyle("");
+        } else if (item.isIndisponible()) {
+            setStyle("-fx-background-color: #ffcccc;"); // Fond rouge clair
+        } else {
+            setStyle("");
+        }
+    }
+});
+----
+
+== Corrigé Questions de synthèse - Restiloc : Services Web et Audit
+
+1. **Modélisation PRE** : Une table mère `Prestation` (colonnes communes) et deux tables filles `Peinture` (surface, teinte) et `Piece` (référence, prix) liées par une clé étrangère (héritage par table fille).
+Ou bien Bottom Up comme dans correction Etude de cas. Cf PPT sur Héritage dans la modélisation diagramme de classe en Analyse
+
+2. **Classe Abstraite Expertise** : On ne peut pas créer une expertise "générique". Elle doit forcément être d'un type précis (Carrosserie ou Mécanique). L'abstraction garantit que toutes les expertises auront une méthode `estimerCout()` obligatoire.
+3. **Architecture** : Le client JavaFX fait une requête HTTP vers un script PHP. Le PHP interroge la base MySQL via PDO, encode les résultats en JSON et les renvoie au client Java qui les désérialise en objets.
+4. **Vulnérabilité IDOR** : Si l'API est `details.php?id=12`, un utilisateur peut changer l'ID pour voir l'expertise d'un autre client (`id=13`). L'API doit vérifier que l'ID appartient bien à l'utilisateur authentifié.
+5. **Nécessité du HTTPS** : L'authentification envoie un login/pass. Sans HTTPS, ces informations et le jeton de session circulent en clair sur le réseau et peuvent être volés par un renifleur de paquets (Sniffer).
+6. **Donnée Personnelle vs Sensible** : Un nom est une donnée personnelle. Une origine raciale, une opinion politique ou une donnée de santé est une donnée sensible (interdite de stockage sans dérogation stricte et sécurité renforcée).
+7. **Hachage vs Chiffrement** : Le chiffrement est bidirectionnel (on peut retrouver l'original avec la clé). Le hachage est à sens unique (plus sécurisé pour les mots de passe car même l'administrateur système ne peut pas les lire).
+8. **DICP et Photo** : C'est la **Preuve** (ou Non-répudiation). La photo horodatée prouve l'état réel du véhicule au moment de l'expertise, empêchant toute contestation ultérieure du client ou de l'assureur.
+9. **Table virtuelle OLD** : Dans un trigger `BEFORE DELETE`, MySQL place les données de la ligne qui va être supprimée dans `OLD`. On peut ainsi copier l'ID et l'auteur de la suppression dans une table d'audit avant qu'ils ne disparaissent.
+10. **Désérialisation Jackson** : La bibliothèque inspecte les clés du JSON. Si elle trouve `"titre": "...",` elle cherche automatiquement une méthode `setTitre(String t)` dans la classe Java correspondante pour remplir l'objet.

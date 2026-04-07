@@ -1,0 +1,281 @@
+= Proposition de Corrigé - TP Étude de Cas Hackat'Innov
+:toc: left
+:toc-title: Sommaire
+:icons: font
+
+== Dossier A – Gestion des participants
+
+=== Mission A.1 – Évolution de la base de données
+**Question A.1 : Schéma relationnel étendu**
+Pour gérer les inscriptions, les équipes et les votes, il faut ajouter ou modifier les tables suivantes :
+
+* **EQUIPE** (#id, nomEquipe, idHackathon, idProjet, idChefDeProjet)
+_Clés étrangères : idHackathon -> HACKATHON(id), idProjet -> PROJET(id), idChefDeProjet -> PARTICIPANT(id)_
+* **PARTICIPANT** (#id, nom, prenom, mel, tel, portfolio, dateSaisie, numInscription, idHackathon, idEquipe)
+_Clés étrangères : idHackathon -> HACKATHON(id), idEquipe -> EQUIPE(id)_
+_Note : Le numInscription est séquentiel au sein d'un Hackathon._
+* **JURY** (#idMembre, #idHackathon)
+_Clés étrangères : idMembre -> MEMBRE(id), idHackathon -> HACKATHON(id)_
+* **VOTE** (#idJury, #idEquipe, note)
+_Clés étrangères : idJury -> JURY(idMembre), idEquipe -> EQUIPE(id)_
+
+=== Mission A.2 – Édition du planning
+**Question A.2.1 : Justification de la clé primaire**
+La clé primaire de la table `PLANNING` est composée du couple `(idHackathon, dateHeureDebut)`. Par définition, une clé primaire est unique. Par conséquent, il est impossible d'insérer deux enregistrements ayant la même heure de début pour un même hackathon, ce qui garantit la règle de gestion.
+
+**Question A.2.2 : Requête de création de la table**
+[source,sql]
+----
+CREATE TABLE PLANNING (
+    idHackathon INT,
+    dateHeureDebut DATETIME,
+    idPhase INT NOT NULL,
+    duree INT NOT NULL,
+    CONSTRAINT pk_planning PRIMARY KEY (idHackathon, dateHeureDebut),
+    CONSTRAINT fk_planning_hackathon FOREIGN KEY (idHackathon) REFERENCES HACKATHON (id) ON DELETE CASCADE,
+    CONSTRAINT fk_planning_phase FOREIGN KEY (idPhase) REFERENCES PHASE (id)
+);
+----
+
+=== Mission A.3 – Consultation du planning
+**Question A.3.1 : Pertinence de la clé du dictionnaire**
+
+Un participant ne possède pas le don d'ubiquité. La "date et heure de début" garantit qu'il n'y a pas de chevauchement : un participant ne peut réaliser qu'une seule activité à une heure précise. C'est donc une clé d'unicité idéale pour le tableau associatif.
+
+**Question A.3.2 : Remplissage du dictionnaire `planningParParticipant`**
+[source,php]
+----
+public function planningParParticipant(string $unMelPart): array {
+    $dicoEvtPart = [];
+    foreach ($this->lesEvenements as $evt) {
+        if ($evt instanceof Initiation) {
+            foreach ($evt->getLesMembresParticipants() as $unMembre) {
+                if ($unMembre->getMel() === $unMelPart) {
+                    $dicoEvtPart[$evt->getDateHeure()] = $evt->getLibelle();
+                }
+            }
+        }
+    }
+    return $dicoEvtPart;
+}
+----
+
+=== Mission A.4 – Déclencheurs (Triggers)
+**1. Contrôle de capacité (tg_check_capacite)**
+[source,sql]
+----
+DELIMITER //
+CREATE TRIGGER tg_check_capacite
+BEFORE INSERT ON INSCRIRE
+FOR EACH ROW
+BEGIN
+    DECLARE places_max INT;
+    DECLARE inscrits_actuels INT;
+
+    SELECT nbPlaces INTO places_max FROM INITIATION WHERE idEvenementInit = NEW.idEvenementInit;
+    SELECT COUNT(*) INTO inscrits_actuels FROM INSCRIRE WHERE idEvenementInit = NEW.idEvenementInit;
+
+    IF inscrits_actuels >= places_max THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Capacité maximale atteinte pour cette initiation.';
+    END IF;
+END //
+DELIMITER ;
+----
+
+**2. Audit des votes (tg_audit_votes)**
+[source,sql]
+----
+DELIMITER //
+CREATE TRIGGER tg_audit_votes
+AFTER UPDATE ON VOTE
+FOR EACH ROW
+BEGIN
+    INSERT INTO LOG_VOTES (idJury, idEquipe, ancienneNote, nouvelleNote, dateModif, utilisateur)
+    VALUES (OLD.idJury, OLD.idEquipe, OLD.note, NEW.note, NOW(), USER());
+END //
+DELIMITER ;
+----
+
+== Dossier B – Gestion d’évènements (Hackat'Event)
+
+=== Mission B.1 et B.2 – POO PHP (Classe Initiation)
+
+**a) Correction de l'ajout de matériel**
+[source,php]
+----
+public function ajouterMateriel(?string $unLibelleMateriel, int $uneQuantite): void {
+    if ($unLibelleMateriel !== null && $uneQuantite > 0) {
+        if (!array_key_exists($unLibelleMateriel, $this->lesMateriels)) {
+            $this->lesMateriels[$unLibelleMateriel] = $uneQuantite;
+        }
+    }
+}
+----
+
+**b) Constructeur complet**
+[source,php]
+----
+public function __construct(string $libelle, string $dateHeure, string $duree, string $salle, Membre $lAnimateur, string $leTypePublic, int $nb) {
+    parent::__construct($libelle, $dateHeure, $duree, $salle, $lAnimateur, $leTypePublic);
+    $this->setNbPlaces($nb);
+}
+----
+
+**c) Méthode `ajouterParticipant`**
+[source,php]
+----
+public function ajouterParticipant(Membre $unMembre): bool {
+    if (count($this->lesMembresParticipants) < $this->nbPlaces) {
+        $this->lesMembresParticipants[] = $unMembre;
+        return true;
+    }
+    return false;
+}
+----
+
+**d) Méthode `lesParticipantsToJson` avec anonymisation RGPD (B.3.1)**
+[source,php]
+----
+private function lesParticipantsToJson(): array {
+    $participantsClean = [];
+    foreach ($this->lesMembresParticipants as $participant) {
+        $participantsClean[] = [
+            'prenom' => $participant->getPrenom(),
+            'nom'    => substr($participant->getNom(), 0, 1) . '.' // Initial pour RGPD
+        ];
+    }
+    return $participantsClean;
+}
+----
+
+**e) Méthode `toJson` sécurisée**
+[source,php]
+----
+public function toJson(): string {
+    $data = [
+        'libelle' => $this->libelle,
+        'dateHeure' => $this->dateHeure,
+        'nbPlaces' => $this->nbPlaces,
+        'animateur' => json_decode($this->lAnimateur->toJson(), true),
+        'materiels' => []
+    ];
+
+    foreach ($this->lesMateriels as $lib => $qte) {
+        $data['materiels'][] = ['libelle' => $lib, 'quantite' => $qte];
+    }
+
+    if (!empty($this->lesMembresParticipants)) {
+        $data['participants'] = $this->lesParticipantsToJson();
+    }
+
+    return json_encode($data, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+}
+----
+
+=== Question B.3 – Analyse des vulnérabilités et Cybersécurité (DICP)
+
+**Question B.3.1 (Confidentialité / RGPD) :**
+
+La classe `Membre` contient des données à caractère personnel sensibles (adresse email, numéro de téléphone, nom complet).
+Rendre ces informations accessibles publiquement et sans authentification est une violation de la **Confidentialité** et du principe de minimisation du RGPD. La solution est l'anonymisation dans la méthode `lesParticipantsToJson` (Ne conserver que le prénom et l'initiale du nom, voir code ci-dessus).
+
+**Question B.3.2 (Intégrité / Robustesse) :**
+
+La méthode initiale construit le JSON à la main via concaténation. Si une chaîne contient des guillemets (comme `"Blockchain"`), cela va "casser" la structure du JSON en fermant prématurément une clé. L'application mobile recevra un JSON corrompu et plantera (perte de **Disponibilité/Intégrité**).
+
+**Question B.3.3 (Bonne pratique) :**
+
+Il faut systématiquement utiliser la fonction native `json_encode()` de PHP. Elle échappe automatiquement les caractères spéciaux et garantit la validité stricte du format.
+
+
+== Dossier C – Gestion des recherches (Mobile / API Web)
+
+**Question C.1 :** L'instruction `{{lesHackathons.length}}` dans Vue.js permet d'afficher dynamiquement le nombre total de hackathons retournés par la recherche.
+
+**Question C.2 : Ajout du thème**
+_Dans le fichier liste.vue :_
+[source,html]
+----
+<th>Date</th>
+<th>Ville</th>
+<th>Thème</th> ...
+<td>{{hackathon.dateDebut}}</td>
+<td>{{hackathon.ville}}</td>
+<td>{{hackathon.theme}}</td>
+----
+_Dans l'API (Ligne 8) :_
+
+[source,php]
+----
+$sql = 'SELECT DATE_FORMAT(dateHeureDebut, "%d/%m/%Y") AS dateDebut, ville, theme
+FROM HACKATHON
+WHERE ville LIKE :critere OR theme LIKE :critere
+ORDER BY dateHeureDebut, ville';
+----
+
+**Question C.3 : Requêtes avancées**
+
+*a)* Le `LEFT OUTER JOIN` permet de lister **tous** les évènements de la table `EVENEMENT`, même si certains ne sont ni des initiations ni des conférences (ou si les données enfants manquent). Un `INNER JOIN` masquerait ces enregistrements.
+
+*b)* Requête complétée :
+[source,sql]
+----
+SELECT E.libelle, I.nbplaces, C.theme, E.dateHeure, E.salle, M.nom, M.prenom
+FROM EVENEMENT E
+LEFT OUTER JOIN INITIATION I ON E.id = I.idEvenementInit
+LEFT OUTER JOIN CONFERENCE C ON E.id = C.idEvenementConf
+JOIN MEMBRE M ON E.idAnimateur = M.id
+ORDER BY E.dateHeure ASC;
+----
+
+**Question C.4 : Vue des inscrits**
+[source,sql]
+----
+CREATE VIEW vue_statistiques_initiation AS
+SELECT I.idEvenementInit, COUNT(INS.idMembre) AS nombreInscrits
+FROM INITIATION I
+LEFT OUTER JOIN INSCRIRE INS ON I.idEvenementInit = INS.idEvenementInit
+GROUP BY I.idEvenementInit;
+----
+
+**Question C.5 : Sécurisation de l'API (Injection SQL)**
+
+*C.5.1 (Analyse) :* En concaténant directement `$critere = $_GET['recherche']`, l'API est vulnérable aux **injections SQL**. Un attaquant pourrait y insérer des commandes malveillantes. Cela compromet l'**Intégrité** (modification de la base) et la **Confidentialité** (lecture de données cachées).
+
+*C.5.2 (Correction PDO) :*
+[source,php]
+----
+$critere = filter_input(INPUT_GET, 'recherche', FILTER_SANITIZE_FULL_SPECIAL_CHARS) ?? '';
+$sql = "SELECT id, dateHeureDebut, ville, theme FROM HACKATHON
+WHERE ville LIKE :critere OR theme LIKE :critere";
+
+$stmt = $pdo->prepare($sql);
+$stmt->bindValue(':critere', '%' . $critere . '%', PDO::PARAM_STR);
+$stmt->execute();
+
+$resultat = $stmt->fetchAll(PDO::FETCH_ASSOC);
+echo json_encode($resultat);
+----
+
+
+== Dossier D – Gestion des votes et de l'infrastructure
+
+**Question D.1 : Conséquence malveillante**
+
+Une personne malintentionnée pourrait altérer le système de vote pour faire gagner un projet de faible qualité, ce qui ruinerait la réputation du Hackathon, créerait un sentiment d'injustice chez les participants et ferait fuir les sponsors.
+
+**Question D.2 : Intérêt de la DMZ**
+
+Placer le serveur de base de données MySQL dans la "Zone Privée" (réseau local) empêche tout accès direct depuis Internet. Même si le serveur Web (Apache) situé dans la DMZ est compromis par un pirate, celui-ci n'aura pas un accès réseau direct à la base de données, limitant ainsi la propagation de l'attaque.
+
+**Question D.3 : OWASP et Architecture**
+[cols="2,3", options="header"]
+|===
+| Point de vigilance | Élément(s) de l'architecture concerné(s)
+| 1. Utiliser HTTPS | Serveur Web Apache (DMZ) et liaison Smartphone (Internet)
+| 2. Requêtes préparées | Code source API PHP (Serveur Web DMZ)
+| 3. Injections SQL | Base de données MySQL (Zone Privée) / Code PHP (DMZ)
+| 4. Wi-Fi sécurisé | Équipement de l'utilisateur (Smartphone / Routeur public)
+| 5. Configuration des droits | Serveur MySQL et Système d'exploitation (Linux/Windows)
+| 6. Mise à jour des libs | Serveur Web (Apache/PHP), Serveur BDD (MySQL) et framework Vue.js
+|===
